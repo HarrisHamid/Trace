@@ -29,7 +29,7 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 120
 target-version = "py314"
-extend-exclude = ["tests/fixtures", "web", "third_party", "out"]
+extend-exclude = ["tests/fixtures", "web", "third_party", "out", "data/mock/source"]
 
 [tool.ruff.lint.per-file-ignores]
 # Pre-existing style findings. The broad excepts are deliberate guards around jedi.

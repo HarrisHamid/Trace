@@ -17,5 +17,6 @@ class Settings(BaseSettings):
     meta_model: str = ""
 
     trace_data_dir: Path = REPO_ROOT / "data" / "mock"
+    trace_source_dir: Path = REPO_ROOT / "data" / "mock" / "source"
     trace_web_dist: Path = REPO_ROOT / "web" / "dist"
     trace_replay_delay_seconds: float = 0.3

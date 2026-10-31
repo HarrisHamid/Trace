@@ -74,6 +74,45 @@ def test_final_path_has_an_unverified_claim_and_a_gap(events, graph):
     assert {s.node_id for s in final.steps} <= {n.id for n in graph.nodes}
 
 
+def source_lines(node):
+    return (MOCK / "source" / node.file).read_text().splitlines()
+
+
+def test_source_stubs_match_the_graph_line_numbers(graph):
+    for node in graph.nodes:
+        if node.type == "external":
+            continue
+        lines = source_lines(node)
+        assert node.line_end <= len(lines)
+        span = "\n".join(lines[node.line_start - 1 : node.line_end])
+        if node.signature:
+            assert node.signature in span
+        if node.type == "module":
+            assert lines[0] == f'"""{node.docstring}"""'
+
+
+def test_source_stubs_hold_the_edge_lines(graph):
+    names = {n.id: n.name.split(".")[-1] for n in graph.nodes}
+    files = {n.id: n for n in graph.nodes}
+    for edge in graph.edges:
+        if edge.type not in {"calls", "uncertain"} or files[edge.target].type == "external":
+            continue
+        line = source_lines(files[edge.source])[edge.line - 1]
+        assert names[edge.target] in line or "rehash" in line
+
+
+def test_claim_quotes_are_in_the_source(events, graph):
+    nodes = {n.id: n for n in graph.nodes}
+    steps = next(e for e in events if e.type == "final_path").steps
+    for index, step in enumerate(steps):
+        for claim in step.claims:
+            if claim.quote:
+                # A gap is about the link into this step, so its quote sits at the call site in the previous step.
+                node = nodes[steps[index - 1].node_id if claim.status == "gap" else step.node_id]
+                span = source_lines(node)[node.line_start - 1 : node.line_end]
+                assert any(claim.quote in line for line in span)
+
+
 def test_checks_decoys_come_from_sibling_functions(checks, graph):
     assert len(checks.checks) == 5
     nodes = {n.id: n for n in graph.nodes}
