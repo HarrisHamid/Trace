@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import ast
 import os
-import re
 import subprocess
 import sys
 from collections import Counter
@@ -22,10 +21,6 @@ HTTP_METHODS = {"get", "post", "put", "delete", "patch", "options", "head", "tra
 ROUTER_FACTORIES = {"APIRouter": "router", "FastAPI": "app", "Flask": "app", "Blueprint": "router"}
 ROUTER_NAME_HINTS = {"router", "app", "api", "api_router", "bp", "blueprint"}
 DEPENDS_NAMES = {"Depends", "Security"}
-
-# PEP 758 (Python 3.14): `except A, B:` without parentheses. Rewritten to
-# `except(A, B):` -- same columns for every token before the colon.
-PEP758_RE = re.compile(r"(?m)^([ \t]*)except (?![(*])([^:#()\n]+,[^:#\n]*?)[ \t]*:")
 
 
 @dataclass
@@ -50,11 +45,10 @@ class Classification:
 
 
 class GraphBuilder:
-    def __init__(self, repo: str, root: str, strict_parse: bool = False):
+    def __init__(self, repo: str, root: str):
         self.repo = os.path.realpath(repo)
         self.root_rel = root.strip("/") or "."
         self.root = os.path.realpath(os.path.join(self.repo, root))
-        self.strict_parse = strict_parse
         self.project = jedi.Project(self.root)
         self.files: dict[str, FileInfo] = {}
         self.nodes: dict[str, dict] = {}
@@ -137,24 +131,16 @@ class GraphBuilder:
             try:
                 fi.tree = ast.parse(source, filename=rel)
             except SyntaxError as exc:
-                failure = {
-                    "file": fi.repo_rel,
-                    "error": f"SyntaxError: {exc.msg}",
-                    "line": exc.lineno,
-                    "python": sys.version.split()[0],
-                    "recovered": False,
-                    "recovery": None,
-                }
-                if not self.strict_parse:
-                    shimmed, n = PEP758_RE.subn(r"\1except(\2):", source)
-                    if n:
-                        try:
-                            fi.tree = ast.parse(shimmed, filename=rel)
-                            failure["recovered"] = True
-                            failure["recovery"] = f"pep758_except_shim ({n} rewrite(s), columns preserved)"
-                        except SyntaxError as exc2:
-                            failure["error"] += f"; still failing after shim: {exc2.msg} line {exc2.lineno}"
-                self.parse_failures.append(failure)
+                self.parse_failures.append(
+                    {
+                        "file": fi.repo_rel,
+                        "error": f"SyntaxError: {exc.msg}",
+                        "line": exc.lineno,
+                        "python": sys.version.split()[0],
+                        "recovered": False,
+                        "recovery": None,
+                    }
+                )
         # `--root` itself may not be a package; every top-level dir/module counts.
 
     # ------------------------------------------------------------ pass 1: nodes
@@ -830,7 +816,6 @@ class GraphBuilder:
             "python": sys.version.split()[0],
             "jedi": jedi.__version__,
             "networkx": nx.__version__,
-            "strict_parse": self.strict_parse,
             "included_files": [f.repo_rel for f in self.files.values()],
             "excluded_dirs": [
                 {**d, "path": os.path.normpath(os.path.join(self.root_rel, d["path"])).replace(os.sep, "/")}

@@ -31,6 +31,10 @@ line-length = 120
 target-version = "py314"
 extend-exclude = ["tests/fixtures", "web", "third_party", "out"]
 
+[tool.ruff.lint.per-file-ignores]
+# Pre-existing style findings. The broad excepts are deliberate guards around jedi.
+"backend/trace/parser/*" = ["BLE001", "S112", "SIM102", "ISC004"]
+
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
