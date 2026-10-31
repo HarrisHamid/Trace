@@ -37,7 +37,7 @@ mental space, make something possible that wasn't before").
 ## Hackathon context that constrains every decision
 
 Event: **Meta Global AI Developer Hackathon** (Meta + Cerebral Valley). Solo entry. Building period
-Oct 27 – Nov 4, 2026. Prize tracks are Indie Developer and Startups; Trace is presumably Indie **(confirm on
+Oct 26 – Nov 4, 2026. Prize tracks are Indie Developer and Startups; Trace is presumably Indie **(confirm on
 the submission page)**.
 
 Official rules (from the participant guide):
@@ -51,8 +51,11 @@ Official rules (from the participant guide):
 - **Must use Meta models** (Muse Spark series, Muse Wonder, Muse Image, Muse Voice Transcribe, SAM 3.1 via
   Meta Model API, or open-weight Muse Glimmer / Muse Spark Open). Stage 1 is pass/fail on this.
 - Solo participation is allowed. $150 Meta API credits are claimable by Nov 4 9 PM ET (card required).
-- Not stated in the guide: any ban on third-party AI coding agents. Not confirmed in writing by organizers
-  **(unverified; ask in Discord #questions)**. The repo keeps a NOTES.md log of AI-written code regardless.
+- Per the organizers' Discord guidance (2026-10-31): Muse models must power the app itself, including its agent and tool
+  calling. The rules do not bar other coding agents during development, and they list Muse Code as an option, not a
+  requirement. The repo keeps a NOTES.md log of AI-written code regardless.
+- Using code, data or assets without the rights to them is a disqualifying rule, and so is a demo where judges can't tell
+  what was built during the event.
 
 Judging: Stage 1 pass/fail; Stage 2 rubric 0–10: **Impact 30%, Use of Meta AI tooling 25%, Technical Depth &
 Execution 20%, Demo 25%**; Stage 3: top 5 per track are judged again live on demo videos.

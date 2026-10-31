@@ -126,5 +126,5 @@ Nov 3.
 3. **Learning mode and tap-check generator.** The UI classes in `GraphView.tsx` are where fog and understood states go.
 4. **Eval** on about 10 questions hand-labelled by a human.
 
-Also outstanding, from `.claude/idea-demo-eval.md`: claim the Meta credits, get written confirmation on third-party AI
-coding agents, and confirm the entry track. The `docs/prds/` stubs other than `03-ui.md` are still empty.
+The full ordered plan, including what only a human can do, is in `next-steps.md`. Also outstanding: claim the Meta credits
+and confirm the entry track. The `docs/prds/` stubs other than `03-ui.md` are still empty.

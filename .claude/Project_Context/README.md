@@ -36,7 +36,8 @@ Check details, the gap table and open design questions are in `status.md`.
 |---|---|
 | `.claude/Project_Context/README.md` | This overview |
 | `.claude/Project_Context/architecture.md` | How the code is built today: components, data flow, contracts, API, repo map |
-| `.claude/Project_Context/status.md` | Built vs mock vs missing, check results, parser/contract gap, stale docs, next work |
+| `.claude/Project_Context/status.md` | Built vs mock vs missing, check results, demo-repo trial, open questions, stale docs |
+| `.claude/Project_Context/next-steps.md` | The ordered plan to submission, with who does each step |
 | `.claude/idea.md` | Pitch, hackathon rules, working agreements |
 | `.claude/idea-product.md` | Target features, UX priorities, explicit cuts |
 | `.claude/idea-architecture.md` | Target design: agent loop, validator, Meta API facts, tech stack decisions |
