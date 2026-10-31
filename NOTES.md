@@ -58,3 +58,6 @@ Everything in this section was written by an AI assistant (Claude Opus 5.5, via 
 - **External stubs.** The contract requires `file` and lines on every node, so stubs use `file: "<external>"` and lines of 0.
 - **Max 8 tool calls is documented, not validated.** `MAX_TOOL_CALLS` and the `call_index` description state it. The agent loop will enforce it.
 - **Parser ruff findings are ignored by path.** The broad excepts are deliberate guards around jedi, and rewriting them could change behaviour. New code gets the full rule set.
+
+## Project context
+`.claude/Project_Context/` (`README.md`, `architecture.md`, `status.md`) was written by an AI assistant (Claude Opus 5.5, via Claude Code) on 2026-10-30. It describes the repo as built, and the results in `status.md` come from commands run that day.
