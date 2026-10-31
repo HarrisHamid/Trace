@@ -1,0 +1,39 @@
+[project]
+name = "trace"
+version = "0.1.0"
+description = "Understand any Python codebase visually: an AI agent traces answers through a verified call graph."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.162.0",
+    "jedi>=0.20.1",
+    "networkx>=3.7",
+    "openai>=3.42.0",
+    "pydantic>=2.14.2",
+    "pydantic-settings>=2.16.2",
+    "sse-starlette>=3.6.0",
+    "tenacity>=9.2.1",
+    "uvicorn>=0.54.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+extend-exclude = ["tests/fixtures", "web", "third_party", "out"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+]
