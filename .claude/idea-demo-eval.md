@@ -98,7 +98,6 @@ Estimated about **6.7/10** weighted if the core ships. Biggest risks:
 ## Open questions
 
 - Hours available per day this weekend.
-- Written confirmation that third-party AI coding agents are allowed.
 - Confirm entry track (Indie Developer) on the submission page.
 - Skip behavior in fog of war; code in side panel only; node granularity; keep the name Trace.
 - Whether to attempt Muse Glimmer locally (probably ~4-bit only on 24GB; unverified).
