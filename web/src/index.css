@@ -15,6 +15,7 @@
     --color-verified: var(--status-verified);
     --color-unverified: var(--status-unverified);
     --color-gap: var(--status-gap);
+    --color-belt: var(--belt);
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
@@ -63,24 +64,22 @@
     --ring: #f2c46d;
     --radius: 0.125rem;
 
-    /* Stars take the colour of a spectral class, hottest for entry points. GraphView and the sky read these. */
-    --star-route: #9cc4ff;
-    --star-function: #dfe3f0;
-    --star-class: #f1dfae;
-    --star-dependency: #f0a56c;
-    --star-external: #6f7590;
-    --star-module: #aab2cc;
-    --star-edge: #c4cee8;
+    /* A module is a colour. Its plate trim, its tab and the square on every one of its labels share it. */
+    --module-1: #4f8cff;
+    --module-2: #22c3a6;
+    --module-3: #b57bff;
+    --module-4: #ff6f91;
+    --module-5: #8ed16f;
+    --module-6: #5fd0ff;
+    --star-external: #7a8099;
+    --belt: #7d88a8;
+    --parcel: #ff9f43;
 
     /* Gold is the thread: it means the chart backs this. */
     --status-verified: #f2c46d;
     --status-unverified: #ff7a5c;
     --status-gap: #8fd3ff;
 
-    --nebula-1: #3f6fb5;
-    --nebula-2: #2f8f8a;
-    --nebula-3: #8a4f9e;
-    --nebula-4: #a8623f;
 }
 
 @layer base {

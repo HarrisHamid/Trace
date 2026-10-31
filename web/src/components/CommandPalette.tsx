@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { NodeGlyph } from '@/components/Glyphs'
 import type { GraphNode } from '@/lib/run'
+import type { Scene } from '@/lib/scene'
 import { useTraceStore } from '@/store'
 
 const MAX_RESULTS = 12
@@ -15,10 +16,11 @@ function isTyping(target: EventTarget | null) {
 
 interface CommandPaletteProps {
   nodes: GraphNode[]
+  scene: Scene
   onPick: (node: GraphNode) => void
 }
 
-export function CommandPalette({ nodes, onPick }: CommandPaletteProps) {
+export function CommandPalette({ nodes, scene, onPick }: CommandPaletteProps) {
   const open = useTraceStore((state) => state.paletteOpen)
   const setOpen = useTraceStore((state) => state.setPaletteOpen)
   const [query, setQuery] = useState('')
@@ -81,7 +83,7 @@ export function CommandPalette({ nodes, onPick }: CommandPaletteProps) {
             }}
             className="flex cursor-pointer items-center gap-2.5 px-2.5 py-1.5 text-xs data-[selected=true]:bg-accent"
           >
-            <NodeGlyph type={node.type} />
+            <NodeGlyph type={node.type} colour={scene.colourOf(node)} />
             <span className="truncate">{node.name}</span>
             <span className="ml-auto truncate text-[10px] text-muted-foreground">{node.module}</span>
             <span className="kicker w-20 shrink-0 text-right">{node.type}</span>

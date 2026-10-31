@@ -23,18 +23,16 @@ const STAR = 'M7 .8 8.9 4.8 13.2 5.4 10.1 8.4 10.8 12.7 7 10.7 3.2 12.7 3.9 8.4.
 const HEXAGON = 'M7 1 12.2 4V10L7 13 1.8 10V4Z'
 const DIAMOND = 'M7 1 13 7 7 13 1 7Z'
 
-export function NodeGlyph({ type }: { type: GraphNode['type'] }) {
-  const colour = `var(--star-${type})`
+// The shapes match the map. The colour is the node's module, or neutral where there is no node to take it from.
+export function NodeGlyph({ type, colour = 'var(--muted-foreground)' }: { type: GraphNode['type']; colour?: string }) {
   return (
-    <svg viewBox="0 0 14 14" className="size-3 shrink-0" aria-hidden>
+    <svg viewBox="0 0 14 14" className="size-3.5 shrink-0" aria-hidden>
       {type === 'route' && <path d={STAR} fill={colour} />}
       {type === 'class' && <path d={HEXAGON} fill={colour} />}
       {type === 'dependency' && <path d={DIAMOND} fill={colour} />}
-      {type === 'function' && <circle cx="7" cy="7" r="4" fill={colour} />}
-      {type === 'external' && <circle cx="7" cy="7" r="4" fill="none" stroke={colour} strokeWidth="1.5" />}
-      {type === 'module' && (
-        <circle cx="7" cy="7" r="5.5" fill="none" stroke={colour} strokeWidth="1" strokeDasharray="1 2" />
-      )}
+      {type === 'function' && <rect x="2" y="2" width="10" height="10" rx="2.5" fill={colour} />}
+      {type === 'external' && <circle cx="7" cy="7" r="4.5" fill="none" stroke={colour} strokeWidth="1.75" />}
+      {type === 'module' && <rect x="1.5" y="3" width="11" height="8" rx="2" fill="none" stroke={colour} strokeWidth="1.5" />}
     </svg>
   )
 }

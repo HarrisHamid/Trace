@@ -45,11 +45,12 @@ async function loadSource(node: GraphNode, quote: string | null): Promise<Source
 
 interface CodePanelProps {
   node: GraphNode
+  colour: string
   quote: string | null
   onClose: () => void
 }
 
-export function CodePanel({ node, quote, onClose }: CodePanelProps) {
+export function CodePanel({ node, colour, quote, onClose }: CodePanelProps) {
   const [source, setSource] = useState<Source>({ kind: 'loading' })
   const scroller = useRef<HTMLDivElement>(null)
 
@@ -83,7 +84,7 @@ export function CodePanel({ node, quote, onClose }: CodePanelProps) {
     >
       <header className="flex items-start gap-3 border-b border-border px-5 py-3">
         <span className="mt-1.5">
-          <NodeGlyph type={node.type} />
+          <NodeGlyph type={node.type} colour={colour} />
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="truncate font-serif text-2xl leading-tight">{node.name}</h2>

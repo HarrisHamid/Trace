@@ -73,8 +73,14 @@ Everything in this section was written by an AI assistant (Claude Opus 5.5, via 
 - **AI-written on 2026-10-31 (Claude Opus 5.5, via Claude Code):** `docs/prds/03-ui.md`; `web/src/components/{AskBar,CodePanel,CommandPalette,Glyphs,MapChrome,ObservationLog}.tsx`; `web/src/lib/{highlight,run,sky}.ts`; `data/mock/source/`; `GET /api/source`; rewrites of `GraphView.tsx`, `Workspace.tsx`, `store.ts` and the tokens in `index.css`.
 - **Instrument Serif replaces Inter.** Added `@fontsource/instrument-serif` (SIL OFL) and removed `@fontsource-variable/inter`. JetBrains Mono stays for code, labels and chrome.
 - **A canvas behind Cytoscape, not Cytoscape effects.** Cytoscape has no soft glow and can't draw a stroke progressively, so `lib/sky.ts` draws the glows and the thread underneath the nodes. Stars are seeded so the map looks identical on every run.
-- **Modules are labels, not compound nodes.** The architecture doc planned compound nodes, but members of a module are scattered in the baked layout, so their bounding boxes overlap heavily. Nebulae are drawn per member instead.
+- **Modules are plates, not compound nodes.** The architecture doc planned compound nodes. Plates are drawn from the baked layout instead, and `data/mock/graph.json` was re-baked so each module's members sit together. The real layout step (parser v2) has to cluster by module too, or the plates will overlap.
 - **A `gap` claim opens at the previous step.** Its quote is the unresolved call site, which is in the caller, not the target. The real validator needs to keep this shape, or `ObservationLog.tsx` needs a new rule. If a quote isn't in the file, the panel says so.
 - **Source stubs match the graph's line numbers,** so `deps.py` and others are oddly dense in places. Tests pin them to `graph.json` and to the quotes in `events.jsonl`. `data/mock/source/` is excluded from ruff.
 - **Playback lags the stream on purpose.** The animation holds about 400ms per step and queues whatever arrives faster.
+
+## Space factory map (2026-10-31)
+- **Plates, labels and belts.** `web/src/lib/scene.ts` builds one plate per module and the belts from the graph. `web/src/lib/pills.ts` draws the label cards on a second canvas above Cytoscape. `web/src/lib/sky.ts` draws the background, plates and the answer. All of it is AI-written.
+- **Colour means module.** Six `--module-*` tokens replace the per-type colours. Shape still carries the node type.
+- **Wiring is hidden by default.** Imports, injects, inherits and implements are behind "Show all connections". The default map is who calls whom.
+- **Idle motion is capped at about 30fps** and is off under `prefers-reduced-motion`.
 

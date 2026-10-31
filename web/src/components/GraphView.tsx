@@ -2,14 +2,16 @@ import cytoscape from 'cytoscape'
 import { motion } from 'framer-motion'
 import { useEffect, useMemo, useRef } from 'react'
 
+import { cssVar } from '@/lib/css'
 import { bayer, type GraphNode, type RunView } from '@/lib/run'
-import { cssVar, Sky } from '@/lib/sky'
+import { tabCentre, type Box, type Scene } from '@/lib/scene'
+import { Sky } from '@/lib/sky'
 import { useTraceStore, type FocusRequest, type View } from '@/store'
 import type { Graph } from '@/types/contracts/graph.schema'
 
 const SERIF = '"Instrument Serif", Georgia, serif'
 const MONO = '"JetBrains Mono Variable", monospace'
-const INSETS = { top: 72, left: 44, bottom: 124 }
+const INSETS = { top: 64, left: 44, bottom: 112 }
 const FOCUS_ZOOM = 1.15
 const MAX_FRAME_ZOOM = 1.5
 const MIN_ZOOM = 0.2
@@ -21,147 +23,102 @@ const ZOOM_MS = 650
 const DOUBLE_TAP_MS = 300
 const CAPTION_WIDTH = 280
 const CAPTION_GAP = 22
-const FRAME_PADDING = 50
+const FRAME_PADDING = 40
+const LABEL_ROOM = 34
+// Connections that explain how the code is wired rather than who calls whom. Hidden until asked for.
+const WIRING = new Set(['imports', 'injects', 'inherits', 'implements'])
 
-// Spaced capitals, like a constellation name on an atlas plate.
-function moduleLabel(name: string) {
-  return name.toUpperCase().split('').join(' ')
-}
-
-function toElements(graph: Graph): cytoscape.ElementDefinition[] {
-  const nodes = graph.nodes.map((node) => ({
-    data: {
-      id: node.id,
-      name: node.name,
-      label: node.type === 'module' ? moduleLabel(node.name) : node.name,
-      type: node.type,
-      module: node.module,
-      colour: cssVar(`--star-${node.type}`),
-    },
-    position: { x: node.x ?? 0, y: node.y ?? 0 },
-  }))
+function toElements(graph: Graph, scene: Scene): cytoscape.ElementDefinition[] {
+  const nodes = graph.nodes.map((node) => {
+    const plate = node.type === 'module' ? scene.plateById.get(node.id) : undefined
+    return {
+      data: {
+        id: node.id,
+        name: node.name,
+        type: node.type,
+        module: node.module,
+        colour: scene.colourOf(node),
+        w: plate ? plate.tab.x2 - plate.tab.x1 : 20,
+        h: plate ? plate.tab.y2 - plate.tab.y1 : 20,
+      },
+      position: plate ? tabCentre(plate) : { x: node.x ?? 0, y: node.y ?? 0 },
+    }
+  })
   const edges = graph.edges.map((edge, index) => ({
     data: { id: `edge-${index}`, source: edge.source, target: edge.target, type: edge.type },
+    classes: WIRING.has(edge.type) ? 'wiring' : '',
   }))
   return [...nodes, ...edges]
 }
 
+// Labels are drawn by the sky, so these styles are only the shapes. Fills take the colour of their module.
 function stylesheet(reducedMotion: boolean): cytoscape.StylesheetJson {
   const gold = cssVar('--status-verified')
   const vermilion = cssVar('--status-unverified')
   const ice = cssVar('--status-gap')
-  const edge = cssVar('--star-edge')
+  const belt = cssVar('--belt')
   const foreground = cssVar('--foreground')
   const background = cssVar('--background')
+  const fade = reducedMotion ? 0 : 0.25
   return [
     {
       selector: 'node',
       style: {
-        width: 9,
-        height: 9,
+        shape: 'round-rectangle',
+        width: 20,
+        height: 20,
         'background-color': 'data(colour)',
-        'border-width': 0,
-        opacity: 0.68,
-        label: 'data(label)',
-        color: foreground,
-        'font-family': MONO,
-        'font-size': 11,
-        'text-valign': 'bottom',
-        'text-margin-y': 6,
-        'min-zoomed-font-size': 10,
-        'text-background-color': background,
-        'text-background-opacity': 0.55,
-        'text-background-padding': '2px',
-        'transition-property': 'opacity, width, height, border-width',
-        'transition-duration': reducedMotion ? 0 : 0.25,
+        'border-width': 2.5,
+        'border-color': background,
+        opacity: 0.96,
+        'transition-property': 'opacity, border-width',
+        'transition-duration': fade,
       },
     },
-    { selector: 'node[type = "route"]', style: { shape: 'star', width: 20, height: 20, opacity: 0.85 } },
-    { selector: 'node[type = "class"]', style: { shape: 'hexagon', width: 14, height: 14 } },
-    { selector: 'node[type = "dependency"]', style: { shape: 'diamond', width: 13, height: 13 } },
+    { selector: 'node[type = "route"]', style: { shape: 'star', width: 34, height: 34 } },
+    { selector: 'node[type = "class"]', style: { shape: 'hexagon', width: 26, height: 26 } },
+    { selector: 'node[type = "dependency"]', style: { shape: 'diamond', width: 24, height: 24 } },
     {
       selector: 'node[type = "external"]',
-      style: { 'background-opacity': 0, 'border-width': 1.25, 'border-color': 'data(colour)' },
+      style: { shape: 'ellipse', width: 18, height: 18, 'background-opacity': 0, 'border-width': 2.25, 'border-color': 'data(colour)' },
     },
     {
       selector: 'node[type = "module"]',
-      style: {
-        width: 30,
-        height: 30,
-        'background-opacity': 0,
-        opacity: 0.8,
-        color: 'data(colour)',
-        'font-family': SERIF,
-        'font-style': 'italic',
-        'font-size': 26,
-        'text-valign': 'center',
-        'text-margin-y': 0,
-        'text-background-opacity': 0,
-        'min-zoomed-font-size': 0,
-        'text-events': 'yes',
-      },
+      style: { width: 'data(w)', height: 'data(h)', 'background-opacity': 0, 'border-width': 0 },
     },
     {
       selector: 'edge',
       style: {
-        width: 0.8,
-        'line-color': edge,
-        'target-arrow-color': edge,
+        width: 3,
+        'line-color': belt,
+        'target-arrow-color': belt,
         'target-arrow-shape': 'triangle',
-        'arrow-scale': 0.55,
+        'arrow-scale': 1.05,
         'curve-style': 'straight',
-        opacity: 0.22,
+        opacity: 0.78,
         'transition-property': 'opacity',
-        'transition-duration': reducedMotion ? 0 : 0.25,
+        'transition-duration': fade,
       },
     },
+    { selector: 'edge.wiring', style: { display: 'none' } },
     {
-      selector: 'edge[type = "imports"]',
-      style: { 'line-style': 'dotted', 'target-arrow-shape': 'none', opacity: 0.1 },
+      selector: 'edge.wiring.shown',
+      style: { display: 'element', width: 1.5, 'line-style': 'dotted', 'target-arrow-shape': 'none', opacity: 0.4 },
     },
-    { selector: 'edge[type = "injects"]', style: { 'line-style': 'dotted' } },
     {
       selector: 'edge[type = "uncertain"]',
-      style: { 'line-style': 'dashed', 'line-color': ice, 'target-arrow-color': ice, opacity: 0.75, width: 1.2 },
+      style: { 'line-style': 'dashed', 'line-color': ice, 'target-arrow-color': ice, opacity: 0.95 },
     },
-    { selector: 'node.in-focus', style: { opacity: 0.95, 'min-zoomed-font-size': 0 } },
-    { selector: 'node.hovered', style: { opacity: 1, 'min-zoomed-font-size': 0 } },
-    {
-      selector: 'node.lit',
-      style: {
-        width: 15,
-        height: 15,
-        opacity: 1,
-        color: gold,
-        'font-size': 14,
-        'min-zoomed-font-size': 0,
-      },
-    },
-    { selector: 'node.lit[type = "route"]', style: { width: 24, height: 24 } },
-    {
-      selector: 'node.unverified',
-      style: { 'background-opacity': 0, 'border-width': 2.5, 'border-color': vermilion, color: vermilion },
-    },
-    {
-      selector: 'node.gap',
-      style: {
-        'background-opacity': 0,
-        'border-width': 2.5,
-        'border-style': 'dashed',
-        'border-color': ice,
-        color: ice,
-      },
-    },
-    { selector: 'node.current', style: { width: 19, height: 19 } },
+    { selector: 'node.hovered', style: { 'border-color': foreground } },
+    { selector: 'node.lit', style: { opacity: 1, 'border-width': 3.5, 'border-color': gold } },
+    { selector: 'node.current', style: { 'border-width': 5 } },
+    { selector: 'node.unverified', style: { 'border-color': vermilion } },
+    { selector: 'node.gap', style: { 'border-style': 'dashed', 'border-color': ice } },
+    { selector: 'node.dimmed', style: { opacity: 0.3 } },
+    { selector: 'edge.dimmed', style: { opacity: 0.08 } },
     {
       selector: 'node.chosen',
-      style: {
-        'outline-width': 1.25,
-        'outline-color': foreground,
-        'outline-offset': 5,
-        opacity: 1,
-        'min-zoomed-font-size': 0,
-      },
+      style: { 'outline-width': 1.5, 'outline-color': foreground, 'outline-offset': 5, opacity: 1 },
     },
     { selector: '.out-of-focus', style: { opacity: 0.07 } },
   ]
@@ -172,18 +129,22 @@ interface Viewport {
   pan: cytoscape.Position
 }
 
-function framed(cy: cytoscape.Core, nodes: cytoscape.NodeCollection, rightInset: number): Viewport {
+function nodesBox(nodes: cytoscape.NodeCollection): Box {
   const box = nodes.boundingBox({ includeLabels: false })
+  return { x1: box.x1, y1: box.y1, x2: box.x2, y2: box.y2 + LABEL_ROOM }
+}
+
+function fitBox(cy: cytoscape.Core, box: Box, rightInset: number): Viewport {
   const width = cy.width() - INSETS.left - rightInset
   const height = cy.height() - INSETS.top - INSETS.bottom
-  const boxWidth = box.w + FRAME_PADDING * 2
-  const boxHeight = box.h + FRAME_PADDING * 2
+  const boxWidth = box.x2 - box.x1 + FRAME_PADDING * 2
+  const boxHeight = box.y2 - box.y1 + FRAME_PADDING * 2
   const zoom = Math.min(width / boxWidth, height / boxHeight, MAX_FRAME_ZOOM)
   return {
     zoom,
     pan: {
-      x: INSETS.left + width / 2 - (box.x1 + box.w / 2) * zoom,
-      y: INSETS.top + height / 2 - (box.y1 + box.h / 2) * zoom,
+      x: INSETS.left + width / 2 - ((box.x1 + box.x2) / 2) * zoom,
+      y: INSETS.top + height / 2 - ((box.y1 + box.y2) / 2) * zoom,
     },
   }
 }
@@ -198,6 +159,7 @@ function centredOn(cy: cytoscape.Core, position: cytoscape.Position, zoom: numbe
 }
 
 function fly(cy: cytoscape.Core, viewport: Viewport, duration: number) {
+  cy.scratch('moved', true)
   cy.stop(true, false)
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) cy.viewport(viewport)
   else cy.animate({ ...viewport, duration, easing: 'ease-in-out-cubic' })
@@ -209,13 +171,15 @@ function moduleNodes(cy: cytoscape.Core, module: string) {
 
 interface GraphViewProps {
   graph: Graph
+  scene: Scene
   run: RunView
   rightInset: number
 }
 
-export function GraphView({ graph, run, rightInset }: GraphViewProps) {
+export function GraphView({ graph, scene, run, rightInset }: GraphViewProps) {
   const container = useRef<HTMLDivElement>(null)
-  const canvas = useRef<HTMLCanvasElement>(null)
+  const backCanvas = useRef<HTMLCanvasElement>(null)
+  const frontCanvas = useRef<HTMLCanvasElement>(null)
   const anchor = useRef<HTMLDivElement>(null)
   const cyRef = useRef<cytoscape.Core | null>(null)
   const skyRef = useRef<Sky | null>(null)
@@ -226,6 +190,7 @@ export function GraphView({ graph, run, rightInset }: GraphViewProps) {
   const clearSelection = useTraceStore((state) => state.clearSelection)
   const enterModule = useTraceStore((state) => state.enterModule)
   const selectedNode = useTraceStore((state) => state.selectedNode)
+  const showWiring = useTraceStore((state) => state.showWiring)
   const view = useTraceStore((state) => state.view)
   const focusRequest = useTraceStore((state) => state.focusRequest)
   const nodesById = useMemo(() => new Map<string, GraphNode>(graph.nodes.map((node) => [node.id, node])), [graph])
@@ -238,7 +203,7 @@ export function GraphView({ graph, run, rightInset }: GraphViewProps) {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const cy = cytoscape({
       container: container.current,
-      elements: toElements(graph),
+      elements: toElements(graph, scene),
       layout: { name: 'preset' },
       style: stylesheet(reducedMotion),
       minZoom: MIN_ZOOM,
@@ -247,8 +212,8 @@ export function GraphView({ graph, run, rightInset }: GraphViewProps) {
       autoungrabify: true,
       autounselectify: true,
     })
-    cy.viewport(framed(cy, cy.nodes(), inset.current))
-    const sky = new Sky(canvas.current!, cy, graph.nodes)
+    cy.viewport(fitBox(cy, scene.bounds, inset.current))
+    const sky = new Sky(backCanvas.current!, frontCanvas.current!, cy, graph.nodes, scene)
     cyRef.current = cy
     skyRef.current = sky
 
@@ -286,13 +251,17 @@ export function GraphView({ graph, run, rightInset }: GraphViewProps) {
     })
     cy.on('render', () => sky.draw())
 
-    // Canvas text can't reflow, so labels are restyled once the web fonts arrive.
-    Promise.all([document.fonts.load(`italic 26px ${SERIF}`), document.fonts.load(`11px ${MONO}`)]).then(() => {
-      if (!cy.destroyed()) cy.style().update()
-    })
+    // Canvas text can't reflow, so labels are measured again once the web fonts arrive.
+    Promise.all([document.fonts.load(`700 12px ${MONO}`), document.fonts.load(`11px ${MONO}`), document.fonts.load(`italic 26px ${SERIF}`)]).then(
+      () => {
+        if (!cy.destroyed()) sky.fontsReady()
+      },
+    )
 
+    // The container is still settling on first paint, so the opening fit is redone until the camera has been moved.
     const resizing = new ResizeObserver(() => {
       cy.resize()
+      if (!cy.scratch('moved')) cy.viewport(fitBox(cy, scene.bounds, inset.current))
       sky.resize()
     })
     resizing.observe(container.current!)
@@ -307,35 +276,41 @@ export function GraphView({ graph, run, rightInset }: GraphViewProps) {
       lastView.current = null
       lastFocus.current = null
     }
-  }, [graph, openNode, clearSelection, enterModule])
+  }, [graph, scene, openNode, clearSelection, enterModule])
 
-  // Lit stars, with their Bayer letters, and the thread behind them.
+  // Lit nodes, with their Bayer letters, the dimmed rest, and the belt behind them.
   useEffect(() => {
     const cy = cyRef.current
     if (!cy) return
+    const active = run.phase !== 'idle'
     cy.batch(() => {
-      cy.nodes().removeClass('lit current unverified gap')
-      cy.nodes().forEach((node) => {
-        if (node.data('type') !== 'module') node.data('label', node.data('name'))
-      })
-      run.stars.forEach((star, index) => {
+      cy.elements().removeClass('lit current unverified gap dimmed')
+      if (active) cy.elements().addClass('dimmed')
+      run.stars.forEach((star) => {
         const node = cy.getElementById(star.nodeId)
-        node.addClass('lit')
+        node.removeClass('dimmed').addClass('lit')
         if (star.status === 'unverified' || star.status === 'gap') node.addClass(star.status)
         if (star.nodeId === run.current) node.addClass('current')
-        node.data('label', `${bayer(index)}  ${node.data('name')}`)
       })
     })
     skyRef.current?.setRun({
       walked: run.walked,
       segments: run.segments,
       revealed: run.revealed,
-      lit: run.stars.map((star) => ({ id: star.nodeId, status: star.status })),
+      lit: run.stars.map((star, index) => ({ id: star.nodeId, status: star.status, letter: bayer(index) })),
       current: run.current,
+      active,
     })
   }, [run])
 
-  // The camera follows the walk, then pulls back to show the whole constellation.
+  useEffect(() => {
+    const cy = cyRef.current
+    if (!cy) return
+    cy.edges('.wiring')[showWiring ? 'addClass' : 'removeClass']('shown')
+    skyRef.current?.draw()
+  }, [showWiring, graph, scene])
+
+  // The camera follows the walk, then pulls back to show the whole answer.
   const { phase, current } = run
   useEffect(() => {
     const cy = cyRef.current
@@ -350,7 +325,7 @@ export function GraphView({ graph, run, rightInset }: GraphViewProps) {
     if (!cy || phase !== 'revealing' || !firstStep) return
     const ids = [firstStep, ...pathKey.split('|')]
     const path = cy.nodes().filter((node) => ids.includes(node.id()))
-    fly(cy, framed(cy, path, inset.current), REVEAL_CAMERA_MS)
+    fly(cy, fitBox(cy, nodesBox(path), inset.current), REVEAL_CAMERA_MS)
   }, [phase, firstStep, pathKey])
 
   // View changes and focus requests share one effect so a palette jump into another module is a single camera move.
@@ -369,16 +344,14 @@ export function GraphView({ graph, run, rightInset }: GraphViewProps) {
       const inside = view.module === null ? cy.collection() : moduleNodes(cy, view.module)
       cy.batch(() => {
         cy.elements().removeClass('out-of-focus')
-        cy.nodes().removeClass('in-focus')
-        if (view.module !== null) {
-          inside.addClass('in-focus')
-          cy.elements().difference(inside).difference(inside.edgesWith(inside)).addClass('out-of-focus')
-        }
+        if (view.module !== null) cy.elements().difference(inside).difference(inside.edgesWith(inside)).addClass('out-of-focus')
       })
       sky.setFocusModule(view.module)
     }
 
-    const frame = framed(cy, view.module === null ? cy.nodes() : moduleNodes(cy, view.module), inset.current)
+    const plate = view.module === null ? undefined : scene.plateById.get(view.module)
+    const box = view.module === null ? scene.bounds : (plate?.box ?? nodesBox(moduleNodes(cy, view.module)))
+    const frame = fitBox(cy, box, inset.current)
     if (focusChanged && focusRequest) {
       const position = cy.getElementById(focusRequest.nodeId).position()
       const zoom = viewChanged ? frame.zoom : Math.max(cy.zoom(), FOCUS_ZOOM)
@@ -386,13 +359,14 @@ export function GraphView({ graph, run, rightInset }: GraphViewProps) {
     } else if (viewChanged) {
       fly(cy, frame, ZOOM_MS)
     }
-  }, [view, focusRequest])
+  }, [view, focusRequest, scene])
 
   // Selection ring. A node hidden behind the panel that just opened is brought back into view.
   useEffect(() => {
     const cy = cyRef.current
     if (!cy) return
     cy.nodes().removeClass('chosen')
+    skyRef.current?.setSelected(selectedNode)
     if (!selectedNode) return
     const node = cy.getElementById(selectedNode)
     node.addClass('chosen')
@@ -401,7 +375,7 @@ export function GraphView({ graph, run, rightInset }: GraphViewProps) {
     }
   }, [selectedNode, rightInset])
 
-  // The explanation sits beside the star, and follows it as the camera moves.
+  // The explanation sits beside the node, and follows it as the camera moves.
   const captionNode = run.caption ? run.current : null
   useEffect(() => {
     const cy = cyRef.current
@@ -426,11 +400,12 @@ export function GraphView({ graph, run, rightInset }: GraphViewProps) {
 
   return (
     <>
-      <canvas ref={canvas} className="absolute inset-0 h-full w-full" />
+      <canvas ref={backCanvas} className="absolute inset-0 h-full w-full" />
       {/* Cytoscape forces position: relative on its container, so the wrapper does the absolute positioning. */}
       <div className="absolute inset-0">
         <div ref={container} data-testid="graph" className="h-full w-full" />
       </div>
+      <canvas ref={frontCanvas} className="pointer-events-none absolute inset-0 h-full w-full" />
       <div
         ref={anchor}
         className="pointer-events-none absolute top-0 left-0"
@@ -443,7 +418,7 @@ export function GraphView({ graph, run, rightInset }: GraphViewProps) {
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18 }}
-            className="-translate-y-full bg-background/75 px-2.5 py-1.5"
+            className="-translate-y-full bg-background/80 px-2.5 py-1.5"
           >
             <p className="kicker text-primary">{captionName}</p>
             <p className="mt-0.5 font-serif text-lg leading-snug text-foreground italic">{run.caption}</p>

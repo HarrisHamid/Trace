@@ -40,6 +40,7 @@ interface TraceStore {
   paletteOpen: boolean
   codePanel: CodePanel | null
   focusRequest: FocusRequest | null
+  showWiring: boolean
   learningMode: boolean
   nodeStates: Record<string, NodeState>
   openNode: (id: string, quote?: string | null) => void
@@ -49,6 +50,7 @@ interface TraceStore {
   enterModule: (module: string) => void
   exitModule: () => void
   setPaletteOpen: (open: boolean) => void
+  setShowWiring: (on: boolean) => void
   startRun: (question: string) => void
   addEvent: (event: AgentEvent) => void
   finishRun: (status: 'done' | 'error') => void
@@ -67,6 +69,7 @@ export const useTraceStore = create<TraceStore>((set) => ({
   paletteOpen: false,
   codePanel: null,
   focusRequest: null,
+  showWiring: false,
   learningMode: false,
   nodeStates: {},
   openNode: (id, quote = null) => set({ selectedNode: id, codePanel: { nodeId: id, quote } }),
@@ -77,6 +80,7 @@ export const useTraceStore = create<TraceStore>((set) => ({
   enterModule: (module) => set({ view: { level: 'file', module }, codePanel: null }),
   exitModule: () => set({ view: CODEBASE }),
   setPaletteOpen: (open) => set({ paletteOpen: open }),
+  setShowWiring: (on) => set({ showWiring: on }),
   startRun: (question) =>
     set({
       agentRun: { status: 'running', question, events: [] },

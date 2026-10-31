@@ -9,6 +9,7 @@ import { GraphView } from '@/components/GraphView'
 import { Legend, TopBar } from '@/components/MapChrome'
 import { LOG_WIDTH, ObservationLog } from '@/components/ObservationLog'
 import { deriveRun, nextDelay, type GraphNode } from '@/lib/run'
+import { buildScene } from '@/lib/scene'
 import { useTraceStore } from '@/store'
 import type { Graph } from '@/types/contracts/graph.schema'
 
@@ -57,6 +58,7 @@ export function Workspace() {
   }, [paletteOpen, codePanel, view, closeCode, exitModule])
 
   const run = useMemo(() => (graph ? deriveRun(graph, agentRun, playback) : null), [graph, agentRun, playback])
+  const scene = useMemo(() => (graph ? buildScene(graph) : null), [graph])
   const nodesById = useMemo(() => new Map<string, GraphNode>(graph?.nodes.map((node) => [node.id, node])), [graph])
 
   async function ask(question: string) {
@@ -93,7 +95,7 @@ export function Workspace() {
   return (
     <MotionConfig reducedMotion="user">
       <div className="relative h-dvh min-w-[1280px] overflow-hidden bg-background text-foreground">
-        {graph && run && <GraphView graph={graph} run={run} rightInset={rightInset} />}
+        {graph && scene && run && <GraphView graph={graph} scene={scene} run={run} rightInset={rightInset} />}
         <div className="plate-vignette" />
         <div className="plate-frame" />
         {!graph && (
@@ -101,7 +103,7 @@ export function Workspace() {
             {loadError ?? 'Plotting the chart…'}
           </p>
         )}
-        {graph && run && (
+        {graph && scene && run && (
           <>
             <TopBar graph={graph} moduleName={view.module ? (nodesById.get(view.module)?.name ?? view.module) : null} />
             <Legend graph={graph} rightInset={rightInset} />
@@ -111,14 +113,20 @@ export function Workspace() {
               onAsk={ask}
             />
             <AnimatePresence>
-              {logOpen && <ObservationLog key="log" run={run} nodesById={nodesById} />}
+              {logOpen && <ObservationLog key="log" run={run} scene={scene} nodesById={nodesById} />}
             </AnimatePresence>
             <AnimatePresence>
               {codeNode && (
-                <CodePanel key="code" node={codeNode} quote={codePanel?.quote ?? null} onClose={closeCode} />
+                <CodePanel
+                  key="code"
+                  node={codeNode}
+                  colour={scene.colourOf(codeNode)}
+                  quote={codePanel?.quote ?? null}
+                  onClose={closeCode}
+                />
               )}
             </AnimatePresence>
-            <CommandPalette nodes={graph.nodes} onPick={pick} />
+            <CommandPalette nodes={graph.nodes} scene={scene} onPick={pick} />
           </>
         )}
       </div>
