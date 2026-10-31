@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "Check": {
+      "additionalProperties": false,
+      "properties": {
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/CheckOption"
+          },
+          "title": "Options",
+          "type": "array"
+        },
+        "correct_option_id": {
+          "title": "Correct Option Id",
+          "type": "string"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_id",
+        "question",
+        "options",
+        "correct_option_id",
+        "explanation"
+      ],
+      "title": "Check",
+      "type": "object"
+    },
+    "CheckOption": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "CheckOption",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "repo": {
+      "title": "Repo",
+      "type": "string"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/Check"
+      },
+      "title": "Checks",
+      "type": "array"
+    }
+  },
+  "required": [
+    "repo",
+    "checks"
+  ],
+  "title": "ChecksFile",
+  "type": "object"
+}

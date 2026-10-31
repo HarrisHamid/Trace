@@ -1,0 +1,263 @@
+{
+  "title": "Event",
+  "$defs": {
+    "Claim": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Source text backing the claim.",
+          "title": "Quote"
+        },
+        "status": {
+          "description": "verified: backed by the graph. unverified: not backed. gap: the parser could not resolve this link.",
+          "enum": [
+            "verified",
+            "unverified",
+            "gap"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "status"
+      ],
+      "title": "Claim",
+      "type": "object"
+    },
+    "Done": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "done",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "Done",
+      "type": "object"
+    },
+    "Error": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "error",
+          "title": "Type",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "message"
+      ],
+      "title": "Error",
+      "type": "object"
+    },
+    "FinalPath": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "final_path",
+          "title": "Type",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/PathStep"
+          },
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "steps"
+      ],
+      "title": "FinalPath",
+      "type": "object"
+    },
+    "NodeVisited": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "node_visited",
+          "title": "Type",
+          "type": "string"
+        },
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "node_id",
+        "reason"
+      ],
+      "title": "NodeVisited",
+      "type": "object"
+    },
+    "PathStep": {
+      "additionalProperties": false,
+      "properties": {
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        },
+        "claims": {
+          "items": {
+            "$ref": "#/$defs/Claim"
+          },
+          "title": "Claims",
+          "type": "array"
+        }
+      },
+      "required": [
+        "node_id",
+        "explanation",
+        "claims"
+      ],
+      "title": "PathStep",
+      "type": "object"
+    },
+    "RunStarted": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "run_started",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "RunStarted",
+      "type": "object"
+    },
+    "ToolCall": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "tool_call",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "args": {
+          "additionalProperties": true,
+          "title": "Args",
+          "type": "object"
+        },
+        "call_index": {
+          "description": "0-based position of the tool call in the run. A run makes at most 8 tool calls.",
+          "minimum": 0,
+          "title": "Call Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "type",
+        "name",
+        "args",
+        "call_index"
+      ],
+      "title": "ToolCall",
+      "type": "object"
+    },
+    "ToolResult": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "tool_result",
+          "title": "Type",
+          "type": "string"
+        },
+        "call_index": {
+          "description": "0-based position of the tool call in the run. A run makes at most 8 tool calls.",
+          "minimum": 0,
+          "title": "Call Index",
+          "type": "integer"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "call_index",
+        "summary"
+      ],
+      "title": "ToolResult",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "done": "#/$defs/Done",
+      "error": "#/$defs/Error",
+      "final_path": "#/$defs/FinalPath",
+      "node_visited": "#/$defs/NodeVisited",
+      "run_started": "#/$defs/RunStarted",
+      "tool_call": "#/$defs/ToolCall",
+      "tool_result": "#/$defs/ToolResult"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/RunStarted"
+    },
+    {
+      "$ref": "#/$defs/ToolCall"
+    },
+    {
+      "$ref": "#/$defs/ToolResult"
+    },
+    {
+      "$ref": "#/$defs/NodeVisited"
+    },
+    {
+      "$ref": "#/$defs/FinalPath"
+    },
+    {
+      "$ref": "#/$defs/Error"
+    },
+    {
+      "$ref": "#/$defs/Done"
+    }
+  ]
+}

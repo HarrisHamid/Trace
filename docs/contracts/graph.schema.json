@@ -1,0 +1,292 @@
+{
+  "$defs": {
+    "Edge": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "calls",
+            "imports",
+            "inherits",
+            "routes_to",
+            "injects",
+            "implements",
+            "uncertain"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Line"
+        },
+        "resolved": {
+          "description": "False when the parser could not prove the target.",
+          "title": "Resolved",
+          "type": "boolean"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "type",
+        "resolved"
+      ],
+      "title": "Edge",
+      "type": "object"
+    },
+    "GraphStats": {
+      "additionalProperties": false,
+      "properties": {
+        "nodes_by_type": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "propertyNames": {
+            "enum": [
+              "module",
+              "class",
+              "function",
+              "route",
+              "dependency",
+              "external"
+            ]
+          },
+          "title": "Nodes By Type",
+          "type": "object"
+        },
+        "edges_by_type": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "propertyNames": {
+            "enum": [
+              "calls",
+              "imports",
+              "inherits",
+              "routes_to",
+              "injects",
+              "implements",
+              "uncertain"
+            ]
+          },
+          "title": "Edges By Type",
+          "type": "object"
+        },
+        "calls_resolved": {
+          "description": "Call sites proven to reach a node in the repo.",
+          "minimum": 0,
+          "title": "Calls Resolved",
+          "type": "integer"
+        },
+        "calls_uncertain": {
+          "description": "Call sites the parser could not resolve.",
+          "minimum": 0,
+          "title": "Calls Uncertain",
+          "type": "integer"
+        },
+        "calls_external": {
+          "description": "Call sites leaving the repo. Not part of the rate.",
+          "minimum": 0,
+          "title": "Calls External",
+          "type": "integer"
+        },
+        "call_resolution_rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "calls_resolved / (calls_resolved + calls_uncertain), rounded to 4 places. Null with no such calls.",
+          "title": "Call Resolution Rate"
+        }
+      },
+      "required": [
+        "nodes_by_type",
+        "edges_by_type",
+        "calls_resolved",
+        "calls_uncertain",
+        "calls_external",
+        "call_resolution_rate"
+      ],
+      "title": "GraphStats",
+      "type": "object"
+    },
+    "Node": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "\"module.path:qualname\". Module nodes are just \"module.path\".",
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "module",
+            "class",
+            "function",
+            "route",
+            "dependency",
+            "external"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "file": {
+          "description": "Repo-relative path. External stubs use \"<external>\".",
+          "title": "File",
+          "type": "string"
+        },
+        "line_start": {
+          "description": "1-based. External stubs use 0.",
+          "minimum": 0,
+          "title": "Line Start",
+          "type": "integer"
+        },
+        "line_end": {
+          "description": "1-based, inclusive. External stubs use 0.",
+          "minimum": 0,
+          "title": "Line End",
+          "type": "integer"
+        },
+        "module": {
+          "title": "Module",
+          "type": "string"
+        },
+        "signature": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signature"
+        },
+        "docstring": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Docstring"
+        },
+        "x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Baked layout position.",
+          "title": "X"
+        },
+        "y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Baked layout position.",
+          "title": "Y"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "name",
+        "file",
+        "line_start",
+        "line_end",
+        "module"
+      ],
+      "title": "Node",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "repo": {
+      "title": "Repo",
+      "type": "string"
+    },
+    "commit_sha": {
+      "title": "Commit Sha",
+      "type": "string"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/Node"
+      },
+      "title": "Nodes",
+      "type": "array"
+    },
+    "edges": {
+      "items": {
+        "$ref": "#/$defs/Edge"
+      },
+      "title": "Edges",
+      "type": "array"
+    },
+    "stats": {
+      "$ref": "#/$defs/GraphStats"
+    }
+  },
+  "required": [
+    "repo",
+    "commit_sha",
+    "nodes",
+    "edges",
+    "stats"
+  ],
+  "title": "Graph",
+  "type": "object"
+}
