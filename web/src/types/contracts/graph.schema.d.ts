@@ -8,17 +8,20 @@
 export type Repo = string;
 export type CommitSha = string;
 /**
- * "module.path:qualname". Module nodes are just "module.path".
+ * "module.path:qualname". Module nodes are just "module.path". Unresolved nodes are "module.path:?callee", in the module of their caller.
  */
 export type Id = string;
-export type Type = "module" | "class" | "function" | "route" | "dependency" | "external";
+/**
+ * external: a stub for one distinct callee outside the repo. unresolved: the far end of an uncertain edge, standing in for a target the parser could not prove.
+ */
+export type Type = "module" | "class" | "function" | "route" | "dependency" | "external" | "unresolved";
 export type Name = string;
 /**
  * Repo-relative path. External stubs use "<external>".
  */
 export type File = string;
 /**
- * 1-based. External stubs use 0.
+ * 1-based. External stubs use 0. Unresolved nodes use their first site.
  */
 export type LineStart = number;
 /**
@@ -45,6 +48,9 @@ export type Line = number | null;
  * False when the parser could not prove the target.
  */
 export type Resolved = boolean;
+/**
+ * Parser detail: the callee, why an edge is uncertain, or the evidence that a call is external.
+ */
 export type Note = string | null;
 export type Edges = Edge[];
 /**

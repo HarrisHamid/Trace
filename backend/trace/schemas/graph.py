@@ -7,16 +7,26 @@ from pydantic import Field, model_validator
 
 from .base import Contract
 
-NodeType = Literal["module", "class", "function", "route", "dependency", "external"]
+NodeType = Literal["module", "class", "function", "route", "dependency", "external", "unresolved"]
 EdgeType = Literal["calls", "imports", "inherits", "routes_to", "injects", "implements", "uncertain"]
 
 
 class Node(Contract):
-    id: str = Field(description='"module.path:qualname". Module nodes are just "module.path".')
-    type: NodeType
+    id: str = Field(
+        description=(
+            '"module.path:qualname". Module nodes are just "module.path". '
+            'Unresolved nodes are "module.path:?callee", in the module of their caller.'
+        )
+    )
+    type: NodeType = Field(
+        description=(
+            "external: a stub for one distinct callee outside the repo. "
+            "unresolved: the far end of an uncertain edge, standing in for a target the parser could not prove."
+        )
+    )
     name: str
     file: str = Field(description='Repo-relative path. External stubs use "<external>".')
-    line_start: int = Field(ge=0, description="1-based. External stubs use 0.")
+    line_start: int = Field(ge=0, description="1-based. External stubs use 0. Unresolved nodes use their first site.")
     line_end: int = Field(ge=0, description="1-based, inclusive. External stubs use 0.")
     module: str
     signature: str | None = None
@@ -31,7 +41,10 @@ class Edge(Contract):
     type: EdgeType
     line: int | None = None
     resolved: bool = Field(description="False when the parser could not prove the target.")
-    note: str | None = None
+    note: str | None = Field(
+        default=None,
+        description="Parser detail: the callee, why an edge is uncertain, or the evidence that a call is external.",
+    )
 
 
 class GraphStats(Contract):

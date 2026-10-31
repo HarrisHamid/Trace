@@ -44,9 +44,10 @@ function toElements(graph: Graph, scene: Scene): cytoscape.ElementDefinition[] {
       position: plate ? tabCentre(plate) : { x: node.x ?? 0, y: node.y ?? 0 },
     }
   })
+  const external = new Set(graph.nodes.filter((node) => node.type === 'external').map((node) => node.id))
   const edges = graph.edges.map((edge, index) => ({
     data: { id: `edge-${index}`, source: edge.source, target: edge.target, type: edge.type },
-    classes: WIRING.has(edge.type) ? 'wiring' : '',
+    classes: WIRING.has(edge.type) || external.has(edge.target) ? 'wiring' : '',
   }))
   return [...nodes, ...edges]
 }
@@ -81,6 +82,18 @@ function stylesheet(reducedMotion: boolean): cytoscape.StylesheetJson {
     {
       selector: 'node[type = "external"]',
       style: { shape: 'ellipse', width: 18, height: 18, 'background-opacity': 0, 'border-width': 2.25, 'border-color': 'data(colour)' },
+    },
+    {
+      selector: 'node[type = "unresolved"]',
+      style: {
+        shape: 'ellipse',
+        width: 18,
+        height: 18,
+        'background-opacity': 0,
+        'border-width': 2.25,
+        'border-style': 'dashed',
+        'border-color': ice,
+      },
     },
     {
       selector: 'node[type = "module"]',

@@ -1,6 +1,8 @@
 """Reviewer tooling: sampling, flow chains and file accounting for a built graph.
 
-python scripts/verify.py sample   --graph out/graph.json --repo repos/fastapi-template [--kind calls|uncertain|fallback_external]
+Reads graph.json and the report.json beside it.
+
+python scripts/verify.py sample   --graph out/graph.json --repo third_party/fastapi-template [--kind calls|uncertain|fallback_external]
 python scripts/verify.py flow     --graph out/graph.json --repo ... --route "POST /api/v1/login/access-token"
 python scripts/verify.py files    --graph out/graph.json --repo ... --root backend
 """
@@ -11,9 +13,11 @@ import argparse
 import json
 import os
 import random
+import re
 from collections import defaultdict
 
 SEED = 20261029
+LIBRARY_STEP = re.compile(r"session\.|select|jwt|password_hash", re.IGNORECASE)  # library calls worth showing in a flow
 
 
 def load(path):
@@ -26,29 +30,29 @@ def src_line(repo, file, line):
         return fh.read().splitlines()[line - 1].strip()
 
 
-def cmd_sample(g, repo, kind, n):
+def cmd_sample(g, r, repo, kind, n):
     nodes = {x["id"]: x for x in g["nodes"]}
     if kind == "calls":
-        pool = [e for e in g["edges"] if e["type"] == "calls"]
+        pool = [c for c in r["call_sites"] if c["kind"] == "resolved"]
     elif kind == "uncertain":
-        pool = [e for e in g["edges"] if e["type"] == "uncertain"]
+        pool = [c for c in r["call_sites"] if c["kind"] == "uncertain"]
     else:
-        pool = [e for e in g["external_calls"] if e["evidence"] != "jedi_definition"]
+        pool = [c for c in r["call_sites"] if c["kind"] == "external" and c["reason"] != "jedi_definition"]
     rng = random.Random(SEED)
     sample = rng.sample(pool, min(n, len(pool)))
     print(f"# {kind}: sampled {len(sample)} of {len(pool)} (seed {SEED})")
-    for i, e in enumerate(sample, 1):
-        file = nodes[e["source"]]["file"]
-        print(f"[{i:2}] {file}:{e['line']}  in {e['source']}")
-        print(f"     src:    {src_line(repo, file, e['line'])}")
-        print(f"     callee: {e['callee']}")
+    for i, c in enumerate(sample, 1):
+        file = nodes[c["source"]]["file"]
+        print(f"[{i:2}] {file}:{c['line']}  in {c['source']}")
+        print(f"     src:    {src_line(repo, file, c['line'])}")
+        print(f"     callee: {c['callee']}")
         if kind == "calls":
-            t = nodes[e["target"]]
-            print(f"     target: {t['id']}  ({t['file']}:{t['start_line']})  {t['signature']}")
+            t = nodes[c["target"]]
+            print(f"     target: {t['id']}  ({t['file']}:{t['line_start']})  {t['signature']}")
         elif kind == "uncertain":
-            print(f"     reason: {e['reason']}")
+            print(f"     reason: {c['reason']}")
         else:
-            print(f"     evidence: {e['evidence']}")
+            print(f"     target: {c['target']}  evidence: {c['reason']}")
 
 
 def cmd_flow(g, repo, route, max_depth):
@@ -56,55 +60,46 @@ def cmd_flow(g, repo, route, max_depth):
     out = defaultdict(list)
     for e in g["edges"]:
         out[e["source"]].append(e)
-    ext = defaultdict(list)
-    for e in g["external_calls"]:
-        ext[e["source"]].append(e)
-    inj_bad = defaultdict(list)
-    for e in g["unresolved_injections"]:
-        inj_bad[e["source"]].append(e)
-    rid = f"route:{route}"
-    if rid not in nodes:
+    rid = next((x["id"] for x in g["nodes"] if x["type"] == "route" and x["name"] == route), None)
+    if rid is None:
         print(f"route not found: {route}")
         return
     seen = set()
+    order = {"routes_to": 0, "injects": 1}
 
     def show(nid, depth, label):
         n = nodes[nid]
-        loc = f"{n['file']}:{n['start_line']}"
-        print(f"{'  ' * depth}{label}{nid}  [{loc}]")
+        print(f"{'  ' * depth}{label}{nid}  [{n['file']}:{n['line_start']}]")
+        if n["type"] == "external":
+            return
         if nid in seen or depth > max_depth:
             if nid in seen and out[nid]:
                 print(f"{'  ' * (depth + 1)}(already expanded)")
             return
         seen.add(nid)
-        for e in sorted(out[nid], key=lambda e: (e["type"] != "routes_to", e["type"] != "injects", e["line"])):
-            if e["type"] == "routes_to":
-                show(e["target"], depth + 1, "routes_to -> ")
-            elif e["type"] == "injects":
-                show(e["target"], depth + 1, f"injects({e['via']}) L{e['line']} -> ")
-            elif e["type"] == "calls":
-                show(e["target"], depth + 1, f"calls L{e['line']} {e['callee']}() -> ")
-            elif e["type"] == "uncertain":
-                print(f"{'  ' * (depth + 1)}?? BREAK L{e['line']} {e['callee']}()  reason={e['reason']}")
-        for e in inj_bad[nid]:
-            print(f"{'  ' * (depth + 1)}~~ injects {e['expr']} L{e['line']} not a node ({e['reason']})")
-        for e in ext[nid]:
-            if e["callee"].startswith(("session.", "select", "jwt.", "password_hash.")) or "session" in e["callee"].lower():
-                print(f"{'  ' * (depth + 1)}ext L{e['line']} {e['callee']}()  [{e['evidence']}]")
+        for e in sorted(out[nid], key=lambda e: (order.get(e["type"], 2), e["line"] or 0)):
+            target = nodes[e["target"]]
+            if e["type"] not in ("routes_to", "injects", "calls", "uncertain"):
+                continue
+            if target["type"] == "external" and not LIBRARY_STEP.search(target["id"]):
+                continue
+            mark = "?? BREAK " if e["type"] == "uncertain" else ""
+            show(e["target"], depth + 1, f"{mark}{e['type']} L{e['line']} -> ")
 
     show(rid, 0, "")
 
 
-def cmd_files(g, repo, root):
+def cmd_files(g, r, repo, root):
     base = os.path.join(repo, root)
     all_py = set()
-    for dp, dns, fns in os.walk(base):
+    for dp, _dns, fns in os.walk(base):
         for f in fns:
             if f.endswith(".py"):
                 all_py.add(os.path.relpath(os.path.join(dp, f), repo).replace(os.sep, "/"))
-    included = set(g["meta"]["included_files"])
-    excluded = {d["path"] for d in g["meta"]["excluded_files"]}
-    dirs = [d["path"] + "/" for d in g["meta"]["excluded_dirs"]]
+    files = r["files"]
+    included = set(files["included"])
+    excluded = {d["path"] for d in files["excluded_files"]}
+    dirs = [d["path"] + "/" for d in files["excluded_dirs"]]
     under_dirs = {p for p in all_py if any(p.startswith(d) for d in dirs)}
     unaccounted = all_py - included - excluded - under_dirs
     parsed_modules = {x["file"] for x in g["nodes"] if x["type"] == "module"}
@@ -113,7 +108,7 @@ def cmd_files(g, repo, root):
     print(f"  excluded by dir rule: {len(under_dirs)}  excluded by file rule: {len(excluded)}")
     print(f"  unaccounted: {len(unaccounted)} {sorted(unaccounted)}")
     print(f"  included but no module node (silently skipped): {sorted(included - parsed_modules)}")
-    print(f"  parse failures: {json.dumps(g['meta']['parse_failures'], indent=1)}")
+    print(f"  parse failures: {json.dumps(files['parse_failures'], indent=1)}")
 
 
 def main():
@@ -128,12 +123,13 @@ def main():
     ap.add_argument("--depth", type=int, default=6)
     a = ap.parse_args()
     g = load(a.graph)
+    r = load(os.path.join(os.path.dirname(os.path.abspath(a.graph)), "report.json"))
     if a.cmd == "sample":
-        cmd_sample(g, a.repo, a.kind, a.n)
+        cmd_sample(g, r, a.repo, a.kind, a.n)
     elif a.cmd == "flow":
         cmd_flow(g, a.repo, a.route, a.depth)
     else:
-        cmd_files(g, a.repo, a.root)
+        cmd_files(g, r, a.repo, a.root)
 
 
 if __name__ == "__main__":

@@ -73,7 +73,7 @@ function statusOf(claims: Claim[]): StarStatus {
 function toSegments(graph: Graph, steps: PathStep[]): Segment[] {
   const firm = new Set(
     graph.edges
-      .filter((edge) => edge.type !== 'uncertain')
+      .filter((edge) => edge.resolved)
       .flatMap((edge) => [`${edge.source}>${edge.target}`, `${edge.target}>${edge.source}`]),
   )
   return steps.slice(1).map((step, index) => {

@@ -51,6 +51,7 @@
             }
           ],
           "default": null,
+          "description": "Parser detail: the callee, why an edge is uncertain, or the evidence that a call is external.",
           "title": "Note"
         }
       },
@@ -77,7 +78,8 @@
               "function",
               "route",
               "dependency",
-              "external"
+              "external",
+              "unresolved"
             ]
           },
           "title": "Nodes By Type",
@@ -147,18 +149,20 @@
       "additionalProperties": false,
       "properties": {
         "id": {
-          "description": "\"module.path:qualname\". Module nodes are just \"module.path\".",
+          "description": "\"module.path:qualname\". Module nodes are just \"module.path\". Unresolved nodes are \"module.path:?callee\", in the module of their caller.",
           "title": "Id",
           "type": "string"
         },
         "type": {
+          "description": "external: a stub for one distinct callee outside the repo. unresolved: the far end of an uncertain edge, standing in for a target the parser could not prove.",
           "enum": [
             "module",
             "class",
             "function",
             "route",
             "dependency",
-            "external"
+            "external",
+            "unresolved"
           ],
           "title": "Type",
           "type": "string"
@@ -173,7 +177,7 @@
           "type": "string"
         },
         "line_start": {
-          "description": "1-based. External stubs use 0.",
+          "description": "1-based. External stubs use 0. Unresolved nodes use their first site.",
           "minimum": 0,
           "title": "Line Start",
           "type": "integer"

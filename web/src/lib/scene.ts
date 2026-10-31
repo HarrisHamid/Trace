@@ -138,7 +138,8 @@ export function buildScene(graph: Graph): Scene {
       count(edge.source, 'calls')
       count(edge.target, 'calledBy')
     }
-    if (BELT_EDGES.has(edge.type)) {
+    // Library calls stay off the default map: there are far more of them than repo calls, and they all end on one plate.
+    if (BELT_EDGES.has(edge.type) && nodesById.get(edge.target)?.type !== 'external') {
       belts.push({ from: edge.source, to: edge.target, colour: colourOf(source), length: Math.hypot(to.x - from.x, to.y - from.y) })
     }
   }
