@@ -38,22 +38,23 @@ Parser (ast + jedi)  -->  Graph (nodes, edges, flagged gaps)   [no AI]
                   (every node, edge and quote is checked)
                               |
                               v
-        FastAPI (streams steps)  -->  Web UI (Cytoscape.js)
+        FastAPI (streams steps)  -->  Web UI (React + Cytoscape.js)
 ```
 
 - **Parser and graph:** deterministic. Python `ast` for structure, `jedi` for name resolution, plus Flask or FastAPI route edges.
 - **Agent:** a Meta model in a tool-calling loop. It decides what to read next and returns a structured JSON path.
 - **Grounding validator:** plain code that rejects any claim that is not in the graph.
-- **Frontend:** a single page, no React.
+- **Frontend:** a React and TypeScript single-page app, with the graph drawn in Cytoscape.js. Its types are generated from the backend's JSON Schema contracts.
 
 ## Built with
 
 - Meta Model API (Muse Spark) for the agent and for pre-generated tap-check questions
-- Python, FastAPI,
+- Python, FastAPI, Pydantic, jedi, networkx
+- React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Cytoscape.js, Zustand
 
 ## Built during the hackathon
 
-All code in this repo was written for the Meta AI Global Hackathon, and the commit history is the record of how it came together. The parser was written on 2026-10-29 in a local folder and imported as-is, then moved with `git mv`. Everything else was added on 2026-10-30 in small commits. The code was written with an AI assistant, and [NOTES.md](NOTES.md) logs what was written and the decisions behind it.
+All code in this repo was written for the Meta AI Global Hackathon, and the commit history is the record of how it came together. The code was written with an AI assistant, and [NOTES.md](NOTES.md) logs what was written and the decisions behind it.
 
 ## Quickstart
 
