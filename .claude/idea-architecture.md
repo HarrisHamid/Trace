@@ -23,8 +23,8 @@ in code.
 - Python standard `ast` for structure, `jedi` for name resolution, `networkx` to build the graph, `pydantic`
   models as the shared schema definition (backend, tests, and generated frontend types all use it).
 - **Node id format:** `module.path:qualname`.
-- **Node types:** module, class, function, route, plus (v2) `dependency` and `external`.
-- **Edge types:** calls, imports, inherits, routes_to, injects, uncertain, plus (v2) `implements`.
+- **Node types:** module, class, function, route, dependency, external, unresolved (the far end of an uncertain edge).
+- **Edge types:** calls, imports, inherits, routes_to, injects, implements, uncertain.
 - **Never silently drop unresolved calls.** Mark them `uncertain`.
 - **Call-resolution rate** = resolved / (resolved + uncertain). External calls are reported separately and
   are not counted in that rate.

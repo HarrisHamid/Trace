@@ -1,6 +1,6 @@
 # Trace — Project Context (start here)
 
-> The repo **as it actually is** on 2026-10-31, on branch `feat/space-factory-map`. The `.claude/idea*.md` files
+> The repo **as it actually is** on 2026-10-31, on branch `feat/parser-v2`. The `.claude/idea*.md` files
 > describe what Trace is meant to become. If they disagree about the current state, this folder wins. If they
 > disagree about the goal, the idea docs win. Paths are relative to the repo root.
 
@@ -18,15 +18,15 @@ product model call must go to Meta models. Rules, judging and positioning are in
 
 **The foundation works, but the product's core does not exist yet.**
 
-- **Works on real data:** the parser. It builds a graph of the pinned demo repo deterministically.
-- **Works on mock data only:** the API and web app. `POST /api/ask` replays a canned run from `data/mock/`, whatever
-  the question is.
+- **Works on real data:** the parser, the graph API and the map. Parser v2 emits the `Graph` contract with a baked layout,
+  and the UI renders the demo repo from it, with real source in the code panel.
+- **Works on mock data only:** answers. `POST /api/ask` replays a canned run from `data/mock/`, whatever the question is.
 - **UI built on mocks:** factory-style map (plates, label cards, belts), path animation with a parcel, file view, command
   palette, observation log and code panel. Spec in `docs/prds/03-ui.md`; the redesign is logged in `NOTES.md`.
-- **Not built:** graph tools, agent loop, grounding validator, layout step, learning mode, tap-check generator, eval. `backend/trace/{tools,agent,validator}/` each hold a one-line docstring and nothing else.
-- **Biggest integration gap:** the parser's output does not match the `Graph` contract, so the API cannot load a real
-  graph yet. Validation fails with 1,233 errors on the demo repo. Parser v2 has to close this first, because the
-  agent, tools and UI all read the contract format.
+- **Not built:** graph tools, agent loop, grounding validator, learning mode, tap-check generator, eval. `backend/trace/{tools,agent,validator}/` each hold a one-line docstring and nothing else.
+- **Biggest risk now:** tools and structured output have never run together on the real graph, and that work has not
+  started.
+- **Demo repo decided:** `fastapi/full-stack-fastapi-template`, after a trial of three larger repos.
 
 Check details, the gap table and open design questions are in `status.md`.
 
@@ -69,10 +69,21 @@ uv run python scripts/verify.py flow --graph out/graph.json \
   --repo third_party/fastapi-template --route "POST /api/v1/login/access-token"
 ```
 
+To see the real graph on the map, serve it instead of the mocks. `graph.json` is the only file the map needs, but the
+API's other routes read `checks.json` and `events.jsonl` from the same folder, and those are still mock-only:
+
+```sh
+TRACE_DATA_DIR=out TRACE_SOURCE_DIR=third_party/fastapi-template \
+  uv run uvicorn backend.trace.api:create_app --factory --port 8000
+```
+
 ## Things that will trip you up
 
 - **Import path:** use `backend.trace`, never a top-level `trace`, which collides with the stdlib module.
-- **Parser output is not the contract format.** Don't feed `out/graph.json` to the API or UI until parser v2 exists.
+- **`layout.py` mirrors the plate padding in `web/src/lib/scene.ts`.** Change them together, or plates will overlap
+  without any test noticing on the UI side.
+- **Don't treat an `external` edge as a proven library fact.** Its `note` gives the evidence. `name_not_defined_in_repo`
+  stubs sit under `<unknown>` because nothing says which library they belong to.
 - **Cytoscape forces `position: relative` on its container.** Put it inside an absolutely positioned wrapper, or the
   container collapses to zero height and nothing draws.
 - **Mock source must match `graph.json` line numbers.** `tests/test_mock_fixtures.py` checks it. If you edit

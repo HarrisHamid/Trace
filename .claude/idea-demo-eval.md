@@ -14,10 +14,11 @@ harder.
 depth; verify each LICENSE file yourself):
 - `polarsource/polar`: Apache-2.0 (confirmed on repo page), ~10k stars, very large; FastAPI `server/` plus
   Next.js `clients/`. Would need to be scoped to a few server modules.
-- `Netflix/dispatch`: Apache 2.0 per a third-party listing **(unverified; check LICENSE file)**; archived
-  Sep 2025 (stable pin); Python plus Vue.
-- `mizhexiaoxiao/vue-fastapi-admin`: MIT per an aggregator **(unverified on GitHub)**; FastAPI + Vue3,
-  Tortoise ORM; likely mid-small.
+- `Netflix/dispatch`: Apache 2.0 (confirmed from its LICENSE file); archived Sep 2025 (stable pin); Python plus Vue.
+- `mizhexiaoxiao/vue-fastapi-admin`: MIT (confirmed from its LICENSE file); FastAPI + Vue3, Tortoise ORM; small.
+
+**Trial result (2026-10-31): none beats the template, so the template ships.** Numbers are in
+`.claude/Project_Context/status.md`.
 
 **Excluded:** `evroon/bracket` (AGPL-3.0), cookiecutter generators (templated files may not parse), the
 unlicensed `fastapi-realworld-backend` (local robustness testing only).
@@ -96,7 +97,6 @@ Estimated about **6.7/10** weighted if the core ships. Biggest risks:
 
 ## Open questions
 
-- Final demo repo (decided by the parser trial results).
 - Hours available per day this weekend.
 - Written confirmation that third-party AI coding agents are allowed.
 - Confirm entry track (Indie Developer) on the submission page.
