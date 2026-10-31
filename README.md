@@ -54,7 +54,7 @@ Parser (ast + jedi)  -->  Graph (nodes, edges, flagged gaps)   [no AI]
 
 ## Built during the hackathon
 
-All code in this repo was written for the Meta AI Global Hackathon, and the commit history is the record of how it came together. The code was written with an AI assistant, and [NOTES.md](NOTES.md) logs what was written and the decisions behind it.
+All code in this repo was written for the Meta AI Global Hackathon, apart from the adapted third-party component listed under [Attribution](#attribution). The commit history is the record of how it came together. The code was written with an AI assistant, and [NOTES.md](NOTES.md) logs what was written and the decisions behind it.
 
 ## Quickstart
 
@@ -85,3 +85,5 @@ git -C third_party/fastapi-template checkout f4bcfaba7c85be3c6332cc74a20819f586d
 ```
 
 `third_party/` is gitignored. The mock data in `data/mock/` describes an invented app, not a real repo.
+
+The landing page animation in `web/src/components/ui/helix-chrono-matrix.tsx` is adapted from a third-party React component, `HelixChronoMatrix`. Its source and licence are still to be confirmed.

@@ -63,6 +63,22 @@ async def test_checks_serves_the_mock():
 
 
 @pytest.mark.anyio
+async def test_source_serves_a_file():
+    async with client_for() as client:
+        response = await client.get("/api/source", params={"file": "taskboard/api/auth.py"})
+    assert response.status_code == 200
+    assert response.text.startswith('"""Login and session routes."""')
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("file", ["taskboard/missing.py", "../graph.json", "/etc/hosts", "<external>"])
+async def test_source_rejects_anything_outside_the_source_dir(file):
+    async with client_for() as client:
+        response = await client.get("/api/source", params={"file": file})
+    assert response.status_code == 404
+
+
+@pytest.mark.anyio
 async def test_ask_streams_events_in_order():
     question = {"question": "how does login work?"}
     events = []

@@ -4,7 +4,8 @@ import asyncio
 from collections.abc import AsyncIterator
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
@@ -42,6 +43,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/api/checks")
     def checks() -> ChecksFile:
         return ChecksFile.model_validate_json((settings.trace_data_dir / "checks.json").read_text(encoding="utf-8"))
+
+    @app.get("/api/source", response_class=PlainTextResponse)
+    def source(file: str) -> str:
+        root = settings.trace_source_dir.resolve()
+        path = (root / file).resolve()
+        if not path.is_relative_to(root) or not path.is_file():
+            raise HTTPException(status_code=404, detail=f"No source for {file}")
+        return path.read_text(encoding="utf-8")
 
     @app.post("/api/ask")
     async def ask(_: AskRequest) -> EventSourceResponse:

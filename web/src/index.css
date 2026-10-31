@@ -1,28 +1,20 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/inter";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
 @import "@fontsource-variable/jetbrains-mono";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'Inter Variable', sans-serif;
+    --font-heading: 'Instrument Serif', Georgia, serif;
+    --font-serif: 'Instrument Serif', Georgia, serif;
+    --font-sans: 'JetBrains Mono Variable', monospace;
     --font-mono: 'JetBrains Mono Variable', monospace;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
+    --color-verified: var(--status-verified);
+    --color-unverified: var(--status-unverified);
+    --color-gap: var(--status-gap);
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
@@ -51,72 +43,44 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-}
+    --background: #090a0f;
+    --foreground: #ece8dc;
+    --card: #10121a;
+    --card-foreground: #ece8dc;
+    --popover: #10121a;
+    --popover-foreground: #ece8dc;
+    --primary: #f2c46d;
+    --primary-foreground: #17120a;
+    --secondary: #191c27;
+    --secondary-foreground: #ece8dc;
+    --muted: #161924;
+    --muted-foreground: #9196ab;
+    --accent: #1d2130;
+    --accent-foreground: #ece8dc;
+    --destructive: #ff7a5c;
+    --border: rgb(196 206 232 / 13%);
+    --input: rgb(196 206 232 / 18%);
+    --ring: #f2c46d;
+    --radius: 0.125rem;
 
-.dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    /* Stars take the colour of a spectral class, hottest for entry points. GraphView and the sky read these. */
+    --star-route: #9cc4ff;
+    --star-function: #dfe3f0;
+    --star-class: #f1dfae;
+    --star-dependency: #f0a56c;
+    --star-external: #6f7590;
+    --star-module: #aab2cc;
+    --star-edge: #c4cee8;
+
+    /* Gold is the thread: it means the chart backs this. */
+    --status-verified: #f2c46d;
+    --status-unverified: #ff7a5c;
+    --status-gap: #8fd3ff;
+
+    --nebula-1: #3f6fb5;
+    --nebula-2: #2f8f8a;
+    --nebula-3: #8a4f9e;
+    --nebula-4: #a8623f;
 }
 
 @layer base {
@@ -129,4 +93,84 @@
   html {
     @apply font-sans;
     }
+}
+
+@layer components {
+  /* The plate: a hairline frame with atlas tick marks. */
+  .plate-frame {
+    --tick: var(--border);
+    pointer-events: none;
+    position: absolute;
+    inset: 10px;
+    border: 1px solid var(--border);
+    background:
+      repeating-linear-gradient(90deg, var(--tick) 0 1px, transparent 1px 48px) top / 100% 5px no-repeat,
+      repeating-linear-gradient(90deg, var(--tick) 0 1px, transparent 1px 48px) bottom / 100% 5px no-repeat,
+      repeating-linear-gradient(0deg, var(--tick) 0 1px, transparent 1px 48px) left / 5px 100% no-repeat,
+      repeating-linear-gradient(0deg, var(--tick) 0 1px, transparent 1px 48px) right / 5px 100% no-repeat;
+  }
+
+  .plate-vignette {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 45% 45%, transparent 55%, rgb(4 5 9 / 72%) 100%);
+  }
+
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .glass {
+    border: 1px solid var(--border);
+    background: rgb(12 14 21 / 88%);
+    backdrop-filter: blur(14px);
+  }
+
+  .code-plate pre {
+    background: transparent !important;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.7;
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .code-plate code {
+    display: grid;
+    counter-reset: line;
+  }
+
+  .code-plate .line {
+    counter-increment: line;
+    display: block;
+    min-height: 1.7em;
+    padding-right: 1.5rem;
+    opacity: 0.45;
+    border-left: 2px solid transparent;
+  }
+
+  .code-plate .line::before {
+    content: counter(line);
+    display: inline-block;
+    width: 2.75rem;
+    padding-right: 1rem;
+    text-align: right;
+    color: var(--muted-foreground);
+  }
+
+  .code-plate .line.in-range {
+    opacity: 1;
+    border-left-color: var(--border);
+  }
+
+  .code-plate .line.quoted {
+    opacity: 1;
+    border-left-color: var(--status-verified);
+    background: rgb(242 196 109 / 12%);
+  }
 }

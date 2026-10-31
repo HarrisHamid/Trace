@@ -58,3 +58,23 @@ Everything in this section was written by an AI assistant (Claude Opus 5.5, via 
 - **External stubs.** The contract requires `file` and lines on every node, so stubs use `file: "<external>"` and lines of 0.
 - **Max 8 tool calls is documented, not validated.** `MAX_TOOL_CALLS` and the `call_index` description state it. The agent loop will enforce it.
 - **Parser ruff findings are ignored by path.** The broad excepts are deliberate guards around jedi, and rewriting them could change behaviour. New code gets the full rule set.
+
+## Project context
+`.claude/Project_Context/` (`README.md`, `architecture.md`, `status.md`) was written by an AI assistant (Claude Opus 5.5, via Claude Code) on 2026-10-30. It describes the repo as built, and the results in `status.md` come from commands run that day.
+
+
+## Landing page
+- **Third-party code.** `web/src/components/ui/helix-chrono-matrix.tsx` is adapted from a third-party React component, `HelixChronoMatrix`, pasted in on 2026-10-30. This qualifies the "no external code snippets" line in the disclosure above, which covers the parser only. Its source and licence are not confirmed yet. If they can't be confirmed before submission, rewrite the effect from scratch.
+- **Changes to that component, by an AI assistant (Claude Opus 5.5, via Claude Code):** removed the other two topologies, the freeze control and the light theme; changed the headline to TRACE; added a `children` slot; scaled the camera and wave with the viewport, because the ring radius reached the fixed camera distance on tall screens; sized the headline to the viewport; raised the resting line brightness, because the bright look only appeared on hover; added a static frame for `prefers-reduced-motion`.
+- **AI-written on 2026-10-30:** `web/src/components/Landing.tsx`, the hash switch in `web/src/App.tsx`, and `web/src/components/Workspace.tsx`, which is the old `App` body moved unchanged.
+- **Hash routes, not a router.** FastAPI's `StaticFiles` mount has no SPA fallback, so a path like `/app` would 404 on refresh. `#/app` needs no backend change and no new dependency.
+
+## UI
+- **AI-written on 2026-10-31 (Claude Opus 5.5, via Claude Code):** `docs/prds/03-ui.md`; `web/src/components/{AskBar,CodePanel,CommandPalette,Glyphs,MapChrome,ObservationLog}.tsx`; `web/src/lib/{highlight,run,sky}.ts`; `data/mock/source/`; `GET /api/source`; rewrites of `GraphView.tsx`, `Workspace.tsx`, `store.ts` and the tokens in `index.css`.
+- **Instrument Serif replaces Inter.** Added `@fontsource/instrument-serif` (SIL OFL) and removed `@fontsource-variable/inter`. JetBrains Mono stays for code, labels and chrome.
+- **A canvas behind Cytoscape, not Cytoscape effects.** Cytoscape has no soft glow and can't draw a stroke progressively, so `lib/sky.ts` draws the glows and the thread underneath the nodes. Stars are seeded so the map looks identical on every run.
+- **Modules are labels, not compound nodes.** The architecture doc planned compound nodes, but members of a module are scattered in the baked layout, so their bounding boxes overlap heavily. Nebulae are drawn per member instead.
+- **A `gap` claim opens at the previous step.** Its quote is the unresolved call site, which is in the caller, not the target. The real validator needs to keep this shape, or `ObservationLog.tsx` needs a new rule. If a quote isn't in the file, the panel says so.
+- **Source stubs match the graph's line numbers,** so `deps.py` and others are oddly dense in places. Tests pin them to `graph.json` and to the quotes in `events.jsonl`. `data/mock/source/` is excluded from ruff.
+- **Playback lags the stream on purpose.** The animation holds about 400ms per step and queues whatever arrives faster.
+
