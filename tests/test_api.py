@@ -51,7 +51,7 @@ async def test_graph_serves_the_mock():
     assert response.status_code == 200
     body = response.json()
     assert body["repo"] == "demo/taskboard"
-    assert len(body["nodes"]) == 25
+    assert len(body["nodes"]) == 26
 
 
 @pytest.mark.anyio

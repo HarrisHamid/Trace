@@ -24,6 +24,7 @@
 
     {"id": "taskboard.core.security", "type": "module", "name": "security", "file": "taskboard/core/security.py", "line_start": 1, "line_end": 40, "module": "taskboard.core.security", "docstring": "Password hashing and token signing.", "x": 541, "y": 547},
     {"id": "taskboard.core.security:TokenError", "type": "class", "name": "TokenError", "file": "taskboard/core/security.py", "line_start": 7, "line_end": 8, "module": "taskboard.core.security", "signature": "class TokenError(Exception)", "docstring": "The token is invalid or expired.", "x": 790, "y": 758},
+    {"id": "taskboard.services.users:?self.rehash", "type": "unresolved", "name": "self.rehash", "file": "taskboard/services/users.py", "line_start": 39, "line_end": 39, "module": "taskboard.services.users", "x": 790, "y": 300},
     {"id": "taskboard.core.security:hash_password", "type": "function", "name": "hash_password", "file": "taskboard/core/security.py", "line_start": 11, "line_end": 13, "module": "taskboard.core.security", "signature": "def hash_password(password: str) -> str", "docstring": "Hash a plain password with bcrypt.", "x": 1010, "y": 758},
     {"id": "taskboard.core.security:verify_password", "type": "function", "name": "verify_password", "file": "taskboard/core/security.py", "line_start": 15, "line_end": 17, "module": "taskboard.core.security", "signature": "def verify_password(password: str, hashed: str) -> bool", "docstring": "Check a plain password against a stored bcrypt hash.", "x": 1010, "y": 608},
     {"id": "taskboard.core.security:create_access_token", "type": "function", "name": "create_access_token", "file": "taskboard/core/security.py", "line_start": 20, "line_end": 26, "module": "taskboard.core.security", "signature": "def create_access_token(user_id: int) -> str", "docstring": "Sign a JWT for the given user id.", "x": 570, "y": 608},
@@ -63,10 +64,10 @@
     {"source": "taskboard.services.users:SqlUserStore", "target": "taskboard.services.users:UserStore", "type": "inherits", "line": 12, "resolved": true},
     {"source": "taskboard.services.users:SqlUserStore.find_by_email", "target": "taskboard.services.users:UserStore.find_by_email", "type": "implements", "line": 17, "resolved": true},
 
-    {"source": "taskboard.services.users:UserService.authenticate", "target": "taskboard.core.security:hash_password", "type": "uncertain", "line": 39, "resolved": false, "note": "callable_attribute: self.rehash is assigned at runtime, so this target is a best guess."}
+    {"source": "taskboard.services.users:UserService.authenticate", "target": "taskboard.services.users:?self.rehash", "type": "uncertain", "line": 39, "resolved": false, "note": "callable_attribute: self.rehash"}
   ],
   "stats": {
-    "nodes_by_type": {"class": 4, "dependency": 2, "external": 2, "function": 11, "module": 4, "route": 2},
+    "nodes_by_type": {"class": 4, "dependency": 2, "external": 2, "function": 11, "module": 4, "route": 2, "unresolved": 1},
     "edges_by_type": {"calls": 11, "implements": 1, "imports": 6, "inherits": 1, "injects": 4, "routes_to": 2, "uncertain": 1},
     "calls_resolved": 9,
     "calls_uncertain": 1,

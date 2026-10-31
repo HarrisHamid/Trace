@@ -23,6 +23,7 @@ const NODE_RADIUS: Record<GraphNode['type'], number> = {
   dependency: 12,
   function: 10,
   external: 9,
+  unresolved: 9,
   module: 0,
 }
 
@@ -32,6 +33,7 @@ const PRIORITY: Record<GraphNode['type'], number> = {
   dependency: 1,
   function: 1,
   external: 0,
+  unresolved: 1,
   module: -1,
 }
 

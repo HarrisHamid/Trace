@@ -12,6 +12,7 @@ const SHAPES: { type: GraphNode['type']; label: string }[] = [
   { type: 'class', label: 'class' },
   { type: 'dependency', label: 'dependency' },
   { type: 'external', label: 'outside library' },
+  { type: 'unresolved', label: 'unknown target' },
 ]
 
 export function TopBar({ graph, moduleName }: { graph: Graph; moduleName: string | null }) {

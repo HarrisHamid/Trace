@@ -1,26 +1,91 @@
 """Deterministic graph builder: ast for structure, jedi for name resolution.
 
-Passes (in order): nodes, calls, routes, depends (injects), imports, inherits.
+Passes (in order): nodes, calls, routes, depends (injects), imports, inherits, implements, then layout.
+`build()` returns the `Graph` contract plus a report holding what the contract has no slot for.
 """
 
 from __future__ import annotations
 
 import ast
 import os
+import re
 import subprocess
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
 import jedi
 import networkx as nx
 
+from ..schemas import Graph
 from .discover import discover, module_name
+from .layout import bake_layout
+
+TOOL = "backend.trace.parser 0.2.0"
+EXTERNAL_FILE = "<external>"
+UNKNOWN_MODULE = "<unknown>"  # outside the repo, but nothing says which library
 
 HTTP_METHODS = {"get", "post", "put", "delete", "patch", "options", "head", "trace"}
 ROUTER_FACTORIES = {"APIRouter": "router", "FastAPI": "app", "Flask": "app", "Blueprint": "router"}
 ROUTER_NAME_HINTS = {"router", "app", "api", "api_router", "bp", "blueprint"}
 DEPENDS_NAMES = {"Depends", "Security"}
+EDGE_FIELDS = ("source", "target", "type", "line", "resolved", "note")
+
+
+def callee_shape(func: ast.expr) -> str:
+    """The callee without its arguments: `session.exec(stmt).first` becomes `session.exec().first`.
+
+    Query builders chain freely, so a longer chain keeps its start and its last attribute: `select()….limit`.
+    Without this every query in a repo would be its own external node.
+    """
+    parts: list[str] = []
+    node = func
+    while True:
+        if isinstance(node, ast.Attribute):
+            parts.append("." + node.attr)
+            node = node.value
+        elif isinstance(node, ast.Call):
+            parts.append("()")
+            node = node.func
+        elif isinstance(node, ast.Subscript):
+            parts.append("[]")
+            node = node.value
+        else:
+            break
+    parts.append(node.id if isinstance(node, ast.Name) else "(…)")
+    parts.reverse()
+    first = next((i for i, part in enumerate(parts) if part in ("()", "[]")), None)
+    if first is None or first >= len(parts) - 2:
+        return "".join(parts)
+    return "".join(parts[: first + 1]) + "…" + parts[-1]
+
+
+def root_name(expr: ast.expr) -> ast.Name | None:
+    while isinstance(expr, (ast.Attribute, ast.Call, ast.Subscript)):
+        expr = expr.func if isinstance(expr, ast.Call) else expr.value
+    return expr if isinstance(expr, ast.Name) else None
+
+
+def is_abstract(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """True for @abstractmethod, and for a body that only declares: `...`, `pass`, or raising NotImplementedError."""
+    for dec in fn.decorator_list:
+        name = dec.attr if isinstance(dec, ast.Attribute) else getattr(dec, "id", None)
+        if name == "abstractmethod":
+            return True
+    body = fn.body[1:] if ast.get_docstring(fn) is not None else fn.body
+    if not body:
+        return True
+    if len(body) > 1:
+        return False
+    stmt = body[0]
+    if isinstance(stmt, ast.Pass):
+        return True
+    if isinstance(stmt, ast.Expr):
+        return isinstance(stmt.value, ast.Constant) and stmt.value.value is Ellipsis
+    if isinstance(stmt, ast.Raise) and stmt.exc is not None:
+        exc = stmt.exc.func if isinstance(stmt.exc, ast.Call) else stmt.exc
+        return isinstance(exc, ast.Name) and exc.id == "NotImplementedError"
+    return False
 
 
 @dataclass
@@ -42,6 +107,8 @@ class Classification:
     kind: str  # resolved | external | uncertain
     target: str | None = None
     reason: str | None = None  # uncertain reason, or external sub-kind
+    module: str | None = None  # external only: the library
+    name: str | None = None  # external only: qualname inside that library
 
 
 class GraphBuilder:
@@ -53,8 +120,10 @@ class GraphBuilder:
         self.files: dict[str, FileInfo] = {}
         self.nodes: dict[str, dict] = {}
         self.edges: list[dict] = []
-        self.external_calls: list[dict] = []
-        self.unresolved_injections: list[dict] = []
+        self.call_log: list[dict] = []  # one row per call site, whatever it resolved to
+        self.injection_log: list[dict] = []  # one row per injection
+        self.routes: dict[str, dict] = {}  # route id -> what the contract has no slot for
+        self.fn_defs: dict[str, ast.FunctionDef | ast.AsyncFunctionDef] = {}
         self.parse_failures: list[dict] = []
         self.def_index: dict[tuple[str, int], str] = {}  # (rel, def line) -> node id
         self.ranges: dict[str, list[tuple[int, int, str]]] = {}  # rel -> [(start, end, id)]
@@ -104,10 +173,38 @@ class GraphBuilder:
                 best = (start, nid)
         return best[1] if best else None
 
-    def add_edge(self, source, target, etype, line, **extra):
-        e = {"source": source, "target": target, "type": etype, "line": line}
-        e.update(extra)
-        self.edges.append(e)
+    def add_edge(self, source, target, etype, line, resolved=True, note=None, col=-1):
+        self.edges.append(
+            {"source": source, "target": target, "type": etype, "line": line, "resolved": resolved, "note": note, "col": col}
+        )
+
+    def external_node(self, module: str, name: str) -> str:
+        """One node per distinct callee, however many call sites reach it."""
+        nid = f"{module}:{name}"
+        self.nodes.setdefault(
+            nid,
+            {
+                "id": nid, "type": "external", "name": name, "file": EXTERNAL_FILE, "line_start": 0, "line_end": 0,
+                "module": module, "signature": None, "docstring": None,
+            },
+        )
+        return nid
+
+    def unresolved_node(self, owner: str, name: str, line: int) -> str:
+        """The far end of an uncertain edge. It sits in the caller's module and points at the first site in that module.
+
+        A best guess would present an inference as graph fact, and the UI needs both ends to draw the dashed edge.
+        """
+        module, file = self.nodes[owner]["module"], self.nodes[owner]["file"]
+        nid = f"{module}:?{name}"
+        self.nodes.setdefault(
+            nid,
+            {
+                "id": nid, "type": "unresolved", "name": name, "file": file, "line_start": line, "line_end": line,
+                "module": module, "signature": None, "docstring": None,
+            },
+        )
+        return nid
 
     # ------------------------------------------------------------ pass 0: parse
     def load(self) -> None:
@@ -137,8 +234,6 @@ class GraphBuilder:
                         "error": f"SyntaxError: {exc.msg}",
                         "line": exc.lineno,
                         "python": sys.version.split()[0],
-                        "recovered": False,
-                        "recovery": None,
                     }
                 )
         # `--root` itself may not be a package; every top-level dir/module counts.
@@ -152,7 +247,7 @@ class GraphBuilder:
             mod = fi.module
             self._add_node(
                 fi, mod, "module", mod.split(".")[-1], 1, max(len(fi.line_bytes), 1),
-                None, ast.get_docstring(fi.tree), [],
+                None, ast.get_docstring(fi.tree),
             )
             self.module_nodes.add(mod)
             self._walk_defs(fi, fi.tree.body, "")
@@ -171,7 +266,7 @@ class GraphBuilder:
         for rel in self.ranges:
             self.ranges[rel].sort()
 
-    def _add_node(self, fi, nid, ntype, name, start, end, signature, doc, decorators, def_line=None):
+    def _add_node(self, fi, nid, ntype, name, start, end, signature, doc, def_line=None):
         if nid in self.nodes:  # property setters, conditional defs
             nid = f"{nid}@{def_line or start}"
         first = None
@@ -179,8 +274,8 @@ class GraphBuilder:
             first = next((ln.strip() for ln in doc.splitlines() if ln.strip()), None)
         self.nodes[nid] = {
             "id": nid, "type": ntype, "name": name, "file": fi.repo_rel,
-            "start_line": start, "end_line": end, "signature": signature,
-            "docstring": first, "decorators": decorators,
+            "line_start": start, "line_end": end, "module": fi.module, "signature": signature,
+            "docstring": first,
         }
         if ntype != "module":
             self.def_index[(fi.rel, def_line)] = nid
@@ -196,11 +291,11 @@ class GraphBuilder:
                 if stmt.returns is not None:
                     sig += f" -> {ast.unparse(stmt.returns)}"
                 start = min([d.lineno for d in stmt.decorator_list] + [stmt.lineno])
-                self._add_node(
+                nid = self._add_node(
                     fi, f"{fi.module}:{prefix}{stmt.name}", "function", stmt.name, start,
-                    stmt.end_lineno, sig, ast.get_docstring(stmt),
-                    [ast.unparse(d) for d in stmt.decorator_list], def_line=stmt.lineno,
+                    stmt.end_lineno, sig, ast.get_docstring(stmt), def_line=stmt.lineno,
                 )
+                self.fn_defs[nid] = stmt
                 # nested defs inside functions are not nodes (attributed to the enclosing fn)
                 for sub in ast.walk(stmt):
                     if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and sub is not stmt:
@@ -211,8 +306,7 @@ class GraphBuilder:
                 start = min([d.lineno for d in stmt.decorator_list] + [stmt.lineno])
                 self._add_node(
                     fi, f"{fi.module}:{prefix}{stmt.name}", "class", stmt.name, start,
-                    stmt.end_lineno, sig, ast.get_docstring(stmt),
-                    [ast.unparse(d) for d in stmt.decorator_list], def_line=stmt.lineno,
+                    stmt.end_lineno, sig, ast.get_docstring(stmt), def_line=stmt.lineno,
                 )
                 self._walk_defs(fi, stmt.body, f"{prefix}{stmt.name}.")
             elif isinstance(stmt, (ast.If, ast.Try, ast.With, ast.AsyncWith)) or (
@@ -275,7 +369,8 @@ class GraphBuilder:
         if internal and external:
             return Classification("uncertain", reason="multiple_definitions")
         if not internal:
-            return Classification("external", reason="jedi_definition")
+            module, name = self.external_identity(defs)
+            return Classification("external", reason="jedi_definition", module=module, name=name)
         targets, non_nodes = set(), []
         for n, rel in internal:
             if rel not in self.files:
@@ -300,6 +395,14 @@ class GraphBuilder:
             "module": "calls_module",
         }.get(n.type, f"resolves_to_{n.type}")
         return Classification("uncertain", reason=reason)
+
+    @staticmethod
+    def external_identity(defs) -> tuple[str, str]:
+        """(module, qualname) of what jedi found. Overloads share a full_name, so the choice is only for determinism."""
+        n = min(defs, key=lambda d: (d.full_name or "", d.module_name or "", d.name or ""))
+        module = n.module_name or UNKNOWN_MODULE
+        full = n.full_name or n.name
+        return module, full.removeprefix(f"{module}.")
 
     def goto(self, fi, pos, follow=True):
         return self.script(fi).goto(pos[0], pos[1], follow_imports=follow)
@@ -347,25 +450,31 @@ class GraphBuilder:
                 c.reason = "callable_attribute"
             return c
         # jedi found nothing: look for evidence the target is outside the repo.
+        imported = self.external_by_import(fi, func)
+        if imported:
+            return imported
         if isinstance(func, ast.Name):
-            origin = self.import_origin(fi, func)
-            if origin and not self.is_internal_module(origin):
-                return Classification("external", reason="unresolved_external_import")
-            if origin:
+            if self.import_origin(fi, func):
                 return Classification("uncertain", reason="unresolved_internal_import")
             return Classification("uncertain", reason="no_definition")
-        base = func.value
-        while isinstance(base, (ast.Attribute, ast.Call, ast.Subscript)):
-            base = base.func if isinstance(base, ast.Call) else base.value
-        if isinstance(base, ast.Name):
-            origin = self.import_origin(fi, base)
-            if origin and not self.is_internal_module(origin):
-                return Classification("external", reason="unresolved_external_import")
         if func.attr in self.repo_attr_names:
             return Classification("uncertain", reason="callable_attribute")
         if func.attr not in self.repo_def_names:
-            return Classification("external", reason="name_not_defined_in_repo")
+            return Classification(
+                "external", reason="name_not_defined_in_repo", module=UNKNOWN_MODULE, name=callee_shape(func)
+            )
         return Classification("uncertain", reason="receiver_type_unknown")
+
+    def external_by_import(self, fi: FileInfo, expr: ast.expr) -> Classification | None:
+        """External if the root of `expr` is bound by an import from outside the repo."""
+        base = root_name(expr)
+        origin = self.import_origin(fi, base) if base else None
+        if not origin or self.is_internal_module(origin):
+            return None
+        shape = callee_shape(expr)
+        bound_to_module = fi.imports.get(base.id) == origin or origin.split(".")[0] == base.id
+        name = shape.removeprefix(f"{base.id}.") if bound_to_module else shape
+        return Classification("external", reason="unresolved_external_import", module=origin, name=name)
 
     # ------------------------------------------------------------ pass 2: calls
     def call_sites(self, fi: FileInfo):
@@ -410,15 +519,24 @@ class GraphBuilder:
                     callee = callee[:77] + "..."
                 self.call_counts[c.kind] += 1
                 if c.kind == "resolved":
-                    self.add_edge(owner, c.target, "calls", call.lineno, col=col, callee=callee)
+                    target = c.target
+                    self.add_edge(owner, target, "calls", call.lineno, note=callee, col=col)
                 elif c.kind == "uncertain":
                     self.uncertain_reasons[c.reason] += 1
-                    self.add_edge(owner, None, "uncertain", call.lineno, col=col, callee=callee, reason=c.reason)
+                    target = self.unresolved_node(owner, callee, call.lineno)
+                    self.add_edge(
+                        owner, target, "uncertain", call.lineno, resolved=False, note=f"{c.reason}: {callee}", col=col
+                    )
                 else:
                     self.external_kinds[c.reason] += 1
-                    self.external_calls.append(
-                        {"source": owner, "line": call.lineno, "col": col, "callee": callee, "evidence": c.reason}
-                    )
+                    target = self.external_node(c.module, c.name)
+                    self.add_edge(owner, target, "calls", call.lineno, note=f"{c.reason}: {callee}", col=col)
+                self.call_log.append(
+                    {
+                        "source": owner, "line": call.lineno, "col": col, "callee": callee, "kind": c.kind,
+                        "target": target, "reason": c.reason,
+                    }
+                )
 
     # ------------------------------------------------------------ pass 3: routes
     def str_value(self, fi: FileInfo, expr) -> tuple[str, str]:
@@ -569,14 +687,16 @@ class GraphBuilder:
                     for method in methods:
                         full = prefix + path
                         name = f"{method} {full}"
-                        rid = f"route:{name}"
+                        rid = f"{fi.module}:{name}"
                         if rid in self.nodes:
                             rid = f"{rid}@{handler}"
                         self.nodes[rid] = {
                             "id": rid, "type": "route", "name": name, "file": fi.repo_rel,
-                            "start_line": dec.lineno, "end_line": dec.end_lineno,
+                            "line_start": dec.lineno, "line_end": dec.end_lineno, "module": fi.module,
                             "signature": None, "docstring": self.nodes[handler]["docstring"],
-                            "decorators": [ast.unparse(dec)], "method": method, "path": full,
+                        }
+                        self.routes[rid] = {
+                            "id": rid, "decorator": ast.unparse(dec), "method": method, "path": full,
                             "local_path": path,
                             "router": f"{key[0]}:{key[1]}" if key else None,
                             "prefix_resolution": sorted(flags["how"] | {path_how}),
@@ -640,24 +760,67 @@ class GraphBuilder:
         )
         if target_expr is None:  # Depends() -> dependency is the annotated type
             target_expr = type_expr
-        if target_expr is None or self.name_pos(fi, target_expr) is None:
-            self.unresolved_injections.append(
-                {"source": handler, "line": line, "via": via, "expr": ast.unparse(dep_call), "reason": "no_dependency_expr"}
+        expr_txt = ast.unparse(target_expr if target_expr is not None else dep_call)
+        target, reason = self._dependency_target(fi, target_expr)
+
+        def log(outcome):
+            self.injection_log.append(
+                {"source": handler, "line": line, "via": via, "expr": expr_txt, "outcome": outcome, "target": target,
+                 "reason": reason}
             )
+
+        note = f"{via}: {expr_txt}"
+        if target is not None:
+            self.add_edge(handler, target, "injects", line, note=note)
+            log("external" if self.nodes[target]["type"] == "external" else "resolved")
             return
+        target = self.unresolved_node(handler, expr_txt, line)
+        self.add_edge(handler, target, "uncertain", line, resolved=False, note=f"{reason}: {note}")
+        log("uncertain")
+
+    def _dependency_target(self, fi, expr) -> tuple[str | None, str | None]:
+        """(node id, None) when the injected thing is a node, or (None, reason) when it can't be proven to be one."""
+        pos = self.name_pos(fi, expr) if expr is not None else None
+        if pos is None:
+            return None, "no_dependency_expr"
         try:
-            c = self.classify_defs(self.goto(fi, self.name_pos(fi, target_expr)))
+            defs = self.goto(fi, pos)
         except Exception:
-            c = Classification("uncertain", reason="jedi_error")
-        expr_txt = ast.unparse(target_expr)
+            return None, "jedi_error"
+        if not defs:
+            imported = self.external_by_import(fi, expr)
+            if imported:
+                return self.external_node(imported.module, imported.name), None
+            return None, "no_definition"
+        c = self.classify_defs(defs)
         if c.kind == "resolved":
-            self.add_edge(handler, c.target, "injects", line, via=via, dependency=expr_txt)
-        else:
-            reason = c.reason if c.kind == "uncertain" else "external_dependency"
-            self.unresolved_injections.append(
-                {"source": handler, "line": line, "via": via, "expr": expr_txt,
-                 "defined_in": fi.repo_rel, "reason": reason}
-            )
+            return c.target, None
+        if c.kind == "external":
+            return self.external_node(c.module, c.name), None
+        variable = self._dependency_variable(defs)
+        return variable, None if variable else c.reason
+
+    def _dependency_variable(self, defs) -> str | None:
+        """A module-level variable that is injected, such as `reusable_oauth2 = OAuth2PasswordBearer(...)`."""
+        for n in defs:
+            rel = self.rel_of(n.module_path)
+            tf = self.files.get(rel) if rel else None
+            if not tf or tf.tree is None or n.type not in ("statement", "instance"):
+                continue
+            for stmt in tf.tree.body:
+                if isinstance(stmt, (ast.Assign, ast.AnnAssign)) and stmt.lineno == n.line:
+                    nid = f"{tf.module}:{n.name}"
+                    text = ast.unparse(stmt)
+                    self.nodes.setdefault(
+                        nid,
+                        {
+                            "id": nid, "type": "dependency", "name": n.name, "file": tf.repo_rel,
+                            "line_start": stmt.lineno, "line_end": stmt.end_lineno, "module": tf.module,
+                            "signature": text if len(text) <= 120 else text[:117] + "...", "docstring": None,
+                        },
+                    )
+                    return nid
+        return None
 
     def _scan_annotation(self, fi, handler, ann, line, via, depth=0):
         if ann is None or depth > 3:
@@ -709,6 +872,9 @@ class GraphBuilder:
                         self._inject(fi, handler, default, arg.annotation, arg.lineno, "default")
                     else:
                         self._scan_annotation(fi, handler, arg.annotation, arg.lineno, "annotated")
+        for e in self.edges:  # a function reached by injection is a dependency, whoever else calls it
+            if e["type"] == "injects" and self.nodes[e["target"]]["type"] == "function":
+                self.nodes[e["target"]]["type"] = "dependency"
 
     # ------------------------------------------------------ pass 5: imports/inherits
     def build_imports_inherits(self) -> None:
@@ -738,7 +904,7 @@ class GraphBuilder:
                 if cid is None:
                     continue
                 for b in cls.bases:
-                    pos = self.name_pos(fi, b)
+                    pos = self.name_pos(fi, b.value if isinstance(b, ast.Subscript) else b)  # Base[T] -> Base
                     if not pos:
                         continue
                     try:
@@ -748,93 +914,163 @@ class GraphBuilder:
                     if c.kind == "resolved":
                         self.add_edge(cid, c.target, "inherits", b.lineno)
 
+    # ------------------------------------------------------------ pass 6: implements
+    def build_implements(self) -> None:
+        """Link methods to the abstract ones they fill in, so a call that lands on an interface can carry on.
+
+        Only explicit inheritance counts; structural Protocol matches are not detected. With several implementations
+        each link is true, but which one runs is a runtime fact, so those edges are `resolved: false`.
+        """
+        parents: dict[str, set[str]] = defaultdict(set)
+        for e in self.edges:
+            if e["type"] == "inherits":
+                parents[e["source"]].add(e["target"])
+
+        def ancestors(cid: str) -> set[str]:
+            seen: set[str] = set()
+            stack = list(parents[cid])
+            while stack:
+                current = stack.pop()
+                if current not in seen:
+                    seen.add(current)
+                    stack.extend(parents[current])
+            return seen
+
+        impls: dict[str, list[tuple[str, int]]] = defaultdict(list)
+        for nid, fn in sorted(self.fn_defs.items()):
+            cid, _, method = nid.rpartition(".")
+            if ":" not in cid or self.nodes.get(cid, {}).get("type") != "class":
+                continue
+            for base in sorted(ancestors(cid)):
+                base_fn = self.fn_defs.get(f"{base}.{method}")
+                if base_fn is not None and is_abstract(base_fn):
+                    impls[f"{base}.{method}"].append((nid, fn.lineno))
+        for target, found in impls.items():
+            many = len(found) > 1
+            note = f"one of {len(found)} implementations; which one runs is decided at runtime" if many else None
+            for nid, line in found:
+                self.add_edge(nid, target, "implements", line, resolved=not many, note=note)
+
     # ------------------------------------------------------------ output
-    def build(self) -> dict:
+    def build(self) -> tuple[dict, dict]:
         self.load()
         self.build_nodes()
         self.build_calls()
         self.build_routes()
         self.build_injects()
         self.build_imports_inherits()
-        return self.to_json()
+        self.build_implements()
+        return self.to_contract(), self.to_report()
 
-    def git_commit(self) -> str | None:
-        try:
-            out = subprocess.run(
-                ["git", "-C", self.repo, "rev-parse", "HEAD"], capture_output=True, text=True, check=True
-            )
+    def git_info(self) -> tuple[str, str]:
+        """(owner/name, commit) of the repo, or the folder name and "unknown" if it isn't its own git checkout."""
+        fallback = os.path.basename(self.repo), "unknown"
+
+        def git(*args):
+            out = subprocess.run(["git", "-C", self.repo, *args], capture_output=True, text=True, check=True)
             return out.stdout.strip()
+
+        try:
+            if os.path.realpath(git("rev-parse", "--show-toplevel")) != self.repo:
+                return fallback
+            commit = git("rev-parse", "HEAD")
         except Exception:
-            return None
+            return fallback
+        try:
+            found = re.search(r"github\.com[:/](.+?)(?:\.git)?$", git("remote", "get-url", "origin"))
+        except Exception:
+            found = None
+        return (found.group(1) if found else fallback[0]), commit
+
+    def sorted_edges(self) -> list[dict]:
+        return sorted(self.edges, key=lambda e: (e["type"], e["source"], e["line"] or 0, e["col"], e["target"], e["note"] or ""))
+
+    def to_contract(self) -> dict:
+        repo, commit = self.git_info()
+        nodes = [self.nodes[k] for k in sorted(self.nodes)]
+        edges = [{k: e[k] for k in EDGE_FIELDS} for e in self.sorted_edges()]
+        modules = [n for n in nodes if n["type"] == "module"]
+        counts = Counter(n["name"] for n in modules)
+        for n in modules:  # the name is the plate's title, and two plates called `utils` read as one thing
+            if counts[n["name"]] > 1:
+                n["name"] = ".".join(n["id"].split(".")[-2:])
+        bake_layout(nodes, edges)
+        resolved, uncertain = self.call_counts["resolved"], self.call_counts["uncertain"]
+        internal = resolved + uncertain
+        graph = {
+            "repo": repo,
+            "commit_sha": commit,
+            "nodes": nodes,
+            "edges": edges,
+            "stats": {
+                "nodes_by_type": dict(sorted(Counter(n["type"] for n in nodes).items())),
+                "edges_by_type": dict(sorted(Counter(e["type"] for e in edges).items())),
+                "calls_resolved": resolved,
+                "calls_uncertain": uncertain,
+                "calls_external": self.call_counts["external"],
+                "call_resolution_rate": round(resolved / internal, 4) if internal else None,
+            },
+        }
+        Graph.model_validate(graph)
+        return graph
 
     def to_networkx(self) -> nx.MultiDiGraph:
         g = nx.MultiDiGraph()
         for nid, n in self.nodes.items():
             g.add_node(nid, **n)
         for e in self.edges:
-            if e["target"] is not None:
-                g.add_edge(e["source"], e["target"], **e)
+            g.add_edge(e["source"], e["target"], **e)
         return g
 
-    def to_json(self) -> dict:
-        edge_key = lambda e: (e["type"], e["source"], e["line"], e.get("col", -1), e["target"] or "", e.get("via", ""), e.get("dependency", ""))
-        edges = sorted(self.edges, key=edge_key)
-        dangling = [e for e in edges if e["source"] not in self.nodes or (e["target"] is not None and e["target"] not in self.nodes)]
-        g = self.to_networkx()
-        resolved = self.call_counts["resolved"]
-        uncertain = self.call_counts["uncertain"]
+    def to_report(self) -> dict:
+        """Everything the honest claims rest on that the Graph contract has no slot for. Written next to graph.json."""
+        repo, commit = self.git_info()
+        resolved, uncertain = self.call_counts["resolved"], self.call_counts["uncertain"]
         external = self.call_counts["external"]
         internal = resolved + uncertain
-        fallback_ext = external - self.external_kinds["jedi_definition"]
-        strict_internal = internal + fallback_ext
-        stats = {
-            "files_included": len(self.files),
-            "files_parsed": sum(1 for f in self.files.values() if f.tree is not None),
-            "parse_failures": len(self.parse_failures),
-            "parse_failures_unrecovered": sum(1 for p in self.parse_failures if not p["recovered"]),
-            "nodes_by_type": dict(sorted(Counter(n["type"] for n in self.nodes.values()).items())),
-            "edges_by_type": dict(sorted(Counter(e["type"] for e in edges).items())),
-            "call_sites_total": resolved + uncertain + external,
-            "calls_resolved": resolved,
-            "calls_uncertain": uncertain,
-            "calls_external": external,
-            "external_by_evidence": dict(sorted(self.external_kinds.items())),
-            "uncertain_by_reason": dict(sorted(self.uncertain_reasons.items(), key=lambda kv: (-kv[1], kv[0]))),
-            "internal_call_sites": internal,
-            "call_resolution_rate": round(resolved / internal, 4) if internal else None,
-            "strict_call_resolution_rate": round(resolved / strict_internal, 4) if strict_internal else None,
-            "strict_note": "strict = externals proven only by jedi; fallback-classified externals counted as uncertain",
-            "unresolved_injections": len(self.unresolved_injections),
-            "dangling_edges": len(dangling),
-            "weakly_connected_components": nx.number_weakly_connected_components(g) if len(g) else 0,
-        }
-        meta = {
-            "tool": "trace_parser 0.1.0",
-            "repo": os.path.basename(self.repo),
-            "commit": self.git_commit(),
+        strict_internal = internal + external - self.external_kinds["jedi_definition"]
+        outcomes = Counter(row["outcome"] for row in self.injection_log)
+
+        def repo_path(entry):
+            return {**entry, "path": os.path.normpath(os.path.join(self.root_rel, entry["path"])).replace(os.sep, "/")}
+
+        return {
+            "tool": TOOL,
+            "repo": repo,
+            "commit_sha": commit,
             "root": self.root_rel,
             "python": sys.version.split()[0],
             "jedi": jedi.__version__,
             "networkx": nx.__version__,
-            "included_files": [f.repo_rel for f in self.files.values()],
-            "excluded_dirs": [
-                {**d, "path": os.path.normpath(os.path.join(self.root_rel, d["path"])).replace(os.sep, "/")}
-                for d in self.discovery.excluded_dirs
-            ],
-            "excluded_files": [
-                {**d, "path": os.path.normpath(os.path.join(self.root_rel, d["path"])).replace(os.sep, "/")}
-                for d in self.discovery.excluded_files
-            ],
-            "parse_failures": self.parse_failures,
+            "files": {
+                "included": [f.repo_rel for f in self.files.values()],
+                "parsed": sum(1 for f in self.files.values() if f.tree is not None),
+                "excluded_dirs": [repo_path(d) for d in self.discovery.excluded_dirs],
+                "excluded_files": [repo_path(d) for d in self.discovery.excluded_files],
+                "parse_failures": self.parse_failures,
+            },
+            "calls": {
+                "total": resolved + uncertain + external,
+                "resolved": resolved,
+                "uncertain": uncertain,
+                "external": external,
+                "internal": internal,
+                "resolution_rate": round(resolved / internal, 4) if internal else None,
+                "strict_resolution_rate": round(resolved / strict_internal, 4) if strict_internal else None,
+                "strict_note": "strict = externals proven only by jedi; externals classified by rule count as uncertain",
+                "external_by_evidence": dict(sorted(self.external_kinds.items())),
+                "uncertain_by_reason": dict(sorted(self.uncertain_reasons.items(), key=lambda kv: (-kv[1], kv[0]))),
+            },
+            "injections": {
+                "total": len(self.injection_log),
+                "resolved": outcomes["resolved"],
+                "external": outcomes["external"],
+                "uncertain": outcomes["uncertain"],
+            },
+            "dangling_edges": sum(1 for e in self.edges if e["source"] not in self.nodes or e["target"] not in self.nodes),
+            "weakly_connected_components": nx.number_weakly_connected_components(self.to_networkx()),
             "notes": sorted(set(self.notes)),
-        }
-        return {
-            "meta": meta,
-            "stats": stats,
-            "nodes": [self.nodes[k] for k in sorted(self.nodes)],
-            "edges": edges,
-            "external_calls": sorted(self.external_calls, key=lambda e: (e["source"], e["line"], e["col"])),
-            "unresolved_injections": sorted(
-                self.unresolved_injections, key=lambda e: (e["source"], e["line"], e["expr"], e["via"])
-            ),
+            "routes": [self.routes[k] for k in sorted(self.routes)],
+            "call_sites": sorted(self.call_log, key=lambda r: (r["source"], r["line"], r["col"], r["callee"])),
+            "injection_sites": sorted(self.injection_log, key=lambda r: (r["source"], r["line"], r["expr"], r["via"])),
         }

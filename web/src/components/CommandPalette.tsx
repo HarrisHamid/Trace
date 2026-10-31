@@ -8,7 +8,7 @@ import type { Scene } from '@/lib/scene'
 import { useTraceStore } from '@/store'
 
 const MAX_RESULTS = 12
-const BROWSE_ORDER: GraphNode['type'][] = ['module', 'route', 'class', 'function', 'dependency', 'external']
+const BROWSE_ORDER: GraphNode['type'][] = ['module', 'route', 'class', 'function', 'dependency', 'external', 'unresolved']
 
 function isTyping(target: EventTarget | null) {
   return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement

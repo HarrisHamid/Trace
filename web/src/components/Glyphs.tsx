@@ -32,6 +32,9 @@ export function NodeGlyph({ type, colour = 'var(--muted-foreground)' }: { type: 
       {type === 'dependency' && <path d={DIAMOND} fill={colour} />}
       {type === 'function' && <rect x="2" y="2" width="10" height="10" rx="2.5" fill={colour} />}
       {type === 'external' && <circle cx="7" cy="7" r="4.5" fill="none" stroke={colour} strokeWidth="1.75" />}
+      {type === 'unresolved' && (
+        <circle cx="7" cy="7" r="4.5" fill="none" stroke={colour} strokeWidth="1.75" strokeDasharray="2.4 2.3" />
+      )}
       {type === 'module' && <rect x="1.5" y="3" width="11" height="8" rx="2" fill="none" stroke={colour} strokeWidth="1.5" />}
     </svg>
   )

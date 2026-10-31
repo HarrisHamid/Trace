@@ -15,18 +15,23 @@ def _build(repo, root, out):
     )
 
 
+def _assert_identical(a, b):
+    assert filecmp.cmp(a / "graph.json", b / "graph.json", shallow=False)
+    assert filecmp.cmp(a / "report.json", b / "report.json", shallow=False)
+
+
 def test_fixture_build_is_deterministic(tmp_path):
-    a, b = tmp_path / "a.json", tmp_path / "b.json"
-    _build(FIXTURES, ".", a)
-    _build(FIXTURES, ".", b)
-    assert filecmp.cmp(a, b, shallow=False)
+    a, b = tmp_path / "a", tmp_path / "b"
+    _build(FIXTURES, ".", a / "graph.json")
+    _build(FIXTURES, ".", b / "graph.json")
+    _assert_identical(a, b)
 
 
 def test_target_build_is_deterministic(tmp_path):
     if not os.path.isdir(TARGET):
         import pytest
         pytest.skip("target repo not cloned")
-    a, b = tmp_path / "a.json", tmp_path / "b.json"
-    _build(TARGET, "backend", a)
-    _build(TARGET, "backend", b)
-    assert filecmp.cmp(a, b, shallow=False)
+    a, b = tmp_path / "a", tmp_path / "b"
+    _build(TARGET, "backend", a / "graph.json")
+    _build(TARGET, "backend", b / "graph.json")
+    _assert_identical(a, b)
