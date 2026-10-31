@@ -145,8 +145,7 @@ production FastAPI serves `web/dist` from the same origin, so there is no CORS s
 | File | Role today |
 |---|---|
 | `src/App.tsx` | Hash switch: `#/app` shows `Workspace`, anything else shows `Landing`. Hash routes because `StaticFiles` has no SPA fallback |
-| `src/components/Landing.tsx` | Entry screen: helix animation, TRACE, tagline, link to `#/app` |
-| `src/components/ui/helix-chrono-matrix.tsx` | Canvas 2D helix. Adapted third-party component, licence unconfirmed (see `NOTES.md`). Not shadcn output, despite the folder |
+| `src/components/Landing.tsx` | Entry screen: helix, wordmark, tagline, status legend, link to `#/app` |
 | `src/components/Workspace.tsx` | Loads the graph, runs playback, handles Escape and palette picks, lays out the panels |
 | `src/components/GraphView.tsx` | Cytoscape for camera and hit-testing, with `preset` layout. Plates and module tabs are placed from the scene; node states are classes; all camera moves; the caption beside the current node; the wiring toggle |
 | `src/components/ObservationLog.tsx` | The run: question, tally, tool trace, one lettered entry per step with claim chips |
@@ -154,6 +153,7 @@ production FastAPI serves `web/dist` from the same origin, so there is no CORS s
 | `src/components/CommandPalette.tsx` | `/` or Cmd+K, cmdk with fuse.js search over the nodes |
 | `src/components/AskBar.tsx`, `MapChrome.tsx`, `Glyphs.tsx` | Question input; title, breadcrumb, legend card and the "Show all connections" toggle; node and claim-status glyphs. Node glyphs take the module colour |
 | `src/lib/sky.ts` | Two canvases around Cytoscape. Behind it: starfield, plates with depth and trim, class outlines, glows and the answer's conveyor belt. In front: drifting packages and the parcel. The idle loop runs at about 30fps |
+| `src/lib/helix.ts` | The landing page's double helix. Two canvases around the wordmark, so it weaves through the letters. Static under `prefers-reduced-motion` |
 | `src/lib/scene.ts` | Built once from the graph: a plate per module (box, tab, caption), a colour per module, belts and per-node call counts. Calls into `external` nodes get no belt |
 | `src/lib/pills.ts` | `LabelPainter`: label cards for nodes, tabs and captions for plates. Drops lower-priority labels that would collide |
 | `src/lib/css.ts` | `cssVar` reads a theme token. The tokens in `index.css` are the one source of colour |
@@ -193,7 +193,7 @@ docs/prds/     03-ui.md is written; the others are TODO stubs
 eval/          empty
 scripts/       export_schemas.py, verify.py
 tests/         pytest suite and fixpkg fixture
-web/src/       React app; types/contracts/ is generated, components/ui/ is shadcn output plus the helix component
+web/src/       React app; types/contracts/ is generated, components/ui/ is shadcn output
 third_party/   gitignored pinned clones
 out/           gitignored parser output: graph.json and report.json (not present in a fresh checkout)
 ```

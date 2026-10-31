@@ -19,7 +19,7 @@ The agent and validator were due today and have not been started, so steps 1 to 
 | # | Step | Who |
 |---|---|---|
 | 5 | **Finish the validator and wire `/api/ask` to the real loop,** with cached demo answers. Never cut either one | Claude |
-| 6 | **Rewrite the helix animation from scratch.** Using code you have no rights to is a disqualifying rule, and its source and licence are still unknown. Skip this only if you can find a licence that clearly allows it | Claude |
+| 6 | **Done 2026-10-31: helix rewritten from scratch** in `web/src/lib/helix.ts`, and the third-party component deleted. It remains in git history (`b11c3d0`); see `NOTES.md` | Claude |
 | 7 | **Hand-label about 10 eval questions** with the correct node IDs. These must come from you, not from the AI that built the parser | You |
 | 8 | **Pick the demo question and plan the flagged moment.** The template has no uncertain edges, so a gap only appears if the model claims a link that doesn't exist. Find a question that reliably produces an `unverified` claim or a gap, then cache it | You and Claude |
 | 9 | **Build learning mode, only if step 5 works.** Write `docs/prds/04-learning-mode.md` first, briefly | Claude |
