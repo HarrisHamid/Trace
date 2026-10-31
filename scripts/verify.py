@@ -1,8 +1,8 @@
 """Reviewer tooling: sampling, flow chains and file accounting for a built graph.
 
-python tools/verify.py sample   --graph out/graph.json --repo repos/fastapi-template [--kind calls|uncertain|fallback_external]
-python tools/verify.py flow     --graph out/graph.json --repo ... --route "POST /api/v1/login/access-token"
-python tools/verify.py files    --graph out/graph.json --repo ... --root backend
+python scripts/verify.py sample   --graph out/graph.json --repo repos/fastapi-template [--kind calls|uncertain|fallback_external]
+python scripts/verify.py flow     --graph out/graph.json --repo ... --route "POST /api/v1/login/access-token"
+python scripts/verify.py files    --graph out/graph.json --repo ... --root backend
 """
 
 from __future__ import annotations

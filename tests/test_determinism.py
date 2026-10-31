@@ -5,12 +5,12 @@ import sys
 
 TRACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIXTURES = os.path.join(TRACE, "tests", "fixtures")
-TARGET = os.path.join(TRACE, "repos", "fastapi-template")
+TARGET = os.path.join(TRACE, "third_party", "fastapi-template")
 
 
 def _build(repo, root, out):
     subprocess.run(
-        [sys.executable, "-m", "trace_parser", "build", "--repo", repo, "--root", root, "--out", str(out)],
+        [sys.executable, "-m", "backend.trace.parser", "build", "--repo", repo, "--root", root, "--out", str(out)],
         cwd=TRACE, check=True, capture_output=True,
     )
 

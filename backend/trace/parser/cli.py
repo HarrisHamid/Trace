@@ -1,4 +1,4 @@
-"""CLI: python -m trace_parser build --repo <path> --root <subfolder> --out out/graph.json"""
+"""CLI: python -m backend.trace.parser build --repo <path> --root <subfolder> --out out/graph.json"""
 
 from __future__ import annotations
 

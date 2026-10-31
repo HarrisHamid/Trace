@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from trace_parser import GraphBuilder
+from backend.trace.parser import GraphBuilder
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 A = "fixpkg.api"
