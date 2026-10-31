@@ -55,7 +55,7 @@ class FinalPath(Contract):
     steps: list[PathStep]
 
 
-class Error(Contract):
+class ErrorEvent(Contract):
     type: Literal["error"]
     message: str
 
@@ -65,7 +65,7 @@ class Done(Contract):
 
 
 Event = Annotated[
-    RunStarted | ToolCall | ToolResult | NodeVisited | FinalPath | Error | Done,
+    RunStarted | ToolCall | ToolResult | NodeVisited | FinalPath | ErrorEvent | Done,
     Field(discriminator="type"),
 ]
 event_adapter: TypeAdapter[Event] = TypeAdapter(Event)

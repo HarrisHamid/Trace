@@ -12,7 +12,7 @@ OUT_DIR = Path(__file__).resolve().parents[1] / "docs" / "contracts"
 def render() -> dict[str, str]:
     schemas = {
         "graph": Graph.model_json_schema(),
-        "events": {"title": "Event", **event_adapter.json_schema()},
+        "events": {"title": "AgentEvent", **event_adapter.json_schema()},
         "checks": ChecksFile.model_json_schema(),
     }
     return {f"{name}.schema.json": json.dumps(schema, indent=2) + "\n" for name, schema in schemas.items()}

@@ -1,5 +1,5 @@
 {
-  "title": "Event",
+  "title": "AgentEvent",
   "$defs": {
     "Claim": {
       "additionalProperties": false,
@@ -54,7 +54,7 @@
       "title": "Done",
       "type": "object"
     },
-    "Error": {
+    "ErrorEvent": {
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -71,7 +71,7 @@
         "type",
         "message"
       ],
-      "title": "Error",
+      "title": "ErrorEvent",
       "type": "object"
     },
     "FinalPath": {
@@ -228,7 +228,7 @@
   "discriminator": {
     "mapping": {
       "done": "#/$defs/Done",
-      "error": "#/$defs/Error",
+      "error": "#/$defs/ErrorEvent",
       "final_path": "#/$defs/FinalPath",
       "node_visited": "#/$defs/NodeVisited",
       "run_started": "#/$defs/RunStarted",
@@ -254,7 +254,7 @@
       "$ref": "#/$defs/FinalPath"
     },
     {
-      "$ref": "#/$defs/Error"
+      "$ref": "#/$defs/ErrorEvent"
     },
     {
       "$ref": "#/$defs/Done"
