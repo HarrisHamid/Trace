@@ -1,0 +1,62 @@
+{
+  "repo": "demo/taskboard",
+  "checks": [
+    {
+      "node_id": "taskboard.core.security:verify_password",
+      "question": "What does verify_password do?",
+      "options": [
+        {"id": "a", "text": "Hash a plain password with bcrypt."},
+        {"id": "b", "text": "Check a plain password against a stored bcrypt hash."},
+        {"id": "c", "text": "Sign a JWT for the given user id."},
+        {"id": "d", "text": "Decode a JWT and return the user id, or raise TokenError."}
+      ],
+      "correct_option_id": "b",
+      "explanation": "It compares the password with the stored hash and never writes a new one."
+    },
+    {
+      "node_id": "taskboard.core.security:create_access_token",
+      "question": "What does create_access_token do?",
+      "options": [
+        {"id": "a", "text": "Decode a JWT and return the user id, or raise TokenError."},
+        {"id": "b", "text": "Hash a plain password with bcrypt."},
+        {"id": "c", "text": "Sign a JWT for the given user id."}
+      ],
+      "correct_option_id": "c",
+      "explanation": "It produces the token that login returns to the client."
+    },
+    {
+      "node_id": "taskboard.core.security:decode_access_token",
+      "question": "What does decode_access_token do?",
+      "options": [
+        {"id": "a", "text": "Decode a JWT and return the user id, or raise TokenError."},
+        {"id": "b", "text": "Sign a JWT for the given user id."},
+        {"id": "c", "text": "Check a plain password against a stored bcrypt hash."}
+      ],
+      "correct_option_id": "a",
+      "explanation": "get_current_user relies on it to turn a bearer token into a user id."
+    },
+    {
+      "node_id": "taskboard.services.users:UserService.authenticate",
+      "question": "What does UserService.authenticate do?",
+      "options": [
+        {"id": "a", "text": "Load a user by id."},
+        {"id": "b", "text": "Look up a user row by email."},
+        {"id": "c", "text": "Return the user for an email and password, or None."},
+        {"id": "d", "text": "Run a SELECT for the user with this email."}
+      ],
+      "correct_option_id": "c",
+      "explanation": "It finds the user by email, then verifies the password."
+    },
+    {
+      "node_id": "taskboard.services.users:UserService.get",
+      "question": "What does UserService.get do?",
+      "options": [
+        {"id": "a", "text": "Return the user for an email and password, or None."},
+        {"id": "b", "text": "Load a user by id."},
+        {"id": "c", "text": "Look up a user row by email."}
+      ],
+      "correct_option_id": "b",
+      "explanation": "get_current_user calls it after decoding the token."
+    }
+  ]
+}

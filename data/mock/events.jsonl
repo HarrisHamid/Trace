@@ -1,0 +1,12 @@
+{"type": "run_started"}
+{"type": "tool_call", "name": "search_nodes", "args": {"query": "login"}, "call_index": 0}
+{"type": "tool_result", "call_index": 0, "summary": "2 matches: POST /api/login (route), login (function)."}
+{"type": "node_visited", "node_id": "taskboard.api.auth:POST /api/login", "reason": "This route is the entry point for a login request."}
+{"type": "tool_call", "name": "get_source", "args": {"node_id": "taskboard.api.auth:login"}, "call_index": 1}
+{"type": "tool_result", "call_index": 1, "summary": "10 lines. Calls UserService.authenticate, then create_access_token."}
+{"type": "node_visited", "node_id": "taskboard.api.auth:login", "reason": "The route hands the request to this handler."}
+{"type": "tool_call", "name": "get_callees", "args": {"node_id": "taskboard.services.users:UserService.authenticate"}, "call_index": 2}
+{"type": "tool_result", "call_index": 2, "summary": "2 resolved callees: UserStore.find_by_email, verify_password. 1 uncertain: self.rehash."}
+{"type": "node_visited", "node_id": "taskboard.services.users:UserService.authenticate", "reason": "The handler checks credentials here before issuing a token."}
+{"type": "final_path", "steps": [{"node_id": "taskboard.api.auth:POST /api/login", "explanation": "A client posts an email and password to this route.", "claims": [{"text": "POST /api/login routes to the login handler.", "status": "verified"}]}, {"node_id": "taskboard.api.auth:login", "explanation": "The handler authenticates the user and returns a signed token.", "claims": [{"text": "login calls UserService.authenticate.", "quote": "user = users.authenticate(form.email, form.password)", "status": "verified"}, {"text": "login signs the token with create_access_token.", "quote": "return Token(access_token=create_access_token(user.id))", "status": "verified"}]}, {"node_id": "taskboard.services.users:UserService.authenticate", "explanation": "The service loads the user by email, then checks the password hash.", "claims": [{"text": "authenticate checks the password with verify_password.", "quote": "if not verify_password(password, user.hashed_password):", "status": "verified"}, {"text": "Failed logins are rate limited.", "status": "unverified"}]}, {"node_id": "taskboard.core.security:hash_password", "explanation": "After a successful login the service may upgrade the stored hash, but the parser could not prove which function runs.", "claims": [{"text": "self.rehash probably calls hash_password.", "quote": "self.rehash(user, password)", "status": "gap"}]}]}
+{"type": "done"}
