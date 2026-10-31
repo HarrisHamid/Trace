@@ -1,0 +1,27 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+
+# web
+node_modules/
+web/dist/
+*.tsbuildinfo
+
+# third-party demo codebases: pinned by commit, never vendored
+third_party/
+
+# parser scratch output (contains graphs derived from third-party repos)
+out/
+
+# os
+.DS_Store
