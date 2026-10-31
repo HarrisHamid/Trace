@@ -2,10 +2,17 @@ import { ChevronRight, Search } from 'lucide-react'
 
 import { NodeGlyph } from '@/components/Glyphs'
 import type { GraphNode } from '@/lib/run'
+import { cn } from '@/lib/utils'
 import { useTraceStore } from '@/store'
 import type { Graph } from '@/types/contracts/graph.schema'
 
-const LEGEND: GraphNode['type'][] = ['route', 'function', 'class', 'dependency', 'external']
+const SHAPES: { type: GraphNode['type']; label: string }[] = [
+  { type: 'route', label: 'entry point' },
+  { type: 'function', label: 'function' },
+  { type: 'class', label: 'class' },
+  { type: 'dependency', label: 'dependency' },
+  { type: 'external', label: 'outside library' },
+]
 
 export function TopBar({ graph, moduleName }: { graph: Graph; moduleName: string | null }) {
   const exitModule = useTraceStore((state) => state.exitModule)
@@ -42,8 +49,19 @@ export function TopBar({ graph, moduleName }: { graph: Graph; moduleName: string
   )
 }
 
+function Sample({ className, label }: { className: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className={cn('w-5 border-t-[3px]', className)} />
+      {label}
+    </span>
+  )
+}
+
 export function Legend({ graph, rightInset }: { graph: Graph; rightInset: number }) {
   const { stats } = graph
+  const showWiring = useTraceStore((state) => state.showWiring)
+  const setShowWiring = useTraceStore((state) => state.setShowWiring)
   const objects = graph.nodes.length - (stats.nodes_by_type.module ?? 0)
   const resolved = stats.call_resolution_rate
   return (
@@ -51,16 +69,28 @@ export function Legend({ graph, rightInset }: { graph: Graph; rightInset: number
       className="absolute bottom-5 left-7 flex items-center gap-4 overflow-hidden text-[10px] whitespace-nowrap text-muted-foreground transition-[right] duration-300"
       style={{ right: rightInset }}
     >
-      {LEGEND.map((type) => (
-        <span key={type} className="flex items-center gap-1.5">
-          <NodeGlyph type={type} />
-          {type}
-        </span>
-      ))}
-      <span className="flex items-center gap-1.5">
-        <span className="w-4 border-t border-dashed border-gap" />
-        uncertain
-      </span>
+      <div className="glass flex items-center gap-4 px-3 py-1.5">
+        {SHAPES.map(({ type, label }) => (
+          <span key={type} className="flex items-center gap-1.5">
+            <NodeGlyph type={type} />
+            {label}
+          </span>
+        ))}
+        <span className="h-3 border-l border-border" />
+        <Sample className="border-belt" label="calls" />
+        <Sample className="border-dashed border-gap" label="uncertain" />
+        <Sample className="border-primary" label="the answer" />
+      </div>
+      <button
+        aria-pressed={showWiring}
+        onClick={() => setShowWiring(!showWiring)}
+        className={cn(
+          'glass px-2.5 py-1.5 transition-colors hover:text-foreground',
+          showWiring && 'border-primary/60 text-foreground',
+        )}
+      >
+        {showWiring ? 'Hide' : 'Show'} all connections
+      </button>
       <span className="ml-auto">
         {objects} objects{resolved !== null && ` · ${Math.round(resolved * 100)}% of calls resolved`} ·{' '}
         {stats.calls_uncertain} uncertain

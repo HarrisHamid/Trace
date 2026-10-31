@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { StatusGlyph } from '@/components/Glyphs'
 import { bayer, type GraphNode, type RunView, type Star, type TraceLine } from '@/lib/run'
+import type { Scene } from '@/lib/scene'
 import { cn } from '@/lib/utils'
 import { useTraceStore } from '@/store'
 import type { Claim } from '@/types/contracts/events.schema'
@@ -57,6 +58,7 @@ function ClaimRow({ claim, sourceNodeId }: { claim: Claim; sourceNodeId: string 
 
 interface StepEntryProps {
   star: Star
+  colour: string
   index: number
   name: string
   type: string
@@ -65,7 +67,7 @@ interface StepEntryProps {
   previousNodeId: string | null
 }
 
-function StepEntry({ star, index, name, type, isLast, dashedBelow, previousNodeId }: StepEntryProps) {
+function StepEntry({ star, colour, index, name, type, isLast, dashedBelow, previousNodeId }: StepEntryProps) {
   const focusNode = useTraceStore((state) => state.focusNode)
   const lit = star.claims !== null
 
@@ -99,7 +101,10 @@ function StepEntry({ star, index, name, type, isLast, dashedBelow, previousNodeI
       </span>
       <button onClick={() => focusNode(star.nodeId)} className="group block w-full text-left">
         <span className="flex items-baseline justify-between gap-3">
-          <span className="truncate text-xs text-foreground group-hover:text-primary">{name}</span>
+          <span className="flex min-w-0 items-center gap-2 text-xs text-foreground group-hover:text-primary">
+            <span className="size-2 shrink-0 rounded-[2px]" style={{ background: colour }} />
+            <span className="truncate">{name}</span>
+          </span>
           <span className="kicker shrink-0">{type}</span>
         </span>
         <span className="mt-1 block font-serif text-lg leading-snug text-foreground/90">{star.text}</span>
@@ -168,10 +173,11 @@ function Tally({ tally }: { tally: NonNullable<RunView['tally']> }) {
 
 interface ObservationLogProps {
   run: RunView
+  scene: Scene
   nodesById: Map<string, GraphNode>
 }
 
-export function ObservationLog({ run, nodesById }: ObservationLogProps) {
+export function ObservationLog({ run, scene, nodesById }: ObservationLogProps) {
   const list = useRef<HTMLOListElement>(null)
   const selectedNode = useTraceStore((state) => state.selectedNode)
   const running = run.phase === 'walking' || run.phase === 'revealing'
@@ -208,6 +214,7 @@ export function ObservationLog({ run, nodesById }: ObservationLogProps) {
             <StepEntry
               key={star.nodeId}
               star={star}
+              colour={node ? scene.colourOf(node) : 'var(--muted-foreground)'}
               index={index}
               name={node?.name ?? star.nodeId}
               type={node?.type ?? ''}

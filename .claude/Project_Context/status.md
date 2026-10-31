@@ -1,8 +1,7 @@
 # Trace — Status, Gaps and Next Work
 
-> Snapshot from 2026-10-30 (Fri evening), at commit `4a0f1ae`. Results below come from commands run that day, not from
-> older docs. Paths are relative to the repo root. The web app, code panel and source route were updated on 2026-10-31
-> after `docs/prds/03-ui.md` was built; the check results below are still the Oct 30 run.
+> Snapshot from 2026-10-31, on branch `feat/space-factory-map` (two earlier commits are on `docs/project-context`).
+> Results below are from commands run that day, unless the row says otherwise. Paths are relative to the repo root.
 
 ## Component status
 
@@ -12,7 +11,7 @@
 | Contracts | **Working** | Models, exported schemas and generated TS types are in sync |
 | Mock fixtures | **Working** | 25 nodes, 26 edges, 12 events, 5 checks; invented app |
 | FastAPI app | **Working on mocks** | `/api/ask` ignores the question and replays a canned run |
-| Web app | **Working on mocks** | PRD 03 built: path animation, file view, command palette, observation log |
+| Web app | **Working on mocks** | Factory-style map (plates, label cards, belts), path animation with a parcel, file view, command palette, observation log, code panel |
 | Parser v2 | Not built | Contract format, layout, `implements`, dependency and external nodes |
 | Graph tools | Not built | Stub package |
 | Agent loop | Not built | Stub package; `openai` and `tenacity` are installed but not imported |
@@ -26,17 +25,17 @@
 
 The shadcn `dialog`, `popover` and `switch` components are generated but unused.
 
-## Check results (2026-10-30)
+## Check results (2026-10-31)
 
 | Check | Result |
 |---|---|
-| `uv run pytest` | 50 passed, including the demo-repo determinism test |
+| `uv run pytest` | 58 passed. Up from 50 on Oct 30: 5 new `test_api.py` tests for the source route and 3 new `test_mock_fixtures.py` tests for the source stubs |
 | `uv run ruff check .` | Clean |
 | `scripts/export_schemas.py --check` | No drift |
 | `npm run lint` | 1 warning: `web/src/components/ui/button.tsx:66` (`only-export-components`, shadcn output) |
-| `npm run build` | Passes. Warns that the main JS chunk is 696.51 kB (222.73 kB gzip) |
+| `npm run build` | Passes. Warns that the main JS chunk is about 956 kB (311 kB gzip), up from 696 kB on Oct 30 |
 | Live API on built frontend | `/api/health`, `/api/graph`, `/api/checks` and `/` return 200; `/api/ask` streams 12 events |
-| UI in a browser | **Not checked** in this pass |
+| UI in a browser | **Partly checked** on mock data: path animation, zoom, palette, code panel, error run, reduced motion (emulated). **Not checked:** hover after the redesign, 1280px width, real data |
 | Meta API | **Not checked.** Gate 1 is recorded in `.claude/idea.md`, but no agent code is in this repo |
 
 **Parser on `fastapi/full-stack-fastapi-template` @ `f4bcfaba7c85be3c6332cc74a20819f586dcdbc6`** (root `backend`):
@@ -106,7 +105,6 @@ Each one blocks or shapes work on the parser, agent or validator.
 | `.claude/idea-architecture.md:40-42` | Jedi proved 24 externals, 20.4% strict, libraries not installed | 107 proven, 28.6% strict, libraries installed |
 | `.claude/idea-architecture.md:45-47` | One file parsed through an in-memory rewrite | Rewrite removed; runs natively on 3.14 |
 | `.claude/idea-architecture.md:53` | v2 item 1: re-run on 3.14 with libraries | Done |
-| `.claude/idea-architecture.md:112` | Inter + JetBrains Mono | Instrument Serif + JetBrains Mono (`docs/prds/03-ui.md`) |
 | `README.md` (main features, how it works) | Describes all features in the present tense | True of the target product, not the current build |
 | `scripts/verify.py:3-5` | `--repo repos/fastapi-template` | Clone lives at `third_party/fastapi-template` |
 | `backend/trace/parser/cli.py`, `builder.py` | Tool named `trace_parser` | Cosmetic; the package moved to `backend.trace.parser` |

@@ -1,44 +1,58 @@
 import type { Core } from 'cytoscape'
 
+import { cssVar } from '@/lib/css'
+import { LabelPainter, type Frame, type LitStar } from '@/lib/pills'
 import { STEP_MS, type GraphNode, type Segment, type StarStatus } from '@/lib/run'
+import { PLATE_DEPTH, type Box, type Plate, type Point, type Scene } from '@/lib/scene'
 
-// Everything Cytoscape can't draw, on a canvas behind it: starfield, graticule, nebulae, glows and the agent's thread.
+// Everything Cytoscape can't draw. Two canvases sandwich it: behind, the starfield, the plates, the glows and the
+// answer's belt; in front, the label cards, the drifting packages and the parcel that rides the answer.
 // Stars are seeded, because the map must look identical on every run.
 
 const STAR_COUNT = 900
 const STAR_SEED = 20261031
 const STAR_PARALLAX = 0.12
+const TWINKLE_COUNT = 48
 const GRATICULE_STEP = 260
 const GRATICULE_RINGS = 16
-const GRATICULE_SPOKES = 24
-const NEBULA_RADIUS = 300
 const GLOW_RADIUS = 46
 const OUTLINE_PADDING = 34
-
-interface Point {
-  x: number
-  y: number
-}
-
-interface Box {
-  x1: number
-  y1: number
-  x2: number
-  y2: number
-}
+const IDLE_FRAME_MS = 32
+const PLATE_RADIUS = 14
+const BELT_SPEED = 46
+const DIMMED_PLATE = 0.55
+const BACKGROUND_PLATE = 0.22
 
 export interface SkyRun {
   walked: string[]
   segments: Segment[]
   revealed: number
-  lit: { id: string; status: StarStatus }[]
+  lit: { id: string; status: StarStatus; letter: string }[]
   current: string | null
+  active: boolean
 }
 
-const EMPTY_RUN: SkyRun = { walked: [], segments: [], revealed: 0, lit: [], current: null }
+const EMPTY_RUN: SkyRun = { walked: [], segments: [], revealed: 0, lit: [], current: null, active: false }
 
-export function cssVar(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+interface Parcel {
+  x: number
+  y: number
+}
+
+interface Package {
+  from: string
+  to: string
+  colour: string
+  length: number
+  phase: number
+}
+
+interface Twinkle {
+  x: number
+  y: number
+  size: number
+  phase: number
+  speed: number
 }
 
 function seededRandom(seed: number): () => number {
@@ -66,67 +80,99 @@ function glowSprite(hex: string, peak: number): HTMLCanvasElement {
 }
 
 export class Sky {
-  private readonly canvas: HTMLCanvasElement
+  private readonly backCanvas: HTMLCanvasElement
+  private readonly frontCanvas: HTMLCanvasElement
+  private readonly back: CanvasRenderingContext2D
+  private readonly front: CanvasRenderingContext2D
   private readonly cy: Core
   private readonly nodes: GraphNode[]
-  private readonly context: CanvasRenderingContext2D
-  private readonly positions = new Map<string, Point>()
-  private readonly nebulae: { module: string; sprite: HTMLCanvasElement; points: Point[] }[] = []
-  private readonly glows: Record<StarStatus | 'hover', HTMLCanvasElement>
+  private readonly scene: Scene
+  private readonly painter: LabelPainter
+  private readonly plateGlows = new Map<string, HTMLCanvasElement>()
+  private readonly glows: Record<StarStatus | 'hover' | 'parcel', HTMLCanvasElement>
+  private readonly packages: Package[] = []
+  private readonly twinkles: Twinkle[] = []
   private readonly gold = cssVar('--status-verified')
   private readonly ice = cssVar('--status-gap')
+  private readonly parcelColour = cssVar('--parcel')
   private readonly background = cssVar('--background')
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
   private readonly origin: Point
+  private readonly nodeModule = new Map<string, string>()
   private starfield = document.createElement('canvas')
   private run = EMPTY_RUN
+  private litPlates = new Set<string>()
+  private lit = new Map<string, LitStar>()
   private progress = 0
   private hover: string | null = null
+  private selected: string | null = null
   private focusModule: string | null = null
   private outlines: Box[] = []
+  private parcel: Parcel | null = null
   private width = 0
   private height = 0
   private frame = 0
   private lastTick = 0
+  private lastDraw = 0
 
-  constructor(canvas: HTMLCanvasElement, cy: Core, nodes: GraphNode[]) {
-    this.canvas = canvas
+  constructor(back: HTMLCanvasElement, front: HTMLCanvasElement, cy: Core, nodes: GraphNode[], scene: Scene) {
+    this.backCanvas = back
+    this.frontCanvas = front
+    this.back = back.getContext('2d')!
+    this.front = front.getContext('2d')!
     this.cy = cy
     this.nodes = nodes
-    this.context = canvas.getContext('2d')!
-    for (const node of nodes) this.positions.set(node.id, { x: node.x ?? 0, y: node.y ?? 0 })
+    this.scene = scene
+    this.painter = new LabelPainter(nodes, scene)
+    for (const node of nodes) this.nodeModule.set(node.id, node.module)
 
-    const stars = nodes.filter((node) => node.type !== 'module' && node.type !== 'external')
-    const modules = [...new Set(stars.map((node) => node.module))].sort()
-    modules.forEach((module, index) => {
-      const sprite = glowSprite(cssVar(`--nebula-${(index % 4) + 1}`), 0.5)
-      const points = stars.filter((node) => node.module === module).map((node) => this.positions.get(node.id)!)
-      this.nebulae.push({ module, sprite, points })
-    })
-
+    for (const plate of scene.plates) this.plateGlows.set(plate.id, glowSprite(plate.colour, 0.55))
     this.glows = {
       visited: glowSprite(this.gold, 0.9),
       verified: glowSprite(this.gold, 0.9),
       unverified: glowSprite(cssVar('--status-unverified'), 0.9),
       gap: glowSprite(this.ice, 0.9),
-      hover: glowSprite(cssVar('--star-function'), 0.55),
+      hover: glowSprite('#dfe3f0', 0.55),
+      parcel: glowSprite(this.parcelColour, 0.85),
     }
 
-    const xs = nodes.map((node) => node.x ?? 0)
-    const ys = nodes.map((node) => node.y ?? 0)
-    this.origin = { x: Math.min(...xs) - 360, y: Math.max(...ys) + 520 }
+    const random = seededRandom(STAR_SEED + 1)
+    for (const belt of scene.belts) {
+      this.packages.push({ from: belt.from, to: belt.to, colour: belt.colour, length: belt.length, phase: random() })
+    }
+    for (let index = 0; index < TWINKLE_COUNT; index += 1) {
+      this.twinkles.push({
+        x: random(),
+        y: random(),
+        size: 0.8 + random() * 1.1,
+        phase: random() * Math.PI * 2,
+        speed: 0.6 + random() * 1.4,
+      })
+    }
+
+    this.origin = { x: scene.bounds.x1 - 360, y: scene.bounds.y2 + 520 }
     this.resize()
+    this.schedule()
   }
 
   resize() {
     const scale = window.devicePixelRatio || 1
-    const { width, height } = this.canvas.getBoundingClientRect()
+    const { width, height } = this.backCanvas.getBoundingClientRect()
     this.width = width
     this.height = height
-    this.canvas.width = width * scale
-    this.canvas.height = height * scale
-    this.context.setTransform(scale, 0, 0, scale, 0, 0)
+    for (const canvas of [this.backCanvas, this.frontCanvas]) {
+      canvas.width = width * scale
+      canvas.height = height * scale
+    }
+    this.back.setTransform(scale, 0, 0, scale, 0, 0)
+    this.front.setTransform(scale, 0, 0, scale, 0, 0)
     this.renderStarfield()
+    this.draw()
+  }
+
+  // Labels measured before the web fonts arrived are wrong.
+  fontsReady() {
+    this.painter.reset()
     this.draw()
   }
 
@@ -134,12 +180,19 @@ export class Sky {
     const redrawn = run.segments.some((segment, index) => segment.to !== this.run.segments[index]?.to)
     if (redrawn || run.segments.length === 0) this.progress = 0
     this.run = run
+    this.lit = new Map(run.lit.map((star) => [star.id, { letter: star.letter, status: star.status }]))
+    this.litPlates = new Set(run.lit.map((star) => this.scene.plateIdOf.get(star.id)).filter((id) => id !== undefined))
     this.schedule()
   }
 
   setHover(id: string | null) {
     if (id === this.hover) return
     this.hover = id
+    this.schedule()
+  }
+
+  setSelected(id: string | null) {
+    this.selected = id
     this.schedule()
   }
 
@@ -157,40 +210,75 @@ export class Sky {
     return Math.max(0, Math.min(this.run.revealed - 1, this.run.segments.length))
   }
 
-  private get animating() {
-    if (this.reducedMotion.matches) return false
-    return this.progress < this.target || this.run.current !== null
+  private get keepGoing() {
+    return !this.reducedMotion.matches || this.progress < this.target
   }
 
   private schedule() {
     if (!this.frame) this.frame = requestAnimationFrame(this.tick)
   }
 
+  // The loop idles at about 30fps for the drifting packages and runs flat out while the answer's belt is being laid.
   private tick = (now: number) => {
     this.frame = 0
+    const laying = this.progress < this.target
+    if (!laying && now - this.lastDraw < IDLE_FRAME_MS) {
+      this.schedule()
+      return
+    }
     const elapsed = this.lastTick ? now - this.lastTick : 16
     this.lastTick = now
-    this.progress = this.reducedMotion.matches
-      ? this.target
-      : Math.min(this.target, this.progress + elapsed / STEP_MS)
+    this.lastDraw = now
+    this.progress = this.reducedMotion.matches ? this.target : Math.min(this.target, this.progress + elapsed / STEP_MS)
     this.draw(now)
-    if (this.animating) this.schedule()
+    if (this.keepGoing) this.schedule()
     else this.lastTick = 0
   }
 
   draw = (now = performance.now()) => {
-    const { context, width, height } = this
     const zoom = this.cy.zoom()
     const pan = this.cy.pan()
-    context.fillStyle = this.background
-    context.fillRect(0, 0, width, height)
+    const frame: Frame = { zoom, pan, now, width: this.width, height: this.height }
+    this.drawBack(frame)
+    this.drawFront(frame)
+  }
+
+  private plateAlpha = (plate: Plate) => {
+    let alpha = 1
+    if (this.focusModule !== null && plate.id !== this.focusModule) alpha = BACKGROUND_PLATE
+    if (this.run.active && !this.litPlates.has(plate.id)) alpha *= DIMMED_PLATE
+    return alpha
+  }
+
+  private drawBack(frame: Frame) {
+    const { zoom, pan, now } = frame
+    this.back.fillStyle = this.background
+    this.back.fillRect(0, 0, this.width, this.height)
     this.drawStarfield(pan)
+    this.drawTwinkle(now)
     this.drawGraticule(zoom, pan)
-    this.drawNebulae(zoom, pan)
+    this.drawPlates(zoom, pan)
     this.drawOutlines(zoom, pan)
     this.drawWalk(zoom, pan)
-    this.drawThread(zoom, pan)
+    this.drawThread(zoom, pan, now)
     this.drawGlows(zoom, pan, now)
+  }
+
+  private drawFront(frame: Frame) {
+    const { front } = this
+    front.clearRect(0, 0, this.width, this.height)
+    const state = {
+      lit: this.lit,
+      active: this.run.active,
+      hover: this.hover,
+      selected: this.selected,
+      focusModule: this.focusModule,
+      plateAlpha: this.plateAlpha,
+    }
+    this.drawPackages(frame)
+    this.painter.drawPills(front, frame, state)
+    this.painter.drawPlateLabels(front, frame, state)
+    this.drawParcel(frame)
   }
 
   private renderStarfield() {
@@ -210,51 +298,114 @@ export class Sky {
   }
 
   private drawStarfield(pan: Point) {
-    const { context, width, height } = this
+    const { back, width, height } = this
     const x = ((pan.x * STAR_PARALLAX) % width + width) % width
     const y = ((pan.y * STAR_PARALLAX) % height + height) % height
     for (const offsetX of [x - width, x]) {
-      for (const offsetY of [y - height, y]) context.drawImage(this.starfield, offsetX, offsetY, width, height)
+      for (const offsetY of [y - height, y]) back.drawImage(this.starfield, offsetX, offsetY, width, height)
     }
   }
 
-  // A polar grid around a point off the chart, as on a planisphere.
+  private drawTwinkle(now: number) {
+    const { back, width, height } = this
+    const still = this.reducedMotion.matches
+    back.save()
+    back.fillStyle = '#e8eeff'
+    for (const star of this.twinkles) {
+      back.globalAlpha = still ? 0.4 : 0.25 + 0.45 * (0.5 + 0.5 * Math.sin(now / 1000 * star.speed + star.phase))
+      back.beginPath()
+      back.arc(star.x * width, star.y * height, star.size, 0, Math.PI * 2)
+      back.fill()
+    }
+    back.restore()
+  }
+
+  // Faint rings only. Anything stronger competes with the belts.
   private drawGraticule(zoom: number, pan: Point) {
-    const { context, origin } = this
+    const { back, origin } = this
     const x = origin.x * zoom + pan.x
     const y = origin.y * zoom + pan.y
-    context.save()
-    context.strokeStyle = 'rgba(196,206,232,0.06)'
-    context.lineWidth = 1
-    context.beginPath()
+    back.save()
+    back.strokeStyle = 'rgba(196,206,232,0.035)'
+    back.lineWidth = 1
+    back.beginPath()
     for (let ring = 1; ring <= GRATICULE_RINGS; ring += 1) {
       const radius = ring * GRATICULE_STEP * zoom
-      context.moveTo(x + radius, y)
-      context.arc(x, y, radius, 0, Math.PI * 2)
+      back.moveTo(x + radius, y)
+      back.arc(x, y, radius, 0, Math.PI * 2)
     }
-    const reach = GRATICULE_RINGS * GRATICULE_STEP * zoom
-    for (let spoke = 0; spoke < GRATICULE_SPOKES; spoke += 1) {
-      const angle = (spoke / GRATICULE_SPOKES) * Math.PI * 2
-      context.moveTo(x + Math.cos(angle) * GRATICULE_STEP * zoom, y + Math.sin(angle) * GRATICULE_STEP * zoom)
-      context.lineTo(x + Math.cos(angle) * reach, y + Math.sin(angle) * reach)
-    }
-    context.stroke()
-    context.restore()
+    back.stroke()
+    back.restore()
   }
 
-  private drawNebulae(zoom: number, pan: Point) {
-    const { context } = this
-    const size = NEBULA_RADIUS * 2 * zoom
-    context.save()
-    context.globalCompositeOperation = 'screen'
-    for (const { module, sprite, points } of this.nebulae) {
-      const focused = this.focusModule === module
-      context.globalAlpha = this.focusModule === null ? 0.34 : focused ? 0.6 : 0.07
-      for (const point of points) {
-        context.drawImage(sprite, point.x * zoom + pan.x - size / 2, point.y * zoom + pan.y - size / 2, size, size)
+  // Each module is a dark plate with some thickness, a coloured trim along its top edge and four screws.
+  private drawPlates(zoom: number, pan: Point) {
+    const { back } = this
+    for (const plate of this.scene.plates) {
+      const alpha = this.plateAlpha(plate)
+      const x = plate.box.x1 * zoom + pan.x
+      const y = plate.box.y1 * zoom + pan.y
+      const width = (plate.box.x2 - plate.box.x1) * zoom
+      const height = (plate.box.y2 - plate.box.y1) * zoom
+      const radius = PLATE_RADIUS * zoom
+      const depth = PLATE_DEPTH * zoom
+      if (x > this.width || y > this.height || x + width < 0 || y + height < 0) continue
+
+      back.save()
+      back.globalAlpha = alpha * 0.3
+      back.globalCompositeOperation = 'screen'
+      const glow = this.plateGlows.get(plate.id)!
+      const size = Math.max(width, height) * 1.3
+      back.drawImage(glow, x + width / 2 - size / 2, y + height / 2 - size / 2, size, size)
+      back.restore()
+
+      back.save()
+      back.globalAlpha = alpha
+      back.beginPath()
+      back.roundRect(x + 5 * zoom, y + depth + 12 * zoom, width, height, radius)
+      back.fillStyle = 'rgba(0,0,0,0.4)'
+      back.fill()
+
+      back.beginPath()
+      back.roundRect(x, y + depth, width, height, radius)
+      back.fillStyle = '#06070b'
+      back.fill()
+
+      const face = back.createLinearGradient(0, y, 0, y + height)
+      face.addColorStop(0, 'rgba(27,31,44,0.96)')
+      face.addColorStop(1, 'rgba(15,17,26,0.96)')
+      back.beginPath()
+      back.roundRect(x, y, width, height, radius)
+      back.fillStyle = face
+      back.fill()
+      back.lineWidth = 1
+      back.strokeStyle = plate.external ? 'rgba(196,206,232,0.22)' : 'rgba(196,206,232,0.14)'
+      back.setLineDash(plate.external ? [6, 5] : [])
+      back.stroke()
+      back.setLineDash([])
+
+      back.beginPath()
+      back.moveTo(x + radius, y + 1.5)
+      back.lineTo(x + width - radius, y + 1.5)
+      back.lineWidth = Math.max(2, 3 * zoom)
+      back.lineCap = 'round'
+      back.strokeStyle = plate.colour
+      back.stroke()
+
+      back.fillStyle = 'rgba(196,206,232,0.16)'
+      const inset = 12 * zoom
+      for (const [sx, sy] of [
+        [x + inset, y + inset],
+        [x + width - inset, y + inset],
+        [x + inset, y + height - inset],
+        [x + width - inset, y + height - inset],
+      ]) {
+        back.beginPath()
+        back.arc(sx, sy, Math.max(1.5, 2.2 * zoom), 0, Math.PI * 2)
+        back.fill()
       }
+      back.restore()
     }
-    context.restore()
   }
 
   private classOutlines(module: string): Box[] {
@@ -267,64 +418,65 @@ export class Sky {
         x1: Math.min(...xs) - OUTLINE_PADDING,
         y1: Math.min(...ys) - OUTLINE_PADDING,
         x2: Math.max(...xs) + OUTLINE_PADDING,
-        y2: Math.max(...ys) + OUTLINE_PADDING,
+        y2: Math.max(...ys) + OUTLINE_PADDING + 16,
       }
     })
   }
 
   private drawOutlines(zoom: number, pan: Point) {
-    const { context } = this
-    context.save()
-    context.strokeStyle = 'rgba(241,223,174,0.2)'
-    context.lineWidth = 1
+    const { back } = this
+    back.save()
+    back.strokeStyle = 'rgba(241,223,174,0.28)'
+    back.lineWidth = 1
+    back.setLineDash([5, 4])
     for (const box of this.outlines) {
-      context.beginPath()
-      context.roundRect(
+      back.beginPath()
+      back.roundRect(
         box.x1 * zoom + pan.x,
         box.y1 * zoom + pan.y,
         (box.x2 - box.x1) * zoom,
         (box.y2 - box.y1) * zoom,
         8 * zoom,
       )
-      context.stroke()
+      back.stroke()
     }
-    context.restore()
+    back.restore()
   }
 
   private screen(id: string, zoom: number, pan: Point): Point | null {
-    const point = this.positions.get(id)
+    const point = this.scene.positions.get(id)
     return point ? { x: point.x * zoom + pan.x, y: point.y * zoom + pan.y } : null
   }
 
   private inFocus(...ids: string[]) {
     if (this.focusModule === null) return true
-    return this.nodes.some((node) => ids.includes(node.id) && node.module === this.focusModule)
+    return ids.some((id) => this.nodeModule.get(id) === this.focusModule)
   }
 
-  // The agent's footsteps: a thin line under the bright path that the final answer draws.
+  // The agent's footsteps: a thin line under the bright belt that the final answer lays.
   private drawWalk(zoom: number, pan: Point) {
-    const { context } = this
+    const { back } = this
     const points = this.run.walked.map((id) => this.screen(id, zoom, pan))
-    context.save()
-    context.strokeStyle = this.gold
-    context.globalAlpha = 0.28
-    context.lineWidth = 1
-    context.beginPath()
+    back.save()
+    back.strokeStyle = this.gold
+    back.globalAlpha = 0.3
+    back.lineWidth = 1.5
+    back.beginPath()
     points.forEach((point, index) => {
-      if (point && index === 0) context.moveTo(point.x, point.y)
-      else if (point) context.lineTo(point.x, point.y)
+      if (point && index === 0) back.moveTo(point.x, point.y)
+      else if (point) back.lineTo(point.x, point.y)
     })
-    context.stroke()
-    context.restore()
+    back.stroke()
+    back.restore()
   }
 
-  private drawThread(zoom: number, pan: Point) {
-    const { context } = this
-    let head: Point | null = null
-    context.save()
-    context.lineCap = 'round'
-    context.lineWidth = 2
-    context.shadowBlur = 14
+  // A conveyor: a dark belt body with a bright tread running along it. Broken links get a sparse blue tread.
+  private drawThread(zoom: number, pan: Point, now: number) {
+    const { back } = this
+    this.parcel = null
+    const tread = this.reducedMotion.matches ? 0 : now / 38
+    back.save()
+    back.lineCap = 'round'
     this.run.segments.forEach((segment, index) => {
       const reach = Math.min(1, this.progress - index)
       const from = this.screen(segment.from, zoom, pan)
@@ -332,47 +484,101 @@ export class Sky {
       if (reach <= 0 || !from || !to) return
       const end = { x: from.x + (to.x - from.x) * reach, y: from.y + (to.y - from.y) * reach }
       const colour = segment.dashed ? this.ice : this.gold
-      context.strokeStyle = colour
-      context.shadowColor = colour
-      context.globalAlpha = this.inFocus(segment.from, segment.to) ? 1 : 0.12
-      context.setLineDash(segment.dashed ? [7, 8] : [])
-      context.beginPath()
-      context.moveTo(from.x, from.y)
-      context.lineTo(end.x, end.y)
-      context.stroke()
-      if (reach < 1) head = end
+      back.globalAlpha = this.inFocus(segment.from, segment.to) ? 1 : 0.12
+
+      back.setLineDash([])
+      back.shadowBlur = 0
+      back.strokeStyle = 'rgba(6,7,11,0.92)'
+      back.lineWidth = 10
+      back.beginPath()
+      back.moveTo(from.x, from.y)
+      back.lineTo(end.x, end.y)
+      back.stroke()
+
+      back.strokeStyle = colour
+      back.shadowColor = colour
+      back.shadowBlur = 10
+      back.lineWidth = 4.5
+      back.setLineDash(segment.dashed ? [5, 11] : [10, 7])
+      back.lineDashOffset = -tread
+      back.beginPath()
+      back.moveTo(from.x, from.y)
+      back.lineTo(end.x, end.y)
+      back.stroke()
+      if (reach < 1) this.parcel = end
     })
-    if (head) {
-      const { x, y } = head as Point
-      context.setLineDash([])
-      context.fillStyle = '#ffffff'
-      context.shadowColor = this.gold
-      context.shadowBlur = 22
-      context.beginPath()
-      context.arc(x, y, 3, 0, Math.PI * 2)
-      context.fill()
-    }
-    context.restore()
+    back.restore()
   }
 
   private drawGlows(zoom: number, pan: Point, now: number) {
-    const { context } = this
+    const { back } = this
     const base = GLOW_RADIUS * 2 * (0.6 + 0.4 * zoom)
     const stamp = (id: string, sprite: HTMLCanvasElement, scale: number) => {
       const point = this.screen(id, zoom, pan)
       if (!point) return
       const size = base * scale
-      context.drawImage(sprite, point.x - size / 2, point.y - size / 2, size, size)
+      back.drawImage(sprite, point.x - size / 2, point.y - size / 2, size, size)
     }
-    context.save()
-    context.globalCompositeOperation = 'lighter'
+    back.save()
+    back.globalCompositeOperation = 'lighter'
     for (const { id, status } of this.run.lit) {
-      context.globalAlpha = this.inFocus(id) ? 1 : 0.1
+      back.globalAlpha = this.inFocus(id) ? 1 : 0.1
       const pulsing = id === this.run.current && !this.reducedMotion.matches
       stamp(id, this.glows[status], pulsing ? 1.5 + Math.sin(now / 130) * 0.3 : 1)
     }
-    context.globalAlpha = 1
+    back.globalAlpha = 1
     if (this.hover) stamp(this.hover, this.glows.hover, 0.8)
-    context.restore()
+    back.restore()
+  }
+
+  // Small dim packages drift along every belt in its direction, so the map reads as a machine that is running.
+  private drawPackages(frame: Frame) {
+    if (this.reducedMotion.matches) return
+    const { front } = this
+    const { zoom, pan, now } = frame
+    const size = 3.6 * Math.min(1.2, Math.max(0.8, zoom))
+    front.save()
+    for (const pack of this.packages) {
+      if (!this.inFocus(pack.from, pack.to)) continue
+      const from = this.screen(pack.from, zoom, pan)
+      const to = this.screen(pack.to, zoom, pan)
+      if (!from || !to) continue
+      const t = (((now / 1000) * BELT_SPEED) / Math.max(pack.length, 1) + pack.phase) % 1
+      front.globalAlpha = this.run.active ? 0.12 : 0.65
+      front.fillStyle = pack.colour
+      front.beginPath()
+      front.roundRect(from.x + (to.x - from.x) * t - size / 2, from.y + (to.y - from.y) * t - size / 2, size, size, 1)
+      front.fill()
+    }
+    front.restore()
+  }
+
+  // The answer travels as an orange crate, like the packages on the factory belt.
+  private drawParcel(frame: Frame) {
+    const parcel = this.parcel
+    if (!parcel) return
+    const { front } = this
+    const scale = Math.min(1.2, Math.max(0.9, frame.zoom))
+    const size = 15 * scale
+    front.save()
+    front.globalCompositeOperation = 'lighter'
+    front.drawImage(this.glows.parcel, parcel.x - 38 * scale, parcel.y - 38 * scale, 76 * scale, 76 * scale)
+    front.globalCompositeOperation = 'source-over'
+    front.beginPath()
+    front.roundRect(parcel.x - size / 2, parcel.y - size / 2, size, size, 3 * scale)
+    front.fillStyle = this.parcelColour
+    front.fill()
+    front.lineWidth = 1.25
+    front.strokeStyle = '#7a3d0b'
+    front.stroke()
+    front.beginPath()
+    front.moveTo(parcel.x - size / 2, parcel.y)
+    front.lineTo(parcel.x + size / 2, parcel.y)
+    front.moveTo(parcel.x, parcel.y - size / 2)
+    front.lineTo(parcel.x, parcel.y + size / 2)
+    front.strokeStyle = 'rgba(255,236,206,0.75)'
+    front.lineWidth = 1.5
+    front.stroke()
+    front.restore()
   }
 }

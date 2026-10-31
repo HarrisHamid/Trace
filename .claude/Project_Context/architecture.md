@@ -125,16 +125,19 @@ production FastAPI serves `web/dist` from the same origin, so there is no CORS s
 | `src/components/Landing.tsx` | Entry screen: helix animation, TRACE, tagline, link to `#/app` |
 | `src/components/ui/helix-chrono-matrix.tsx` | Canvas 2D helix. Adapted third-party component, licence unconfirmed (see `NOTES.md`). Not shadcn output, despite the folder |
 | `src/components/Workspace.tsx` | Loads the graph, runs playback, handles Escape and palette picks, lays out the panels |
-| `src/components/GraphView.tsx` | Cytoscape with `preset` layout from baked `x`/`y`. Node states as classes, all camera moves, the caption beside the current star |
+| `src/components/GraphView.tsx` | Cytoscape for camera and hit-testing, with `preset` layout. Plates and module tabs are placed from the scene; node states are classes; all camera moves; the caption beside the current node; the wiring toggle |
 | `src/components/ObservationLog.tsx` | The run: question, tally, tool trace, one lettered entry per step with claim chips |
 | `src/components/CodePanel.tsx` | Shiki-highlighted source with the node's lines and any quoted line marked; explicit unavailable state |
 | `src/components/CommandPalette.tsx` | `/` or Cmd+K, cmdk with fuse.js search over the nodes |
-| `src/components/AskBar.tsx`, `MapChrome.tsx`, `Glyphs.tsx` | Question input; title, breadcrumb and legend; node and claim-status glyphs |
-| `src/lib/sky.ts` | Canvas behind Cytoscape: starfield, graticule, nebulae, class outlines, glows and the animated thread |
+| `src/components/AskBar.tsx`, `MapChrome.tsx`, `Glyphs.tsx` | Question input; title, breadcrumb, legend card and the "Show all connections" toggle; node and claim-status glyphs. Node glyphs take the module colour |
+| `src/lib/sky.ts` | Two canvases around Cytoscape. Behind it: starfield, plates with depth and trim, class outlines, glows and the answer's conveyor belt. In front: drifting packages and the parcel. The idle loop runs at about 30fps |
+| `src/lib/scene.ts` | Built once from the graph: a plate per module (box, tab, caption), a colour per module, belts and per-node call counts |
+| `src/lib/pills.ts` | `LabelPainter`: label cards for nodes, tabs and captions for plates. Drops lower-priority labels that would collide |
+| `src/lib/css.ts` | `cssVar` reads a theme token. The tokens in `index.css` are the one source of colour |
 | `src/lib/run.ts` | Pure derivation of what to show from the events and the playback position; playback timing |
 | `src/lib/highlight.ts` | Shiki core with Python and the `observatory` theme, loaded on demand |
 | `src/api.ts` | `fetchGraph`, `fetchSource` and `streamAsk`. SSE is parsed by hand because `EventSource` only supports GET |
-| `src/store.ts` | Zustand store for selection, the run, playback, view level, palette and code panel. `learningMode` and `nodeStates` exist, but no component uses them |
+| `src/store.ts` | Zustand store for selection, the run, playback, view level, palette, code panel and the wiring toggle. `learningMode` and `nodeStates` exist, but no component uses them |
 
 Missing `x`/`y` fall back to `(0, 0)`, so a graph without baked positions renders as a stack at the origin.
 

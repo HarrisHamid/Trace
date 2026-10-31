@@ -109,14 +109,15 @@ Checks on the agent's final path:
 |---|---|
 | Parser and graph | Python 3.14, ast, jedi, networkx, pydantic, pytest |
 | Backend | FastAPI, AsyncOpenAI (Meta), pydantic, sse-starlette, tenacity; FastAPI also serves the built frontend (one command to run, no CORS) |
-| UI | React + Vite + TypeScript (plain SPA), Tailwind, shadcn/ui, Cytoscape.js (used directly, compound nodes for modules), Framer Motion, Zustand (persist), Shiki, cmdk, fuse.js, lucide-react, Inter + JetBrains Mono |
+| UI | React + Vite + TypeScript (plain SPA), Tailwind, shadcn/ui, Cytoscape.js (for camera and hit-testing; plates, labels and belts are drawn on two canvases around it), Framer Motion, Zustand (persist), Shiki, cmdk, fuse.js, lucide-react, Instrument Serif + JetBrains Mono |
 | Learning mode | Same frontend + an offline Python script that pre-generates `checks.json` |
 | Eval | Python eval script, JSON ground truth |
 
 React was chosen deliberately (reversing an earlier plain-JS call) because the UI has panels, animation,
-shared state, and a toggle. Cytoscape specifics: modules as compound nodes; functions as glowing star nodes
-via underlay style properties; fog/seen/understood as node classes with style transitions; uncertain edges
-dashed. Check exact style property names in the Cytoscape docs when building.
+shared state, and a toggle. Cytoscape specifics: modules are plates drawn on a canvas, not compound nodes, because their members are
+scattered in the layout and compound boxes overlapped. Node labels are cards drawn on a canvas, not Cytoscape labels.
+fog/seen/understood are node classes with style transitions; uncertain edges are dashed. The first constellation
+version used compound nodes and glow effects; see `NOTES.md`.
 
 ## 6. The three contracts (lock first; UI and backend build in parallel against mocks)
 
