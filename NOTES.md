@@ -31,3 +31,30 @@ The correct/incorrect judgements in the report's precision sections were made by
 - Function/class `start_line` includes decorators. Duplicate qualnames (e.g. a property setter) get an `@<def line>` suffix.
 - Route prefixes are resolved from literals, or from the default value of a repo-defined setting (e.g. `settings.API_V1_STR = "/api/v1"`). An environment variable could override that default at runtime. Routes from a router mounted inside an `if` get `conditional_mount: true`.
 - Excluded dirs: `tests`, `test`, `alembic`, `migrations`, virtualenvs, build output, caches. Excluded files: `test_*.py`, `*_test.py`, `conftest.py`.
+
+## Scaffold
+Everything in this section was written by an AI assistant (Claude Opus 5.5, via Claude Code) on 2026-10-30, working from the scaffold brief. It extends the disclosure above. The packages listed above moved with the parser, so their old paths no longer apply.
+
+### Created
+- Project: `pyproject.toml`, `uv.lock`, `.python-version`, `.gitignore`, `.env.example`, `Makefile`
+- Packages: `backend/__init__.py`, `backend/trace/__init__.py`, and placeholders `backend/trace/{tools,agent,validator}/__init__.py`
+- Contracts: `backend/trace/schemas/{base,graph,events,checks}.py`, `scripts/export_schemas.py`, `docs/contracts/*.schema.json` (generated)
+- Mock data: `data/mock/{graph.json,events.jsonl,checks.json}`, describing an invented `taskboard` app
+- API: `backend/trace/api/{app,settings}.py`
+- Tests: `tests/test_schemas.py`, `tests/test_mock_fixtures.py`, `tests/test_api.py`, `tests/test_pep758.py`
+- Web: everything under `web/`. `web/src/components/ui/` and `web/src/lib/utils.ts` are shadcn CLI output, `web/src/types/contracts/` is generated from the JSON Schemas, and `App.tsx`, `api.ts`, `store.ts` and `components/GraphView.tsx` are AI-written
+- Docs: `docs/prds/*.md` (stubs), README sections "Built during the hackathon", "Quickstart" and "Attribution"
+
+### Moved
+- `trace_parser/` to `backend/trace/parser/`, `tools/verify.py` to `scripts/verify.py`. Run the parser with `python -m backend.trace.parser build ...`.
+
+### Decisions
+- **Imported, then moved.** The parser lived in `~/Desktop/trace`, which was not a git repo. It was committed unchanged first, then moved with `git mv`, so the rename is in history. The original folder was left in place.
+- **`out/` and `repos/` were not imported.** `out/` holds graphs derived from third-party repos, including the unlicensed one above, and this repo is public.
+- **`backend.trace`, not `trace`.** An installed top-level `trace` loses to the stdlib module (`'trace' is not a package`), and forcing it first on the path would hide the stdlib module. The directories match the brief; only the import path includes `backend`.
+- **PEP 758 shim removed.** This replaces the "Python version mismatch" decision above. Python 3.14 parses `except A, B:` itself. The 11 tests contain no such syntax, so the check that mattered was the target repo: the 3.14 graph is identical with and without the shim apart from the removed `meta.strict_parse` key, and `--strict-parse` is gone. `tests/test_pep758.py` covers the syntax directly.
+- **Third-party packages are now installed.** This replaces the note above. jedi can see fastapi, pydantic and others in the venv, so on the target repo more externals are proven by jedi (`jedi_definition` 107, was 24) and the strict rate rises to 28.6% (was 20.4%). The set of external calls, the nodes, the edges and `call_resolution_rate` are unchanged.
+- **Parser output does not match `schemas/graph.py` yet.** v1 emits `start_line`/`end_line`, ids like `route:GET /x`, and `target: null` on uncertain edges. The contract is the target for parser v2. `Edge.target` is required, so v2 needs a stub target for an uncertain call.
+- **External stubs.** The contract requires `file` and lines on every node, so stubs use `file: "<external>"` and lines of 0.
+- **Max 8 tool calls is documented, not validated.** `MAX_TOOL_CALLS` and the `call_index` description state it. The agent loop will enforce it.
+- **Parser ruff findings are ignored by path.** The broad excepts are deliberate guards around jedi, and rewriting them could change behaviour. New code gets the full rule set.

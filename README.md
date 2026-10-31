@@ -50,3 +50,37 @@ Parser (ast + jedi)  -->  Graph (nodes, edges, flagged gaps)   [no AI]
 
 - Meta Model API (Muse Spark) for the agent and for pre-generated tap-check questions
 - Python, FastAPI,
+
+## Built during the hackathon
+
+All code in this repo was written for the Meta AI Global Hackathon, and the commit history is the record of how it came together. The parser was written on 2026-10-29 in a local folder and imported as-is, then moved with `git mv`. Everything else was added on 2026-10-30 in small commits. The code was written with an AI assistant, and [NOTES.md](NOTES.md) logs what was written and the decisions behind it.
+
+## Quickstart
+
+You need [uv](https://docs.astral.sh/uv/) (Python 3.14 is fetched automatically), Node 24 and `make`.
+
+```sh
+make setup             # uv sync, npm install
+cp .env.example .env   # add META_API_KEY when the agent loop exists
+
+make dev-api           # FastAPI on http://localhost:8000
+make dev-web           # Vite on http://localhost:5173, proxies /api to the API
+
+make test              # pytest
+make lint              # ruff, oxlint
+make build-web         # builds web/dist, which the API serves at /
+make schemas           # re-export docs/contracts after changing a contract
+```
+
+The API serves mock data from `data/mock/` for now. Set `TRACE_DATA_DIR` to point it somewhere else.
+
+## Attribution
+
+The demo codebase is third-party and is not vendored here. It is [fastapi/full-stack-fastapi-template](https://github.com/fastapi/full-stack-fastapi-template) (MIT), pinned to commit `f4bcfaba7c85be3c6332cc74a20819f586dcdbc6`. The parser's determinism test uses a local clone and skips without one:
+
+```sh
+git clone https://github.com/fastapi/full-stack-fastapi-template third_party/fastapi-template
+git -C third_party/fastapi-template checkout f4bcfaba7c85be3c6332cc74a20819f586dcdbc6
+```
+
+`third_party/` is gitignored. The mock data in `data/mock/` describes an invented app, not a real repo.
