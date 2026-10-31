@@ -1,12 +1,12 @@
 # Trace — Project Context (start here)
 
-> The repo **as it actually is** on 2026-10-30 (Fri evening), at commit `4a0f1ae`. The `.claude/idea*.md` files
+> The repo **as it actually is** on 2026-10-31, on branch `feat/space-factory-map`. The `.claude/idea*.md` files
 > describe what Trace is meant to become. If they disagree about the current state, this folder wins. If they
 > disagree about the goal, the idea docs win. Paths are relative to the repo root.
 
 ## What Trace is
 
-A web app that turns a Python codebase into a constellation-style map. You ask a question, an AI agent answers by
+A web app that turns a Python codebase into a map of modules (plates) and the calls between them (belts). You ask a question, an AI agent answers by
 walking the real call graph node by node, and plain code checks every claim against the graph and the source.
 Claims that fail are flagged instead of shown as fact. A learning mode (fog of war) uses the same map to build
 understanding of an unfamiliar repo.
@@ -21,7 +21,8 @@ product model call must go to Meta models. Rules, judging and positioning are in
 - **Works on real data:** the parser. It builds a graph of the pinned demo repo deterministically.
 - **Works on mock data only:** the API and web app. `POST /api/ask` replays a canned run from `data/mock/`, whatever
   the question is.
-- **UI built on mocks:** path animation, file view, command palette and code panel, per `docs/prds/03-ui.md`.
+- **UI built on mocks:** factory-style map (plates, label cards, belts), path animation with a parcel, file view, command
+  palette, observation log and code panel. Spec in `docs/prds/03-ui.md`; the redesign is logged in `NOTES.md`.
 - **Not built:** graph tools, agent loop, grounding validator, layout step, learning mode, tap-check generator, eval. `backend/trace/{tools,agent,validator}/` each hold a one-line docstring and nothing else.
 - **Biggest integration gap:** the parser's output does not match the `Graph` contract, so the API cannot load a real
   graph yet. Validation fails with 1,233 errors on the demo repo. Parser v2 has to close this first, because the
@@ -72,6 +73,10 @@ uv run python scripts/verify.py flow --graph out/graph.json \
 
 - **Import path:** use `backend.trace`, never a top-level `trace`, which collides with the stdlib module.
 - **Parser output is not the contract format.** Don't feed `out/graph.json` to the API or UI until parser v2 exists.
+- **Cytoscape forces `position: relative` on its container.** Put it inside an absolutely positioned wrapper, or the
+  container collapses to zero height and nothing draws.
+- **Mock source must match `graph.json` line numbers.** `tests/test_mock_fixtures.py` checks it. If you edit
+  `data/mock/source/`, check the line ranges and the quotes in `events.jsonl` still match.
 - **Contracts reject unknown fields** (`extra="forbid"`), so a stray key fails validation rather than being dropped.
 - **Contract changes have a fixed order:** edit `backend/trace/schemas/`, run `make schemas`, update `data/mock/`, and
   let `npm run gen:types` regenerate web types (it runs on `npm run dev` and `npm run build`). Commit the generated

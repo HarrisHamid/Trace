@@ -10,13 +10,18 @@ Demo repos are **pre-indexed**; loading arbitrary repos is cut.
 
 ## Core experiences
 
-### 1. Codebase view (the constellation)
-- Subway/constellation-style map. **Modules are clusters** (soft glowing "nebula" regions), **files and
-  functions are stars** (small glowing nodes).
-- Fixed, **pre-baked layout** (x/y stored in graph.json) so it looks identical every run and loads instantly.
-  No live layout that can shuffle on camera.
-- Edge styling by type. **Uncertain/unresolved edges are dashed.**
-- Starfield canvas behind the graph for atmosphere.
+### 1. Codebase view (the factory floor in space)
+- A map drawn like a factory floor in space. **Each module is a dark plate** with a coloured tab and a one-line caption
+  from its docstring. **Each function, class and route is a small labelled card** on its plate. **Calls are belts**
+  that the answer's parcel rides along. Colour means module.
+- Connections that only describe wiring (imports, injects, inherits, implements) are hidden until asked for.
+- Fixed, **pre-baked layout** (x/y stored in graph.json) so it looks identical every run and loads instantly. No live
+  layout that can shuffle on camera. Parser v2's layout step must place each module's members together, because plates
+  are drawn around them.
+- **Uncertain/unresolved edges are dashed.**
+- Starfield, slow idle motion and a twinkle behind the chart for atmosphere. Idle motion is off under reduced motion.
+- Changed on 2026-10-31 from a constellation with glowing nebulae, after the first version was hard for a non-technical
+  viewer to follow. Design is in `docs/prds/03-ui.md`.
 
 ### 2. File view
 - Functions and classes inside one file. Smooth zoom transition from the codebase view to the file view.
