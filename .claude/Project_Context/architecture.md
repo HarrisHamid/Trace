@@ -20,7 +20,7 @@ backend/trace/parser  [built, no AI]            v
 out/graph.json (gitignored)                     POST /api/ask     replays events over SSE
   parser format, NOT the Graph contract         |
   |                                             v
-  X---- parser v2 not built ---->             web/ (React, Cytoscape.js, Zustand)  [skeleton]
+  X---- parser v2 not built ---->             web/ (React, Cytoscape.js, Zustand)  [UI built on mocks]
 
 NOT BUILT: backend/trace/tools -> backend/trace/agent -> backend/trace/validator
            These replace the replay behind POST /api/ask.
@@ -98,12 +98,14 @@ pydantic models (backend/trace/schemas/*.py)
 | `GET /api/health` | `{"status": "ok"}` |
 | `GET /api/graph` | Reads and validates `graph.json` on every request |
 | `GET /api/checks` | Reads and validates `checks.json` on every request. Nothing in the frontend calls it yet |
+| `GET /api/source?file=` | Plain text of a file under `TRACE_SOURCE_DIR`; 404 for anything missing or outside it |
 | `POST /api/ask` | Requires `{"question": ...}` but ignores its value. Replays `events.jsonl` over SSE |
 | `/` | Serves `web/dist` when the directory exists; otherwise there is no root route |
 
 | Setting | Default | Notes |
 |---|---|---|
 | `TRACE_DATA_DIR` | `data/mock` | Must hold `graph.json`, `checks.json` and `events.jsonl` |
+| `TRACE_SOURCE_DIR` | `data/mock/source` | Root the graph's `file` paths resolve against. Point it at the pinned clone for a real repo |
 | `TRACE_WEB_DIST` | `web/dist` | |
 | `TRACE_REPLAY_DELAY_SECONDS` | `0.3` | Gap between replayed events |
 | `META_API_KEY`, `META_BASE_URL`, `META_MODEL` | empty | Set in `.env` (see `.env.example`). No code reads them yet |
@@ -122,10 +124,17 @@ production FastAPI serves `web/dist` from the same origin, so there is no CORS s
 | `src/App.tsx` | Hash switch: `#/app` shows `Workspace`, anything else shows `Landing`. Hash routes because `StaticFiles` has no SPA fallback |
 | `src/components/Landing.tsx` | Entry screen: helix animation, TRACE, tagline, link to `#/app` |
 | `src/components/ui/helix-chrono-matrix.tsx` | Canvas 2D helix. Adapted third-party component, licence unconfirmed (see `NOTES.md`). Not shadcn output, despite the folder |
-| `src/components/Workspace.tsx` | Loads the graph; one button with the hardcoded question "How does login work?"; raw event log |
-| `src/components/GraphView.tsx` | Cytoscape with `preset` layout from baked `x`/`y`. Colours by node type, dashes `uncertain` edges, sets `selectedNode` on tap |
-| `src/api.ts` | `fetchGraph` and `streamAsk`. SSE is parsed by hand because `EventSource` only supports GET |
-| `src/store.ts` | Zustand store for selection and the agent run. `learningMode` and `nodeStates` exist, but no component uses them |
+| `src/components/Workspace.tsx` | Loads the graph, runs playback, handles Escape and palette picks, lays out the panels |
+| `src/components/GraphView.tsx` | Cytoscape with `preset` layout from baked `x`/`y`. Node states as classes, all camera moves, the caption beside the current star |
+| `src/components/ObservationLog.tsx` | The run: question, tally, tool trace, one lettered entry per step with claim chips |
+| `src/components/CodePanel.tsx` | Shiki-highlighted source with the node's lines and any quoted line marked; explicit unavailable state |
+| `src/components/CommandPalette.tsx` | `/` or Cmd+K, cmdk with fuse.js search over the nodes |
+| `src/components/AskBar.tsx`, `MapChrome.tsx`, `Glyphs.tsx` | Question input; title, breadcrumb and legend; node and claim-status glyphs |
+| `src/lib/sky.ts` | Canvas behind Cytoscape: starfield, graticule, nebulae, class outlines, glows and the animated thread |
+| `src/lib/run.ts` | Pure derivation of what to show from the events and the playback position; playback timing |
+| `src/lib/highlight.ts` | Shiki core with Python and the `observatory` theme, loaded on demand |
+| `src/api.ts` | `fetchGraph`, `fetchSource` and `streamAsk`. SSE is parsed by hand because `EventSource` only supports GET |
+| `src/store.ts` | Zustand store for selection, the run, playback, view level, palette and code panel. `learningMode` and `nodeStates` exist, but no component uses them |
 
 Missing `x`/`y` fall back to `(0, 0)`, so a graph without baked positions renders as a stack at the origin.
 
@@ -135,8 +144,8 @@ Missing `x`/`y` fall back to `(0, 0)`, so a graph without baked positions render
 |---|---|---|
 | `test_schemas.py` | 21 | Contract rules, and that exported schemas match the models |
 | `test_fixture_graph.py` | 9 | Exact parser output on `tests/fixtures/fixpkg` |
-| `test_api.py` | 9 | Endpoints, SSE order, settings, static serving |
-| `test_mock_fixtures.py` | 8 | Mocks are complete and consistent with each other |
+| `test_api.py` | 14 | Endpoints, source path checks, SSE order, settings, static serving |
+| `test_mock_fixtures.py` | 11 | Mocks are complete and consistent with each other and with the source stubs |
 | `test_determinism.py` | 2 | Two builds are byte-identical. The target-repo test skips without the clone |
 | `test_pep758.py` | 1 | Python 3.14 `except A, B:` parses natively |
 
@@ -150,9 +159,9 @@ backend/trace/
   schemas/     built: the three contracts
   api/         built: FastAPI over mock data
   tools/       stub   agent/  stub   validator/  stub
-data/mock/     hand-written contract fixtures
+data/mock/     hand-written contract fixtures; source/ holds the invented taskboard app, line-aligned with graph.json
 docs/contracts/  generated JSON Schemas
-docs/prds/     TODO stubs
+docs/prds/     03-ui.md is written; the others are TODO stubs
 eval/          empty
 scripts/       export_schemas.py, verify.py
 tests/         pytest suite and fixpkg fixture

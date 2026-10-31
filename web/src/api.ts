@@ -7,6 +7,12 @@ export async function fetchGraph(): Promise<Graph> {
   return response.json()
 }
 
+export async function fetchSource(file: string): Promise<string> {
+  const response = await fetch(`/api/source?file=${encodeURIComponent(file)}`)
+  if (!response.ok) throw new Error(`GET /api/source failed: ${response.status}`)
+  return response.text()
+}
+
 // EventSource only does GET, so the SSE stream from POST /api/ask is read by hand.
 export async function streamAsk(question: string, onEvent: (event: AgentEvent) => void): Promise<void> {
   const response = await fetch('/api/ask', {

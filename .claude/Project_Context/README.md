@@ -21,8 +21,8 @@ product model call must go to Meta models. Rules, judging and positioning are in
 - **Works on real data:** the parser. It builds a graph of the pinned demo repo deterministically.
 - **Works on mock data only:** the API and web app. `POST /api/ask` replays a canned run from `data/mock/`, whatever
   the question is.
-- **Not built:** graph tools, agent loop, grounding validator, layout step, code panel, learning mode, tap-check
-  generator, eval. `backend/trace/{tools,agent,validator}/` each hold a one-line docstring and nothing else.
+- **UI built on mocks:** path animation, file view, command palette and code panel, per `docs/prds/03-ui.md`.
+- **Not built:** graph tools, agent loop, grounding validator, layout step, learning mode, tap-check generator, eval. `backend/trace/{tools,agent,validator}/` each hold a one-line docstring and nothing else.
 - **Biggest integration gap:** the parser's output does not match the `Graph` contract, so the API cannot load a real
   graph yet. Validation fails with 1,233 errors on the demo repo. Parser v2 has to close this first, because the
   agent, tools and UI all read the contract format.
@@ -43,7 +43,7 @@ Check details, the gap table and open design questions are in `status.md`.
 | `NOTES.md` | Disclosure of AI-written code and the decision log |
 | `README.md` | Public-facing README. Its feature list describes the target product, not the current build |
 
-`docs/prds/*.md` are `TODO` stubs, so don't look there for requirements.
+`docs/prds/03-ui.md` is the UI spec. The other `docs/prds/*.md` are `TODO` stubs, so don't look there for requirements.
 
 ## Run it
 

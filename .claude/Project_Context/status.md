@@ -1,7 +1,8 @@
 # Trace — Status, Gaps and Next Work
 
 > Snapshot from 2026-10-30 (Fri evening), at commit `4a0f1ae`. Results below come from commands run that day, not from
-> older docs. Paths are relative to the repo root.
+> older docs. Paths are relative to the repo root. The web app, code panel and source route were updated on 2026-10-31
+> after `docs/prds/03-ui.md` was built; the check results below are still the Oct 30 run.
 
 ## Component status
 
@@ -11,20 +12,19 @@
 | Contracts | **Working** | Models, exported schemas and generated TS types are in sync |
 | Mock fixtures | **Working** | 25 nodes, 26 edges, 12 events, 5 checks; invented app |
 | FastAPI app | **Working on mocks** | `/api/ask` ignores the question and replays a canned run |
-| Web app | **Skeleton** | Graph, one fixed question and a raw event log; no animation, panels or styling work |
+| Web app | **Working on mocks** | PRD 03 built: path animation, file view, command palette, observation log |
 | Parser v2 | Not built | Contract format, layout, `implements`, dependency and external nodes |
 | Graph tools | Not built | Stub package |
 | Agent loop | Not built | Stub package; `openai` and `tenacity` are installed but not imported |
 | Grounding validator | Not built | Stub package; must never be cut |
-| Code panel | Not built | Also has no API route to get source from (see question 1) |
+| Code panel | **Working on mocks** | Reads `GET /api/source`, which serves hand-written stubs in `data/mock/source/` by default |
 | Learning mode | Not built | Store fields only; `/api/checks` is unused; no `persist` middleware yet |
 | Tap-check generator | Not built | `checks.json` is hand-written mock data |
 | Eval | Not built | `eval/` holds only `.gitkeep` |
 | Cached demo answers | Not built | Replay in `app.py` can serve them once they exist |
 | Demo-repo choice | Open | Template is the default until the parser trial on larger repos |
 
-Installed but not imported anywhere yet: `framer-motion`, `shiki`, `cmdk`, `fuse.js`. The shadcn `dialog`, `popover` and
-`switch` components are also generated but unused.
+The shadcn `dialog`, `popover` and `switch` components are generated but unused.
 
 ## Check results (2026-10-30)
 
@@ -76,10 +76,9 @@ them. Eval ground truth must be hand-labelled separately.
 
 Each one blocks or shapes work on the parser, agent or validator.
 
-1. **Where does source text come from at runtime?** The code panel, the agent's read-source tool and the validator's
-   quote check all need file contents, but `third_party/` is gitignored, the planned `data/<repo>/` holds no source,
-   and no API route serves it. Recommendation: add a repo-path setting pointing at the pinned clone, add
-   `GET /api/source`, and fail loudly when the clone is missing.
+1. **Where does source text come from at runtime?** Partly settled: `GET /api/source` and `TRACE_SOURCE_DIR` exist,
+   and the code panel shows "Source unavailable" on a 404. For the real repo, point the setting at the pinned clone.
+   The agent's read-source tool and the validator's quote check still need to use the same root.
 2. **What is the target of an uncertain edge?** The contract requires one, the mock uses a best guess, and `NOTES.md`
    says a stub. Recommendation: a stub node. The UI needs both ends to draw a dashed edge, and a best guess presents an
    inference as graph fact. The mock would need updating.
@@ -107,6 +106,7 @@ Each one blocks or shapes work on the parser, agent or validator.
 | `.claude/idea-architecture.md:40-42` | Jedi proved 24 externals, 20.4% strict, libraries not installed | 107 proven, 28.6% strict, libraries installed |
 | `.claude/idea-architecture.md:45-47` | One file parsed through an in-memory rewrite | Rewrite removed; runs natively on 3.14 |
 | `.claude/idea-architecture.md:53` | v2 item 1: re-run on 3.14 with libraries | Done |
+| `.claude/idea-architecture.md:112` | Inter + JetBrains Mono | Instrument Serif + JetBrains Mono (`docs/prds/03-ui.md`) |
 | `README.md` (main features, how it works) | Describes all features in the present tense | True of the target product, not the current build |
 | `scripts/verify.py:3-5` | `--repo repos/fastapi-template` | Clone lives at `third_party/fastapi-template` |
 | `backend/trace/parser/cli.py`, `builder.py` | Tool named `trace_parser` | Cosmetic; the package moved to `backend.trace.parser` |
@@ -121,9 +121,8 @@ Nov 3.
 2. **Tools, agent loop and validator on the real graph:** settle questions 1 and 4. This is the first test of tools
    and structured output together, and it is the biggest technical risk.
 3. **Wire `/api/ask` to the real loop,** with cached answers for the demo.
-4. **UI priorities 1–3:** path animation, view transition, command palette, plus the code panel.
-5. **Learning mode and tap-check generator.**
-6. **Eval** on about 10 questions hand-labelled by a human.
+4. **Learning mode and tap-check generator.** The UI classes in `GraphView.tsx` are where fog and understood states go.
+5. **Eval** on about 10 questions hand-labelled by a human.
 
 Also outstanding, from `.claude/idea-demo-eval.md`: claim the Meta credits, get written confirmation on third-party AI
-coding agents, and confirm the entry track. The `docs/prds/` stubs are still empty.
+coding agents, and confirm the entry track. The `docs/prds/` stubs other than `03-ui.md` are still empty.
