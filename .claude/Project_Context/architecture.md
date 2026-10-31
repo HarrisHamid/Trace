@@ -119,7 +119,10 @@ production FastAPI serves `web/dist` from the same origin, so there is no CORS s
 
 | File | Role today |
 |---|---|
-| `src/App.tsx` | Loads the graph; one button with the hardcoded question "How does login work?"; raw event log |
+| `src/App.tsx` | Hash switch: `#/app` shows `Workspace`, anything else shows `Landing`. Hash routes because `StaticFiles` has no SPA fallback |
+| `src/components/Landing.tsx` | Entry screen: helix animation, TRACE, tagline, link to `#/app` |
+| `src/components/ui/helix-chrono-matrix.tsx` | Canvas 2D helix. Adapted third-party component, licence unconfirmed (see `NOTES.md`). Not shadcn output, despite the folder |
+| `src/components/Workspace.tsx` | Loads the graph; one button with the hardcoded question "How does login work?"; raw event log |
 | `src/components/GraphView.tsx` | Cytoscape with `preset` layout from baked `x`/`y`. Colours by node type, dashes `uncertain` edges, sets `selectedNode` on tap |
 | `src/api.ts` | `fetchGraph` and `streamAsk`. SSE is parsed by hand because `EventSource` only supports GET |
 | `src/store.ts` | Zustand store for selection and the agent run. `learningMode` and `nodeStates` exist, but no component uses them |
@@ -153,7 +156,7 @@ docs/prds/     TODO stubs
 eval/          empty
 scripts/       export_schemas.py, verify.py
 tests/         pytest suite and fixpkg fixture
-web/src/       React app; types/contracts/ is generated, components/ui/ is shadcn output
+web/src/       React app; types/contracts/ is generated, components/ui/ is shadcn output plus the helix component
 third_party/   gitignored pinned clones
 out/           gitignored parser output (not present in a fresh checkout)
 ```

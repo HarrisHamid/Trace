@@ -61,3 +61,10 @@ Everything in this section was written by an AI assistant (Claude Opus 5.5, via 
 
 ## Project context
 `.claude/Project_Context/` (`README.md`, `architecture.md`, `status.md`) was written by an AI assistant (Claude Opus 5.5, via Claude Code) on 2026-10-30. It describes the repo as built, and the results in `status.md` come from commands run that day.
+
+
+## Landing page
+- **Third-party code.** `web/src/components/ui/helix-chrono-matrix.tsx` is adapted from a third-party React component, `HelixChronoMatrix`, pasted in on 2026-10-30. This qualifies the "no external code snippets" line in the disclosure above, which covers the parser only. Its source and licence are not confirmed yet. If they can't be confirmed before submission, rewrite the effect from scratch.
+- **Changes to that component, by an AI assistant (Claude Opus 5.5, via Claude Code):** removed the other two topologies, the freeze control and the light theme; changed the headline to TRACE; added a `children` slot; scaled the camera and wave with the viewport, because the ring radius reached the fixed camera distance on tall screens; sized the headline to the viewport; raised the resting line brightness, because the bright look only appeared on hover; added a static frame for `prefers-reduced-motion`.
+- **AI-written on 2026-10-30:** `web/src/components/Landing.tsx`, the hash switch in `web/src/App.tsx`, and `web/src/components/Workspace.tsx`, which is the old `App` body moved unchanged.
+- **Hash routes, not a router.** FastAPI's `StaticFiles` mount has no SPA fallback, so a path like `/app` would 404 on refresh. `#/app` needs no backend change and no new dependency.
