@@ -31,7 +31,7 @@ export type Text = string;
  */
 export type Quote = string | null;
 /**
- * verified: backed by the graph. unverified: not backed. gap: the parser could not resolve this link.
+ * Set by the validator, never by the model. verified: the edge or the quoted source text exists. unverified: nothing backs it. gap: no edge joins this step to the previous one, or that edge is unresolved.
  */
 export type Status = "verified" | "unverified" | "gap";
 export type Claims = Claim[];

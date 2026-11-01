@@ -1,27 +1,25 @@
 # Trace — Next Steps
 
-> Written Sat Oct 31, 2026, after parser v2 (PR #3). Work top to bottom. **Who** says who has to do it. Feature freeze is
+> Written Sat Oct 31, 2026, after parser v2 (PR #3). Steps 1 to 6 and 8 were done by Nov 1. Work top to bottom. **Who** says who has to do it. Feature freeze is
 > Mon Nov 2, the plan is to submit Tue Nov 3, and the hard deadline is **Wed Nov 4, 9:00 PM ET**.
-
-The agent and validator were due today and have not been started, so steps 1 to 4 come before anything else.
 
 ## Tonight (Sat Oct 31)
 
 | # | Step | Who |
 |---|---|---|
-| 1 | **Merge PR #3 with a merge commit, not a squash.** Commit timestamps are evidence for the new-work rule | You |
-| 2 | **Get Meta API access working.** Claim the $150 credits (card required) and set a spend alert. Put the key in `.env`, using `.env.example`. This checkout has no `.env`, and nothing can call the model without it | You |
-| 3 | **Write `docs/prds/02-agent-validator.md`.** One page: tool list, the 8-call cap, the two-step model flow and the validator rules. Claude drafts it; you approve the answers to open questions 1, 4 and 7 in `status.md`. Replace the `01-parser-graph.md` stub with a pointer to `architecture.md` at the same time | Claude, you approve |
-| 4 | **Build a thin agent end to end on the real graph.** Put the graph in `data/<repo>/`, then run tools and one structured-output call against `muse-spark-1.3`. Tools and structured output have never run together on real data, so if this combination fails, find out tonight | Claude |
+| 1 | **Done.** **Merge PR #3 with a merge commit, not a squash.** Commit timestamps are evidence for the new-work rule | You |
+| 2 | **Done 2026-11-01.** **Get Meta API access working.** Claim the $150 credits (card required) and set a spend alert. Put the key in `.env`, using `.env.example`. This checkout has no `.env`, and nothing can call the model without it | You |
+| 3 | **Done 2026-11-01.** **Write `docs/prds/02-agent-validator.md`.** One page: tool list, the 8-call cap, the two-step model flow and the validator rules. Claude drafts it; you approve the answers to open questions 1, 4 and 7 in `status.md`. Replace the `01-parser-graph.md` stub with a pointer to `architecture.md` at the same time | Claude, you approve |
+| 4 | **Done 2026-11-01.** **Build a thin agent end to end on the real graph.** Put the graph in `data/<repo>/`, then run tools and one structured-output call against `muse-spark-1.3`. Tools and structured output have never run together on real data, so if this combination fails, find out tonight | Claude |
 
 ## Sunday (Nov 1)
 
 | # | Step | Who |
 |---|---|---|
-| 5 | **Finish the validator and wire `/api/ask` to the real loop,** with cached demo answers. Never cut either one | Claude |
+| 5 | **Done 2026-11-01.** **Finish the validator and wire `/api/ask` to the real loop,** with cached demo answers. Never cut either one | Claude |
 | 6 | **Done 2026-10-31: helix rewritten from scratch** in `web/src/lib/helix.ts`, and the third-party component deleted. It remains in git history (`b11c3d0`); see `NOTES.md` | Claude |
-| 7 | **Hand-label about 10 eval questions** with the correct node IDs. These must come from you, not from the AI that built the parser | You |
-| 8 | **Pick the demo question and plan the flagged moment.** The template has no uncertain edges, so a gap only appears if the model claims a link that doesn't exist. Find a question that reliably produces an `unverified` claim or a gap, then cache it | You and Claude |
+| 7 | **Check the 10 draft eval questions in `eval/questions.json`.** Claude drafted them from the source, so they are not ground truth until you have read each row against the code and set `human_checked` to true | You |
+| 8 | **Done 2026-11-01: the demo question is "How does login work?",** replayed from `data/fastapi-template/answers/how-does-login-work.jsonl`. It shows 12 verified, 4 unverified and 1 gap, where the model jumps from `verify_password` back to the handler and skips `authenticate`. Never regenerate this file by accident: answers vary between runs | You and Claude |
 | 9 | **Build learning mode, only if step 5 works.** Write `docs/prds/04-learning-mode.md` first, briefly | Claude |
 
 ## Monday (Nov 2)

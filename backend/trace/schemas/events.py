@@ -17,7 +17,10 @@ class Claim(Contract):
     text: str
     quote: str | None = Field(default=None, description="Source text backing the claim.")
     status: ClaimStatus = Field(
-        description="verified: backed by the graph. unverified: not backed. gap: the parser could not resolve this link."
+        description=(
+            "Set by the validator, never by the model. verified: the edge or the quoted source text exists. "
+            "unverified: nothing backs it. gap: no edge joins this step to the previous one, or that edge is unresolved."
+        )
     )
 
 

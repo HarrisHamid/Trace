@@ -1,1 +1,5 @@
-"""Agent tool-calling loop. Not built yet."""
+"""The agent loop."""
+
+from .loop import run_agent
+
+__all__ = ["run_agent"]

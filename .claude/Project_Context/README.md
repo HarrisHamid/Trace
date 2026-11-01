@@ -16,16 +16,15 @@ product model call must go to Meta models. Rules, judging and positioning are in
 
 ## Where it stands
 
-**The foundation works, but the product's core does not exist yet.**
+**The core product works end to end on the real graph. Learning mode and the eval are not built.**
 
 - **Works on real data:** the parser, the graph API and the map. Parser v2 emits the `Graph` contract with a baked layout,
   and the UI renders the demo repo from it, with real source in the code panel.
-- **Works on mock data only:** answers. `POST /api/ask` replays a canned run from `data/mock/`, whatever the question is.
+- **Works on the real graph:** answers, with `make dev-api-real`. `POST /api/ask` runs the agent and validator live, or replays a cached answer. Mock mode still replays `data/mock/events.jsonl`.
 - **UI built on mocks:** factory-style map (plates, label cards, belts), path animation with a parcel, file view, command
   palette, observation log and code panel. Spec in `docs/prds/03-ui.md`; the redesign is logged in `NOTES.md`.
-- **Not built:** graph tools, agent loop, grounding validator, learning mode, tap-check generator, eval. `backend/trace/{tools,agent,validator}/` each hold a one-line docstring and nothing else.
-- **Biggest risk now:** tools and structured output have never run together on the real graph, and that work has not
-  started.
+- **Not built:** learning mode, tap-check generator, eval.
+- **Biggest risk now:** time. Feature freeze is Mon Nov 2, and the eval questions and demo question still need a human.
 - **Demo repo decided:** `fastapi/full-stack-fastapi-template`, after a trial of three larger repos.
 
 Check details, the gap table and open design questions are in `status.md`.
@@ -45,7 +44,7 @@ Check details, the gap table and open design questions are in `status.md`.
 | `NOTES.md` | Disclosure of AI-written code and the decision log |
 | `README.md` | Public-facing README. Its feature list describes the target product, not the current build |
 
-`docs/prds/03-ui.md` is the UI spec. The other `docs/prds/*.md` are `TODO` stubs, so don't look there for requirements.
+`docs/prds/03-ui.md` is the UI spec and `02-agent-validator.md` the agent spec. `04` and `05` are still `TODO` stubs.
 
 ## Run it
 
@@ -93,7 +92,6 @@ TRACE_DATA_DIR=out TRACE_SOURCE_DIR=third_party/fastapi-template \
 - **Contract changes have a fixed order:** edit `backend/trace/schemas/`, run `make schemas`, update `data/mock/`, and
   let `npm run gen:types` regenerate web types (it runs on `npm run dev` and `npm run build`). Commit the generated
   files too. A test fails if `docs/contracts/` drifts from the models.
-- **The tool-call cap is not enforced.** `MAX_TOOL_CALLS = 8` is documentation until the agent loop enforces it.
 - **`out/` and `third_party/` are gitignored and must stay out of git.** This repo is public, and graphs derived from
   the unlicensed `fastapi-realworld-backend` must never be committed.
 - **Quote the resolution rate carefully.** Say "59/59 internal calls resolved, externals classified by rule", never a

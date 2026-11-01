@@ -1,6 +1,6 @@
 # Trace — Status, Gaps and Next Work
 
-> Snapshot from 2026-10-31, on branch `feat/parser-v2`.
+> Snapshot from 2026-10-31, updated 2026-11-01 for the agent work on branch `feat/agent-validator`.
 > Results below are from commands run that day, unless the row says otherwise. Paths are relative to the repo root.
 
 ## Component status
@@ -10,16 +10,16 @@
 | Parser v2 | **Working** | Contract format, baked layout, `implements`, dependency, external and unresolved nodes, plus `report.json`. Functions passed as values are still not edges |
 | Contracts | **Working** | Models, exported schemas and generated TS types are in sync |
 | Mock fixtures | **Working** | 26 nodes, 26 edges, 12 events, 5 checks; invented app |
-| FastAPI app | **Working** | Serves a real graph and real source through `TRACE_DATA_DIR` and `TRACE_SOURCE_DIR`. `/api/ask` still ignores the question and replays a canned run |
-| Web app | **Working** | Map and code panel checked on the real graph. Path animation, observation log and gap display are only checked on mocks, because no real run exists |
-| Graph tools | Not built | Stub package |
-| Agent loop | Not built | Stub package; `openai` and `tenacity` are installed but not imported |
-| Grounding validator | Not built | Stub package; must never be cut |
+| FastAPI app | **Working** | Serves a real graph and real source through `TRACE_DATA_DIR` and `TRACE_SOURCE_DIR`. `/api/ask` replays `events.jsonl` in mock mode, then a cached answer, and otherwise runs the agent |
+| Web app | **Working** | Map, code panel, a live run and a path that revisits a node checked on the real graph at 1456px. The cached gap also displays correctly. 1280px and hover cards are not checked |
+| Graph tools | **Working** | Six tools in `backend/trace/tools/graph_tools.py` |
+| Agent loop | **Working** | `backend/trace/agent/loop.py`: `muse-spark-1.3`, Chat Completions, cap of 8 enforced. Live runs take about 20 to 25 seconds |
+| Grounding validator | **Working** | `backend/trace/validator/grounding.py`. Rules are in `docs/prds/02-agent-validator.md`. Must never be cut |
 | Code panel | **Working** | Reads `GET /api/source`. Shows the pinned clone when `TRACE_SOURCE_DIR` points at it |
 | Learning mode | Not built | Store fields only; `/api/checks` is unused; no `persist` middleware yet |
 | Tap-check generator | Not built | `checks.json` is hand-written mock data |
-| Eval | Not built | `eval/` holds only `.gitkeep` |
-| Cached demo answers | Not built | Replay in `app.py` can serve them once they exist |
+| Eval | **Started** | `eval/questions.json` holds 10 draft questions that a human must check. There is no scoring script yet |
+| Cached demo answers | **Working** | Two in `data/fastapi-template/answers/`, written by `scripts/cache_answer.py`. The demo question is "How does login work?" |
 | Demo-repo choice | **Decided: template** | Trial results below |
 
 The shadcn `dialog`, `popover` and `switch` components are generated but unused.
@@ -84,8 +84,8 @@ ship the template if none beats it, and none does. All numbers are from parser v
 
 ## Design questions
 
-Questions 2, 3, 5 and 6 were settled by parser v2 as recommended; `NOTES.md` has the detail. The other two shape the agent
-and validator.
+Questions 2, 3, 5 and 6 were settled by parser v2 as recommended; `NOTES.md` has the detail. Questions 1, 4 and 7 were
+settled on 2026-11-01 as recommended and are recorded in `docs/prds/02-agent-validator.md`.
 
 1. **Where does source text come from at runtime?** Partly settled: `GET /api/source` and `TRACE_SOURCE_DIR` exist,
    and the code panel shows "Source unavailable" on a 404. For the real repo, point the setting at the pinned clone.
@@ -120,11 +120,8 @@ and validator.
 In schedule order from `.claude/idea-demo-eval.md`. Feature freeze is Mon Nov 2, and recording and submission are Tue
 Nov 3.
 
-1. **Tools, agent loop and validator on the real graph:** settle questions 1, 4 and 7. This is the first test of tools
-   and structured output together, and it is the biggest technical risk. It was due Sat Oct 31.
-2. **Wire `/api/ask` to the real loop,** with cached answers for the demo.
-3. **Learning mode and tap-check generator.** The UI classes in `GraphView.tsx` are where fog and understood states go.
-4. **Eval** on about 10 questions hand-labelled by a human.
+1. **Eval:** a human checks the draft questions, then write the scoring script and run it.
+2. **Learning mode and tap-check generator,** only if time allows. The UI classes in `GraphView.tsx` are where fog and understood states go.
 
-The full ordered plan, including what only a human can do, is in `next-steps.md`. Also outstanding: claim the Meta credits
-and confirm the entry track. The `docs/prds/` stubs other than `03-ui.md` are still empty.
+The full ordered plan, including what only a human can do, is in `next-steps.md`. Also outstanding: confirm the entry track.
+`docs/prds/04-learning-mode.md` and `05-eval-demo.md` are still empty.

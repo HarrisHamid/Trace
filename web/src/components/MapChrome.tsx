@@ -63,8 +63,7 @@ export function Legend({ graph, rightInset }: { graph: Graph; rightInset: number
   const { stats } = graph
   const showWiring = useTraceStore((state) => state.showWiring)
   const setShowWiring = useTraceStore((state) => state.setShowWiring)
-  const objects = graph.nodes.length - (stats.nodes_by_type.module ?? 0)
-  const resolved = stats.call_resolution_rate
+  const internalCalls = stats.calls_resolved + stats.calls_uncertain
   return (
     <footer
       className="absolute bottom-5 left-7 flex items-center gap-4 overflow-hidden text-[10px] whitespace-nowrap text-muted-foreground transition-[right] duration-300"
@@ -93,8 +92,7 @@ export function Legend({ graph, rightInset }: { graph: Graph; rightInset: number
         {showWiring ? 'Hide' : 'Show'} all connections
       </button>
       <span className="ml-auto">
-        {objects} objects{resolved !== null && ` · ${Math.round(resolved * 100)}% of calls resolved`} ·{' '}
-        {stats.calls_uncertain} uncertain
+        {stats.calls_resolved}/{internalCalls} internal calls resolved · externals by rule
       </span>
     </footer>
   )

@@ -83,6 +83,19 @@ Everything in this section was written by an AI assistant (Claude Opus 5.5, via 
 - **Source stubs match the graph's line numbers,** so `deps.py` and others are oddly dense in places. Tests pin them to `graph.json` and to the quotes in `events.jsonl`. `data/mock/source/` is excluded from ruff.
 - **Playback lags the stream on purpose.** The animation holds about 400ms per step and queues whatever arrives faster.
 
+## Agent and validator (2026-11-01)
+- **AI-written (Claude Opus 5.5, via Claude Code):** `backend/trace/tools/{index,graph_tools}.py`, `backend/trace/agent/loop.py`, `backend/trace/validator/grounding.py`, `scripts/cache_answer.py`, the `/api/ask` changes in `backend/trace/api/app.py`, `tests/test_{validator,agent_tools,agent_loop}.py` and the new cases in `tests/test_api.py`. The model at runtime is Meta's `muse-spark-1.3`, and no other provider is called.
+- **Decisions confirmed by the author:** tools, validator and Code panel read the same `TRACE_SOURCE_DIR`; a gap is no edge, or an unresolved one; a path may end at an external node, whose claims stay `unverified` without a quote.
+- **Chat Completions, not the Responses API.** A live test passed on it, so there was no reason to change.
+- **The model's output has no `status` field,** so it cannot mark its own claims. The validator writes every link claim from the graph.
+- **Verified is narrower than true.** It means the edge or the quoted text exists. A model sentence can overstate a real quote, and only the eval can measure that.
+- **A quote on an external step is checked at the call site,** because the library's code is not in the graph. Such a quote proves the call, not what the library does.
+- **A class and its method have no edge,** so the model is told to go straight to the method. A hop through one is flagged as a gap, as the gap rule says.
+- **A path can revisit a node** when execution returns to it, so `ObservationLog.tsx` keys steps by position as well as id.
+- **Answers vary between runs.** The same login question gave 4 clean steps once and 7 steps with a gap another time, so the demo must replay a cached run.
+- **`tenacity` removed.** The OpenAI SDK already retries 429s and server errors.
+- **The map footer no longer says "100%".** It reads "59/59 internal calls resolved · externals by rule".
+
 ## Space factory map (2026-10-31)
 - **Plates, labels and belts.** `web/src/lib/scene.ts` builds one plate per module and the belts from the graph. `web/src/lib/pills.ts` draws the label cards on a second canvas above Cytoscape. `web/src/lib/sky.ts` draws the background, plates and the answer. All of it is AI-written.
 - **Colour means module.** Six `--module-*` tokens replace the per-type colours. Shape still carries the node type.

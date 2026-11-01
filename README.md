@@ -62,7 +62,7 @@ You need [uv](https://docs.astral.sh/uv/) (Python 3.14 is fetched automatically)
 
 ```sh
 make setup             # uv sync, npm install
-cp .env.example .env   # add META_API_KEY when the agent loop exists
+cp .env.example .env   # add META_API_KEY
 
 make dev-api           # FastAPI on http://localhost:8000
 make dev-web           # Vite on http://localhost:5173, proxies /api to the API
