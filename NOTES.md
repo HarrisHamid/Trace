@@ -88,6 +88,12 @@ Everything in this section was written by an AI assistant (Claude Opus 5.5, via 
 - **Colour means module.** Six `--module-*` tokens replace the per-type colours. Shape still carries the node type.
 - **Wiring is hidden by default.** Imports, injects, inherits and implements are behind "Show all connections". The default map is who calls whom.
 - **Idle motion is capped at about 30fps** and is off under `prefers-reduced-motion`.
+- **Calls are glowing lines, and the conveyor is saved for the answer, AI-written (Claude Opus 5.5, via Claude Code).** `web/src/lib/belt.ts` draws both on the sky's back canvas. A conveyor on every call was tried first and was too cluttered, so at rest a call is a thin white line with a faint blue glow, and a run lays a conveyor over the routes it takes: rails, slats, underside and legs, in the same oblique view as the plates. Cytoscape's lines are hidden for these edges (`isBelt` in `scene.ts`), and wiring edges stay Cytoscape lines.
+- **Direction without arrowheads.** At rest the packages show it. Under reduced motion there are no packages, so each line gets one small chevron at its midpoint. The conveyor's slats are chevrons, so it reads in a still frame too.
+- **Lines are S-curves, not straight,** leaving and arriving along their longer axis. The conveyor, the agent's footsteps, the parcel and the packages all follow the same routes, so nothing leaves the track.
+- **An uncertain edge is a dashed blue line with no packages,** and a broken blue conveyor in a run, so an unproven link never looks like working machinery.
+- **One line per caller and callee pair.** Each call site is an edge, and repeats would stack. The real graph has 79 pairs from 82 edges.
+- **Far out, the conveyor simplifies.** Below zoom 0.42 it loses the rail highlight and the legs, and it stops shrinking at about 6px wide.
 
 ## Parser v2 (2026-10-31)
 - **AI-written (Claude Opus 5.5, via Claude Code):** `backend/trace/parser/layout.py`; the rework of `backend/trace/parser/builder.py`, `cli.py` and `scripts/verify.py`; `tests/test_layout.py`, `tests/test_target_graph.py`, the fixtures `tests/fixtures/fixpkg/{stores,injected}.py`, and the rewrite of `tests/test_fixture_graph.py`. Web changes are listed below.

@@ -152,7 +152,8 @@ production FastAPI serves `web/dist` from the same origin, so there is no CORS s
 | `src/components/CodePanel.tsx` | Shiki-highlighted source with the node's lines and any quoted line marked; explicit unavailable state |
 | `src/components/CommandPalette.tsx` | `/` or Cmd+K, cmdk with fuse.js search over the nodes |
 | `src/components/AskBar.tsx`, `MapChrome.tsx`, `Glyphs.tsx` | Question input; title, breadcrumb, legend card and the "Show all connections" toggle; node and claim-status glyphs. Node glyphs take the module colour |
-| `src/lib/sky.ts` | Two canvases around Cytoscape. Behind it: starfield, plates with depth and trim, class outlines, glows and the answer's conveyor belt. In front: drifting packages and the parcel. The idle loop runs at about 30fps |
+| `src/lib/sky.ts` | Two canvases around Cytoscape. Behind it: starfield, plates with depth and trim, class outlines, call lines, glows and the answer's conveyor. In front: drifting packages and the parcel. The idle loop runs at about 30fps |
+| `src/lib/belt.ts` | Routes (even-spaced S-curves in model units) and how they are drawn: a thin glowing line at rest, and for the answer a conveyor with rails, chevron slats, underside and legs. Cytoscape's own lines are hidden for these edges |
 | `src/lib/helix.ts` | The landing page's double helix. Two canvases around the wordmark, so it weaves through the letters. Static under `prefers-reduced-motion` |
 | `src/lib/scene.ts` | Built once from the graph: a plate per module (box, tab, caption), a colour per module, belts and per-node call counts. Calls into `external` nodes get no belt |
 | `src/lib/pills.ts` | `LabelPainter`: label cards for nodes, tabs and captions for plates. Drops lower-priority labels that would collide |

@@ -53,7 +53,7 @@ export function TopBar({ graph, moduleName }: { graph: Graph; moduleName: string
 function Sample({ className, label }: { className: string; label: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className={cn('w-5 border-t-[3px]', className)} />
+      <span className={cn('w-5', className)} />
       {label}
     </span>
   )
@@ -78,9 +78,9 @@ export function Legend({ graph, rightInset }: { graph: Graph; rightInset: number
           </span>
         ))}
         <span className="h-3 border-l border-border" />
-        <Sample className="border-belt" label="calls" />
-        <Sample className="border-dashed border-gap" label="uncertain" />
-        <Sample className="border-primary" label="the answer" />
+        <Sample className="line-sample" label="calls" />
+        <Sample className="border-t-2 border-dashed border-gap" label="uncertain" />
+        <Sample className="belt-sample" label="the answer" />
       </div>
       <button
         aria-pressed={showWiring}
