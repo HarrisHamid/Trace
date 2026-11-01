@@ -83,6 +83,18 @@ Everything in this section was written by an AI assistant (Claude Opus 5.5, via 
 - **Source stubs match the graph's line numbers,** so `deps.py` and others are oddly dense in places. Tests pin them to `graph.json` and to the quotes in `events.jsonl`. `data/mock/source/` is excluded from ruff.
 - **Playback lags the stream on purpose.** The animation holds about 400ms per step and queues whatever arrives faster.
 
+## Graphify (2026-11-01)
+
+All of this was written by Claude Opus 5.5 through Claude Code, and the author approved the plan and its four open decisions. It
+replaces learning mode for this submission. Learning mode's notes are kept. Spec and check results: `docs/prds/06-graphify.md`.
+
+- **New:** `web/src/lib/filegraph.ts`, `fileblocks.ts`, `route.ts`, `useDive.ts`, `web/src/components/FileBlocks.tsx`, `FileChrome.tsx`, and `web/scripts/filegraph.check.ts` (`make test-web`).
+- **Changed:** `CodePanel.tsx`, `GraphView.tsx`, `MapChrome.tsx`, `Workspace.tsx`, `App.tsx`, `scene.ts`, `sky.ts`, `highlight.ts`, `store.ts`.
+- **Decision:** the page uses no model. Blocks are real line ranges and arrows are real edges, so it carries no verified status.
+- **Decision:** a first version drew a file as dots with caller and callee lanes. The author rejected it, and it was replaced before commit by the file's own code as blocks, from references the author found.
+- **Decision:** callees in other files show as code blocks, because 46 of the 59 resolved call sites cross a file. Arrows inside one file alone would be nearly empty.
+- **Visible change to the map:** the `outside` plate's caption now says "Outside this repo, classified by rule", because 25 of the 82 stubs sit under `<unknown>` and "Libraries" overclaimed.
+
 ## Agent and validator (2026-11-01)
 - **AI-written (Claude Opus 5.5, via Claude Code):** `backend/trace/tools/{index,graph_tools}.py`, `backend/trace/agent/loop.py`, `backend/trace/validator/grounding.py`, `scripts/cache_answer.py`, the `/api/ask` changes in `backend/trace/api/app.py`, `tests/test_{validator,agent_tools,agent_loop}.py` and the new cases in `tests/test_api.py`. The model at runtime is Meta's `muse-spark-1.3`, and no other provider is called.
 - **Decisions confirmed by the author:** tools, validator and Code panel read the same `TRACE_SOURCE_DIR`; a gap is no edge, or an unresolved one; a path may end at an external node, whose claims stay `unverified` without a quote.

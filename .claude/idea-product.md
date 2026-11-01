@@ -42,6 +42,9 @@ Demo repos are **pre-indexed**; loading arbitrary repos is cut.
   (judged on autonomy, effectiveness, practical usefulness).
 
 ### 5. Learning mode (single mechanic: fog of war)
+
+> Deferred on 2026-11-01: Graphify replaces it for this submission. These notes are kept for later. See `docs/prds/04-learning-mode.md`.
+
 - On/off toggle. When on, unexplored nodes go dark.
 - Opening a node shows **one easy tap-check** question (multiple choice). Answer it to "light" the node.
   **Skip is allowed.**

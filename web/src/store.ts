@@ -20,6 +20,8 @@ export interface Playback {
 export interface View {
   level: 'codebase' | 'file'
   module: string | null
+  // Set when something else has already placed the camera, so the view change must not fly it.
+  still?: boolean
 }
 
 export interface CodePanel {
@@ -46,8 +48,9 @@ interface TraceStore {
   openNode: (id: string, quote?: string | null) => void
   clearSelection: () => void
   closeCode: () => void
+  selectNode: (id: string | null) => void
   focusNode: (id: string) => void
-  enterModule: (module: string) => void
+  enterModule: (module: string, still?: boolean) => void
   exitModule: () => void
   setPaletteOpen: (open: boolean) => void
   setShowWiring: (on: boolean) => void
@@ -75,9 +78,10 @@ export const useTraceStore = create<TraceStore>((set) => ({
   openNode: (id, quote = null) => set({ selectedNode: id, codePanel: { nodeId: id, quote } }),
   clearSelection: () => set({ selectedNode: null, codePanel: null }),
   closeCode: () => set({ codePanel: null }),
+  selectNode: (id) => set({ selectedNode: id }),
   focusNode: (id) =>
     set((state) => ({ focusRequest: { nodeId: id, nonce: (state.focusRequest?.nonce ?? 0) + 1 } })),
-  enterModule: (module) => set({ view: { level: 'file', module }, codePanel: null }),
+  enterModule: (module, still = false) => set({ view: { level: 'file', module, still }, codePanel: null }),
   exitModule: () => set({ view: CODEBASE }),
   setPaletteOpen: (open) => set({ paletteOpen: open }),
   setShowWiring: (on) => set({ showWiring: on }),

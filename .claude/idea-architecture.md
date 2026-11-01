@@ -110,7 +110,8 @@ Checks on the agent's final path:
 | Parser and graph | Python 3.14, ast, jedi, networkx, pydantic, pytest |
 | Backend | FastAPI, AsyncOpenAI (Meta), pydantic, sse-starlette; FastAPI also serves the built frontend (one command to run, no CORS) |
 | UI | React + Vite + TypeScript (plain SPA), Tailwind, shadcn/ui, Cytoscape.js (for camera and hit-testing; plates, labels and belts are drawn on two canvases around it), Framer Motion, Zustand (persist), Shiki, cmdk, fuse.js, lucide-react, Instrument Serif + JetBrains Mono |
-| Learning mode | Same frontend + an offline Python script that pre-generates `checks.json` |
+| Learning mode (deferred) | Same frontend + an offline Python script that pre-generates `checks.json` |
+| Graphify | Same frontend, with no new dependency. `web/src/lib/filegraph.ts` and `fileblocks.ts` cut a file into blocks from the graph and its source |
 | Eval | Python eval script, JSON ground truth |
 
 React was chosen deliberately (reversing an earlier plain-JS call) because the UI has panels, animation,

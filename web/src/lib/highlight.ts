@@ -30,6 +30,21 @@ function getHighlighter() {
   return highlighter
 }
 
+export interface CodeToken {
+  text: string
+  colour?: string
+  italic: boolean
+}
+
+// One array of coloured tokens per line, so a file can be cut into blocks without losing its colouring.
+export async function highlightLines(code: string): Promise<CodeToken[][]> {
+  const shiki = await getHighlighter()
+  const { tokens } = shiki.codeToTokens(code, { lang: 'python', theme: 'observatory' })
+  return tokens.map((line) =>
+    line.map((token) => ({ text: token.content, colour: token.color, italic: ((token.fontStyle ?? 0) & 1) === 1 })),
+  )
+}
+
 export interface LineMarks {
   rangeStart: number
   rangeEnd: number

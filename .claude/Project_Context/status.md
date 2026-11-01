@@ -16,8 +16,9 @@
 | Agent loop | **Working** | `backend/trace/agent/loop.py`: `muse-spark-1.3`, Chat Completions, cap of 8 enforced. Live runs take about 20 to 25 seconds |
 | Grounding validator | **Working** | `backend/trace/validator/grounding.py`. Rules are in `docs/prds/02-agent-validator.md`. Must never be cut |
 | Code panel | **Working** | Reads `GET /api/source`. Shows the pinned clone when `TRACE_SOURCE_DIR` points at it |
-| Learning mode | Not built | Store fields only; `/api/checks` is unused; no `persist` middleware yet |
-| Tap-check generator | Not built | `checks.json` is hand-written mock data |
+| Graphify | **Working** | On branch `feat/graphify`. Results of the merge gate are in `docs/prds/06-graphify.md` |
+| Learning mode | Deferred | Replaced by Graphify on 2026-11-01. Store fields only; `/api/checks` is unused. Notes are in `docs/prds/04-learning-mode.md` |
+| Tap-check generator | Deferred | `checks.json` is hand-written mock data |
 | Eval | **Started** | `eval/questions.json` holds 10 draft questions that a human must check. There is no scoring script yet |
 | Cached demo answers | **Working** | Two in `data/fastapi-template/answers/`, written by `scripts/cache_answer.py`. The demo question is "How does login work?" |
 | Demo-repo choice | **Decided: template** | Trial results below |
@@ -121,7 +122,7 @@ In schedule order from `.claude/idea-demo-eval.md`. Feature freeze is Mon Nov 2,
 Nov 3.
 
 1. **Eval:** a human checks the draft questions, then write the scoring script and run it.
-2. **Learning mode and tap-check generator,** only if time allows. The UI classes in `GraphView.tsx` are where fog and understood states go.
+2. **Freeze check:** the map's module focus and hover cards at 1280px. Graphify's own checks are done.
 
 The full ordered plan, including what only a human can do, is in `next-steps.md`. Also outstanding: confirm the entry track.
-`docs/prds/04-learning-mode.md` and `05-eval-demo.md` are still empty.
+`docs/prds/05-eval-demo.md` is still empty.

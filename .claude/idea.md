@@ -8,7 +8,7 @@
 Trace is a web app that visualizes a Python codebase as a constellation-style map and lets you ask questions
 about it. An AI agent answers by **walking the real call graph node by node**, and every claim it makes is
 **checked by plain code against that graph and the actual source**. Claims that fail the check are flagged
-"unverified" instead of being presented as fact. An optional **learning mode** (fog of war) turns the same
+"unverified" instead of being presented as fact. An optional **learning mode** (deferred on 2026-11-01, replaced by Graphify for this submission) turns the same
 map into a way to build understanding of an unfamiliar codebase.
 
 ## The problem
