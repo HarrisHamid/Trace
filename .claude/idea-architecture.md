@@ -60,13 +60,13 @@ in code.
 
 ## 2. Agent loop
 
-- **FastAPI + `AsyncOpenAI`** pointed at Meta (OpenAI-SDK compatible). Responses API recommended.
+- **FastAPI + `AsyncOpenAI`** pointed at Meta (OpenAI-SDK compatible). Built on Chat Completions, tested live 2026-11-01.
 - **Own loop, hard cap of 8 tool calls, enforced in our code** (Meta's `max_tool_calls` limits built-in tools
   only).
 - **Two model steps, not one:** (a) investigate with graph tools; (b) ONE final structured-output call to
   produce the JSON path. Tools and structured output are not combined in one request.
 - Validate tool arguments with pydantic myself; `tool_choice` supports only `"auto"`.
-- Stream each step to the browser over SSE (`sse-starlette`). Retry 429s with `tenacity`. Cache demo answers
+- Stream each step to the browser over SSE (`sse-starlette`). The OpenAI SDK retries 429s. Cache demo answers
   as JSON files so the live demo does not depend on latency.
 - Base URL and model ID are config (see Meta facts), so swapping models is a one-line change.
 
@@ -108,7 +108,7 @@ Checks on the agent's final path:
 | Part | Stack |
 |---|---|
 | Parser and graph | Python 3.14, ast, jedi, networkx, pydantic, pytest |
-| Backend | FastAPI, AsyncOpenAI (Meta), pydantic, sse-starlette, tenacity; FastAPI also serves the built frontend (one command to run, no CORS) |
+| Backend | FastAPI, AsyncOpenAI (Meta), pydantic, sse-starlette; FastAPI also serves the built frontend (one command to run, no CORS) |
 | UI | React + Vite + TypeScript (plain SPA), Tailwind, shadcn/ui, Cytoscape.js (for camera and hit-testing; plates, labels and belts are drawn on two canvases around it), Framer Motion, Zustand (persist), Shiki, cmdk, fuse.js, lucide-react, Instrument Serif + JetBrains Mono |
 | Learning mode | Same frontend + an offline Python script that pre-generates `checks.json` |
 | Eval | Python eval script, JSON ground truth |

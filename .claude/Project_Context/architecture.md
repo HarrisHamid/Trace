@@ -122,7 +122,7 @@ pydantic models (backend/trace/schemas/*.py)
 | `GET /api/graph` | Reads and validates `graph.json` on every request |
 | `GET /api/checks` | Reads and validates `checks.json` on every request. Nothing in the frontend calls it yet |
 | `GET /api/source?file=` | Plain text of a file under `TRACE_SOURCE_DIR`; 404 for anything missing or outside it |
-| `POST /api/ask` | Requires `{"question": ...}` but ignores its value. Replays `events.jsonl` over SSE |
+| `POST /api/ask` | Takes `{"question": ...}`, up to 1,000 characters. Streams `events.jsonl` if present, then a cached answer, otherwise a live run |
 | `/` | Serves `web/dist` when the directory exists; otherwise there is no root route |
 
 | Setting | Default | Notes |
@@ -187,10 +187,10 @@ backend/trace/
   parser/      built: real graph from real code, in contract format
   schemas/     built: the three contracts
   api/         built: FastAPI over mock data
-  tools/       stub   agent/  stub   validator/  stub
+  tools/       graph tools and GraphIndex   agent/  the loop   validator/  grounding rules
 data/mock/     hand-written contract fixtures; source/ holds the invented taskboard app, line-aligned with graph.json
 docs/contracts/  generated JSON Schemas
-docs/prds/     03-ui.md is written; the others are TODO stubs
+docs/prds/     02 and 03 are written; 04 and 05 are TODO stubs
 eval/          empty
 scripts/       export_schemas.py, verify.py
 tests/         pytest suite and fixpkg fixture

@@ -1,0 +1,77 @@
+{
+  "repo": "fastapi/full-stack-fastapi-template",
+  "commit_sha": "f4bcfaba7c85be3c6332cc74a20819f586dcdbc6",
+  "status": "DRAFT, proposed by AI from reading the source. Not ground truth until a human has checked every row and set human_checked to true.",
+  "questions": [
+    {
+      "id": "login",
+      "question": "How does login work?",
+      "must_reach": ["app.api.routes.login:login_access_token", "app.crud:authenticate", "app.core.security:verify_password", "app.core.security:create_access_token"],
+      "should_reach": ["app.crud:get_user_by_email"],
+      "human_checked": false
+    },
+    {
+      "id": "password-recovery-email",
+      "question": "How does a password recovery request end up sending an email?",
+      "must_reach": ["app.api.routes.login:recover_password", "app.utils:generate_password_reset_token", "app.utils:generate_reset_password_email", "app.utils:send_email"],
+      "should_reach": ["app.crud:get_user_by_email", "app.utils:render_email_template"],
+      "human_checked": false
+    },
+    {
+      "id": "reset-password",
+      "question": "What happens when a user submits a new password with a reset token?",
+      "must_reach": ["app.api.routes.login:reset_password", "app.utils:verify_password_reset_token", "app.crud:update_user"],
+      "should_reach": ["app.crud:get_user_by_email", "app.core.security:get_password_hash"],
+      "human_checked": false
+    },
+    {
+      "id": "current-user",
+      "question": "How does the API work out who the current user is from a request?",
+      "must_reach": ["app.api.deps:get_current_user"],
+      "should_reach": ["app.api.deps:reusable_oauth2", "app.api.deps:get_db"],
+      "human_checked": false
+    },
+    {
+      "id": "superuser-check",
+      "question": "How is an endpoint restricted to superusers?",
+      "must_reach": ["app.api.deps:get_current_active_superuser", "app.api.deps:get_current_user"],
+      "should_reach": [],
+      "human_checked": false
+    },
+    {
+      "id": "create-item",
+      "question": "What happens when a signed-in user creates an item?",
+      "must_reach": ["app.api.routes.items:create_item", "app.api.deps:get_current_user"],
+      "should_reach": ["app.api.deps:get_db"],
+      "human_checked": false
+    },
+    {
+      "id": "delete-user",
+      "question": "How are items deleted when a superuser deletes a user?",
+      "must_reach": ["app.api.routes.users:delete_user", "app.api.deps:get_current_active_superuser"],
+      "should_reach": [],
+      "human_checked": false
+    },
+    {
+      "id": "signup",
+      "question": "How does a new user sign up?",
+      "must_reach": ["app.api.routes.users:register_user", "app.crud:get_user_by_email", "app.crud:create_user"],
+      "should_reach": ["app.core.security:get_password_hash"],
+      "human_checked": false
+    },
+    {
+      "id": "admin-create-user",
+      "question": "When an admin creates a user, how does the new account email get sent?",
+      "must_reach": ["app.api.routes.users:create_user", "app.crud:create_user", "app.utils:generate_new_account_email", "app.utils:send_email"],
+      "should_reach": ["app.crud:get_user_by_email"],
+      "human_checked": false
+    },
+    {
+      "id": "first-superuser",
+      "question": "How is the first superuser created when the app is set up?",
+      "must_reach": ["app.initial_data:init", "app.core.db:init_db", "app.crud:create_user"],
+      "should_reach": ["app.initial_data:main"],
+      "human_checked": false
+    }
+  ]
+}
