@@ -1,4 +1,4 @@
-.PHONY: setup dev-api dev-web build-web test lint schemas
+.PHONY: setup dev-api dev-api-real dev-web build-web test lint schemas
 
 setup:
 	uv sync
@@ -6,6 +6,10 @@ setup:
 
 dev-api:
 	uv run uvicorn backend.trace.api:create_app --factory --reload --reload-dir backend --port 8000
+
+dev-api-real:
+	TRACE_DATA_DIR=data/fastapi-template TRACE_SOURCE_DIR=third_party/fastapi-template \
+		uv run uvicorn backend.trace.api:create_app --factory --reload --reload-dir backend --port 8000
 
 dev-web:
 	cd web && npm run dev

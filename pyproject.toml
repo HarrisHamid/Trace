@@ -12,7 +12,6 @@ dependencies = [
     "pydantic>=2.14.2",
     "pydantic-settings>=2.16.2",
     "sse-starlette>=3.6.0",
-    "tenacity>=9.2.1",
     "uvicorn>=0.54.0",
 ]
 
