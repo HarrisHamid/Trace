@@ -212,7 +212,7 @@ export function ObservationLog({ run, scene, nodesById }: ObservationLogProps) {
           const node = nodesById.get(star.nodeId)
           return (
             <StepEntry
-              key={star.nodeId}
+              key={`${index}:${star.nodeId}`}
               star={star}
               colour={node ? scene.colourOf(node) : 'var(--muted-foreground)'}
               index={index}
