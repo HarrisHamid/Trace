@@ -1,3 +1,4 @@
+import { routeBetween, type Route } from '@/lib/belt'
 import { cssVar } from '@/lib/css'
 import type { GraphNode } from '@/lib/run'
 import type { Graph } from '@/types/contracts/graph.schema'
@@ -32,7 +33,8 @@ export interface Belt {
   from: string
   to: string
   colour: string
-  length: number
+  route: Route
+  broken: boolean
 }
 
 export interface Reach {
@@ -47,6 +49,7 @@ export interface Scene {
   bounds: Box
   positions: Map<string, Point>
   belts: Belt[]
+  routeOf: (from: string, to: string) => Route | null
   reach: Map<string, Reach>
   colourOf: (node: GraphNode) => string
 }
@@ -57,8 +60,13 @@ export const PLATE_DEPTH = 10
 const MODULE_COLOURS = 6
 const PAD = { x: 110, top: 92, bottom: 70 }
 const TAB = { height: 30, left: 22, top: 16, base: 44, perChar: 9.2 }
-const BELT_EDGES = new Set(['calls', 'routes_to'])
+const BELT_EDGES = new Set(['calls', 'routes_to', 'uncertain'])
 const REACH_EDGES = new Set(['calls', 'routes_to', 'uncertain'])
+
+// A function calling itself has no length to lay a belt along, so it stays a Cytoscape loop.
+export function isBelt(edge: Graph['edges'][number], target: GraphNode | undefined) {
+  return BELT_EDGES.has(edge.type) && target?.type !== 'external' && edge.source !== edge.target
+}
 
 export function tabCentre(plate: Plate): Point {
   return { x: (plate.tab.x1 + plate.tab.x2) / 2, y: (plate.tab.y1 + plate.tab.y2) / 2 }
@@ -121,8 +129,20 @@ export function buildScene(graph: Graph): Scene {
     if (plate) plateIdOf.set(node.id, plate.id)
   }
 
+  // A run can step between nodes with no belt, so routes are made on demand and shared with the belts that have them.
+  const routes = new Map<string, Route>()
+  const routeOf = (from: string, to: string) => {
+    const key = `${from}>${to}`
+    const start = positions.get(from)
+    const end = positions.get(to)
+    if (!start || !end) return null
+    if (!routes.has(key)) routes.set(key, routeBetween(start, end))
+    return routes.get(key)!
+  }
+
   const nodesById = new Map(graph.nodes.map((node) => [node.id, node]))
   const belts: Belt[] = []
+  const laid = new Set<string>()
   const reach = new Map<string, Reach>()
   const count = (id: string, key: keyof Reach) => {
     const entry = reach.get(id) ?? { calls: 0, calledBy: 0 }
@@ -139,8 +159,12 @@ export function buildScene(graph: Graph): Scene {
       count(edge.target, 'calledBy')
     }
     // Library calls stay off the default map: there are far more of them than repo calls, and they all end on one plate.
-    if (BELT_EDGES.has(edge.type) && nodesById.get(edge.target)?.type !== 'external') {
-      belts.push({ from: edge.source, to: edge.target, colour: colourOf(source), length: Math.hypot(to.x - from.x, to.y - from.y) })
+    // One belt per pair: each call site is an edge, and repeats would stack on the same line.
+    const pair = `${edge.source}>${edge.target}`
+    if (isBelt(edge, nodesById.get(edge.target)) && !laid.has(pair)) {
+      laid.add(pair)
+      const route = routeOf(edge.source, edge.target)!
+      belts.push({ from: edge.source, to: edge.target, colour: colourOf(source), route, broken: edge.type === 'uncertain' })
     }
   }
 
@@ -151,5 +175,5 @@ export function buildScene(graph: Graph): Scene {
     x2: Math.max(...boxes.map((box) => box.x2)),
     y2: Math.max(...boxes.map((box) => box.y2)) + PLATE_DEPTH,
   }
-  return { plates, plateById, plateIdOf, bounds, positions, belts, reach, colourOf }
+  return { plates, plateById, plateIdOf, bounds, positions, belts, routeOf, reach, colourOf }
 }

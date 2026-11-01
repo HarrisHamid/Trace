@@ -116,6 +116,18 @@
     background: radial-gradient(ellipse at 45% 45%, transparent 55%, rgb(4 5 9 / 72%) 100%);
   }
 
+  /* The legend's small line and conveyor. The map's own are drawn in lib/belt.ts. */
+  .line-sample {
+    border-top: 1.5px solid #eef2ff;
+    box-shadow: 0 0 5px rgb(148 178 255 / 75%);
+  }
+
+  .belt-sample {
+    height: 8px;
+    border-block: 1.5px solid var(--status-verified);
+    background: repeating-linear-gradient(90deg, rgb(214 220 232 / 50%) 0 1px, #2a2f3c 1px 4px);
+  }
+
   .kicker {
     font-family: var(--font-mono);
     font-size: 0.625rem;

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from 'react'
 
 import { cssVar } from '@/lib/css'
 import { bayer, type GraphNode, type RunView } from '@/lib/run'
-import { tabCentre, type Box, type Scene } from '@/lib/scene'
+import { isBelt, tabCentre, type Box, type Scene } from '@/lib/scene'
 import { Sky } from '@/lib/sky'
 import { useTraceStore, type FocusRequest, type View } from '@/store'
 import type { Graph } from '@/types/contracts/graph.schema'
@@ -44,11 +44,15 @@ function toElements(graph: Graph, scene: Scene): cytoscape.ElementDefinition[] {
       position: plate ? tabCentre(plate) : { x: node.x ?? 0, y: node.y ?? 0 },
     }
   })
-  const external = new Set(graph.nodes.filter((node) => node.type === 'external').map((node) => node.id))
-  const edges = graph.edges.map((edge, index) => ({
-    data: { id: `edge-${index}`, source: edge.source, target: edge.target, type: edge.type },
-    classes: WIRING.has(edge.type) || external.has(edge.target) ? 'wiring' : '',
-  }))
+  const nodesById = new Map(graph.nodes.map((node) => [node.id, node]))
+  const edges = graph.edges.map((edge, index) => {
+    const target = nodesById.get(edge.target)
+    const wiring = WIRING.has(edge.type) || target?.type === 'external'
+    return {
+      data: { id: `edge-${index}`, source: edge.source, target: edge.target, type: edge.type },
+      classes: isBelt(edge, target) ? 'belt' : wiring ? 'wiring' : '',
+    }
+  })
   return [...nodes, ...edges]
 }
 
@@ -113,7 +117,7 @@ function stylesheet(reducedMotion: boolean): cytoscape.StylesheetJson {
         'transition-duration': fade,
       },
     },
-    { selector: 'edge.wiring', style: { display: 'none' } },
+    { selector: 'edge.belt, edge.wiring', style: { display: 'none' } },
     {
       selector: 'edge.wiring.shown',
       style: { display: 'element', width: 1.5, 'line-style': 'dotted', 'target-arrow-shape': 'none', opacity: 0.4 },

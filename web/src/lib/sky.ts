@@ -1,9 +1,10 @@
 import type { Core } from 'cytoscape'
 
+import { beltHalfWidth, drawConveyor, drawLegs, drawLine, pointAlong, sliceRoute, traceRoute, type Route } from '@/lib/belt'
 import { cssVar } from '@/lib/css'
 import { LabelPainter, type Frame, type LitStar } from '@/lib/pills'
 import { STEP_MS, type GraphNode, type Segment, type StarStatus } from '@/lib/run'
-import { PLATE_DEPTH, type Box, type Plate, type Point, type Scene } from '@/lib/scene'
+import { PLATE_DEPTH, type Belt, type Box, type Plate, type Point, type Scene } from '@/lib/scene'
 
 // Everything Cytoscape can't draw. Two canvases sandwich it: behind, the starfield, the plates, the glows and the
 // answer's belt; in front, the label cards, the drifting packages and the parcel that rides the answer.
@@ -22,6 +23,8 @@ const PLATE_RADIUS = 14
 const BELT_SPEED = 46
 const DIMMED_PLATE = 0.55
 const BACKGROUND_PLATE = 0.22
+const DIMMED_BELT = 0.16
+const BACKGROUND_BELT = 0.07
 
 export interface SkyRun {
   walked: string[]
@@ -43,7 +46,7 @@ interface Package {
   from: string
   to: string
   colour: string
-  length: number
+  route: Route
   phase: number
 }
 
@@ -138,7 +141,8 @@ export class Sky {
 
     const random = seededRandom(STAR_SEED + 1)
     for (const belt of scene.belts) {
-      this.packages.push({ from: belt.from, to: belt.to, colour: belt.colour, length: belt.length, phase: random() })
+      if (belt.broken) continue
+      this.packages.push({ from: belt.from, to: belt.to, colour: belt.colour, route: belt.route, phase: random() })
     }
     for (let index = 0; index < TWINKLE_COUNT; index += 1) {
       this.twinkles.push({
@@ -259,8 +263,9 @@ export class Sky {
     this.drawGraticule(zoom, pan)
     this.drawPlates(zoom, pan)
     this.drawOutlines(zoom, pan)
-    this.drawWalk(zoom, pan)
-    this.drawThread(zoom, pan, now)
+    this.drawBelts(frame)
+    this.drawWalk(frame)
+    this.drawThread(frame)
     this.drawGlows(zoom, pan, now)
   }
 
@@ -453,58 +458,71 @@ export class Sky {
     return ids.some((id) => this.nodeModule.get(id) === this.focusModule)
   }
 
-  // The agent's footsteps: a thin line under the bright belt that the final answer lays.
-  private drawWalk(zoom: number, pan: Point) {
+  private beltAlpha(belt: Belt) {
+    if (!this.inFocus(belt.from) || !this.inFocus(belt.to)) return BACKGROUND_BELT
+    return this.run.active ? DIMMED_BELT : 1
+  }
+
+  private flow(frame: Frame) {
+    return this.reducedMotion.matches ? 0 : (frame.now / 1000) * BELT_SPEED
+  }
+
+  // At rest a call is a quiet line. The conveyor is saved for the answer, in drawThread.
+  private drawBelts(frame: Frame) {
     const { back } = this
-    const points = this.run.walked.map((id) => this.screen(id, zoom, pan))
+    const still = this.reducedMotion.matches
+    back.save()
+    for (const belt of this.scene.belts) {
+      back.globalAlpha = this.beltAlpha(belt)
+      drawLine(back, belt.route, frame, belt.broken ? this.ice : null, still)
+    }
+    back.restore()
+  }
+
+  // The agent's footsteps: a thin line under the bright belt that the final answer lays.
+  private drawWalk(frame: Frame) {
+    const { back } = this
     back.save()
     back.strokeStyle = this.gold
     back.globalAlpha = 0.3
     back.lineWidth = 1.5
     back.beginPath()
-    points.forEach((point, index) => {
-      if (point && index === 0) back.moveTo(point.x, point.y)
-      else if (point) back.lineTo(point.x, point.y)
+    this.run.walked.forEach((id, index) => {
+      const route = index > 0 ? this.scene.routeOf(this.run.walked[index - 1], id) : null
+      if (route) traceRoute(back, route, 1, frame)
     })
     back.stroke()
     back.restore()
   }
 
-  // A conveyor: a dark belt body with a bright tread running along it. Broken links get a sparse blue tread.
-  private drawThread(zoom: number, pan: Point, now: number) {
+  // The answer lays a real conveyor as the parcel travels: brass rails where the link is firm, broken blue where it isn't.
+  private drawThread(frame: Frame) {
     const { back } = this
     this.parcel = null
-    const tread = this.reducedMotion.matches ? 0 : now / 38
+    const half = beltHalfWidth(frame.zoom)
     back.save()
-    back.lineCap = 'round'
+    back.lineJoin = 'round'
     this.run.segments.forEach((segment, index) => {
       const reach = Math.min(1, this.progress - index)
-      const from = this.screen(segment.from, zoom, pan)
-      const to = this.screen(segment.to, zoom, pan)
-      if (reach <= 0 || !from || !to) return
-      const end = { x: from.x + (to.x - from.x) * reach, y: from.y + (to.y - from.y) * reach }
+      const route = this.scene.routeOf(segment.from, segment.to)
+      if (reach <= 0 || !route) return
       const colour = segment.dashed ? this.ice : this.gold
       back.globalAlpha = this.inFocus(segment.from, segment.to) ? 1 : 0.12
 
-      back.setLineDash([])
-      back.shadowBlur = 0
-      back.strokeStyle = 'rgba(6,7,11,0.92)'
-      back.lineWidth = 10
       back.beginPath()
-      back.moveTo(from.x, from.y)
-      back.lineTo(end.x, end.y)
-      back.stroke()
+      const end = traceRoute(back, route, reach, frame)
+      if (!segment.dashed) {
+        back.shadowColor = colour
+        back.shadowBlur = 16
+        back.strokeStyle = colour
+        back.lineWidth = half * 2
+        back.stroke()
+        back.shadowBlur = 0
+      }
 
-      back.strokeStyle = colour
-      back.shadowColor = colour
-      back.shadowBlur = 10
-      back.lineWidth = 4.5
-      back.setLineDash(segment.dashed ? [5, 11] : [10, 7])
-      back.lineDashOffset = -tread
-      back.beginPath()
-      back.moveTo(from.x, from.y)
-      back.lineTo(end.x, end.y)
-      back.stroke()
+      const laid = sliceRoute(route, reach)
+      drawLegs(back, laid, frame)
+      drawConveyor(back, laid, frame, this.flow(frame), colour, segment.dashed)
       if (reach < 1) this.parcel = end
     })
     back.restore()
@@ -531,23 +549,21 @@ export class Sky {
     back.restore()
   }
 
-  // Small dim packages drift along every belt in its direction, so the map reads as a machine that is running.
+  // Small dim packages drift along every line in its direction, so the map reads as a machine that is running.
   private drawPackages(frame: Frame) {
     if (this.reducedMotion.matches) return
     const { front } = this
     const { zoom, pan, now } = frame
     const size = 3.6 * Math.min(1.2, Math.max(0.8, zoom))
     front.save()
+    front.globalAlpha = this.run.active ? 0.12 : 0.65
     for (const pack of this.packages) {
-      if (!this.inFocus(pack.from, pack.to)) continue
-      const from = this.screen(pack.from, zoom, pan)
-      const to = this.screen(pack.to, zoom, pan)
-      if (!from || !to) continue
-      const t = (((now / 1000) * BELT_SPEED) / Math.max(pack.length, 1) + pack.phase) % 1
-      front.globalAlpha = this.run.active ? 0.12 : 0.65
+      if (!this.inFocus(pack.from) || !this.inFocus(pack.to)) continue
+      const { route } = pack
+      const point = pointAlong(route, (((now / 1000) * BELT_SPEED) / route.length + pack.phase) % 1 * route.length)
       front.fillStyle = pack.colour
       front.beginPath()
-      front.roundRect(from.x + (to.x - from.x) * t - size / 2, from.y + (to.y - from.y) * t - size / 2, size, size, 1)
+      front.roundRect(point.x * zoom + pan.x - size / 2, point.y * zoom + pan.y - size / 2, size, size, 1)
       front.fill()
     }
     front.restore()
