@@ -199,6 +199,7 @@ export function Workspace() {
               <Legend graph={graph} rightInset={rightInset} hint={!logOpen && !codeNode} />
               <AskBar
                 busy={run.phase === 'walking' || run.phase === 'revealing'}
+                repo={graph.repo}
                 rightInset={rightInset}
                 onAsk={ask}
               />

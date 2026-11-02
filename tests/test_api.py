@@ -11,6 +11,7 @@ from backend.trace.schemas import event_adapter
 from backend.trace.schemas.events import Done, RunStarted
 
 MOCK = Path(__file__).resolve().parents[1] / "data" / "mock"
+ANSWERS = MOCK.parent / "fastapi-template" / "answers"
 
 
 @pytest.fixture
@@ -188,3 +189,12 @@ async def test_no_web_dist_means_no_root_route():
     async with client_for() as client:
         response = await client.get("/")
     assert response.status_code == 404
+
+
+# Replay validates every line, so a stricter event schema would otherwise only fail on stage.
+@pytest.mark.parametrize("path", sorted(ANSWERS.glob("*.jsonl")), ids=lambda path: path.stem)
+def test_a_cached_answer_still_parses(path):
+    lines = path.read_text(encoding="utf-8").splitlines()
+    events = [event_adapter.validate_json(line) for line in lines if line.strip()]
+    assert isinstance(events[0], RunStarted)
+    assert isinstance(events[-1], Done)
