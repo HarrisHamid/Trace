@@ -4,6 +4,10 @@ Each module becomes a plate. Plates flow down columns in call order, so an answe
 towards the libraries on the right. The UI draws plates around their members, so a module's members must stay together
 and plates must not overlap. The whole map has to fit a wide frame: past a certain size the camera's minimum zoom clips
 it, and well before that the plate names and labels drop out.
+
+Columns are as wide as their longest label, so names fit on their plate. Sizes are map units, where 2.5 units are one
+screen pixel at the zoom a normal window opens at. The plate of outside libraries is hidden until asked for, so it stands
+to the right and takes no part in fitting the frame.
 """
 
 from __future__ import annotations
@@ -14,15 +18,18 @@ from dataclasses import dataclass
 
 import networkx as nx
 
-# These mirror PAD and TAB in web/src/lib/scene.ts, which draws the plates from the positions baked here.
-PAD_X, PAD_TOP, PAD_BOTTOM = 110, 92, 70
-TAB_LEFT, TAB_BASE, TAB_PER_CHAR = 22, 44, 9.2
+# These mirror PAD, TAB and LABEL in web/src/lib/scene.ts, which draws the plates from the positions baked here.
+PAD_X, PAD_RIGHT, PAD_TOP, PAD_BOTTOM = 52, 35, 100, 80
+TAB_LEFT, TAB_BASE, TAB_PER_CHAR = 22, 64, 17
+LABEL_BASE, LABEL_PER_CHAR = 105, 14.85
 
-COLUMN, ROW = 260, 100  # room for a route's label card under its node, and for the belts between rows
-EXTERNAL_COLUMN, EXTERNAL_ROW = 170, 62
-PLATE_GAP = 70
-ASPECT = 2.0  # the space the map gets between the top bar and the ask bar
-PLATE_SHAPE = 0.7  # below 1 a module packs taller than wide, which leaves more of the width for call order
+COLUMN_GAP = 35
+EMPTY_MODULE_COLUMN = 260
+ROW = 75  # a label card hangs under its row's line, clear of the next row
+EXTERNAL_ROW = 62
+PLATE_GAP = 75
+ASPECT = 2.1  # the space the map gets between the top bar and the ask bar
+PLATE_SHAPE = 0.5  # below 1 a module packs taller than wide, which leaves more of the width for call order
 METHOD_ROWS = 6  # a class's methods hang under it, wrapping after this many rows
 FLOW_EDGES = {"calls", "routes_to", "injects"}
 
@@ -42,14 +49,32 @@ class Block:
         return max(r for _, r in self.cells.values()) + 1
 
 
+def label_span(name: str) -> float:
+    """How much of the map a node's label takes up, counted from the node."""
+    return LABEL_BASE + LABEL_PER_CHAR * len(name)
+
+
+def _column_starts(cells: dict[str, tuple[int, int]], names: dict[str, str]) -> tuple[list[float], float]:
+    """Where each column starts, each as wide as its longest label, and where the last one ends."""
+    widths: dict[int, float] = defaultdict(float)
+    for nid, (col, _) in cells.items():
+        widths[col] = max(widths[col], label_span(names[nid]))
+    starts: list[float] = []
+    end = 0.0
+    for col in range(max(widths) + 1):
+        starts.append(end + COLUMN_GAP if col else 0.0)
+        end = starts[col] + widths[col]
+    return starts, end
+
+
 @dataclass
 class Plate:
     module: str
     name: str
     cells: dict[str, tuple[int, int]]
-    cols: int
+    starts: list[float]
+    span: float
     rows: int
-    column: float
     row: float
     x: float = 0
     y: float = 0
@@ -57,7 +82,7 @@ class Plate:
     @property
     def width(self) -> float:
         tab = TAB_BASE + TAB_PER_CHAR * len(self.name) + TAB_LEFT * 2
-        return max((self.cols - 1) * self.column + 2 * PAD_X, tab)
+        return max(PAD_X + self.span + PAD_RIGHT, tab)
 
     @property
     def height(self) -> float:
@@ -147,6 +172,32 @@ def _flow(plates: list[Plate], limit: float) -> tuple[float, float]:
     return x + width, height
 
 
+def _spread(plates: list[Plate], height: float) -> None:
+    """Share each column's spare height out between its plates, so the map fills the frame."""
+    columns: dict[float, list[Plate]] = defaultdict(list)
+    for plate in plates:
+        columns[plate.x].append(plate)
+    for column in columns.values():
+        if len(column) > 1:
+            spare = height - (column[-1].y + column[-1].height)
+            for index, plate in enumerate(column):
+                plate.y += index * spare / (len(column) - 1)
+
+
+def _outside_plate(externals: list[dict], plates: list[Plate]) -> Plate:
+    """Outside libraries stand to the right of everything else, no taller than the map."""
+    names = {n["id"]: n["name"] for n in externals}
+    ordered = sorted(externals, key=lambda n: (n["module"], n["name"]))
+    height = max((p.y + p.height for p in plates), default=0)
+    fit = int((height - PAD_TOP - PAD_BOTTOM) // EXTERNAL_ROW) + 1
+    rows = max(fit, math.ceil(math.sqrt(len(ordered))))
+    cells = {n["id"]: (i // rows, i % rows) for i, n in enumerate(ordered)}
+    starts, span = _column_starts(cells, names)
+    plate = Plate("__external__", "outside", cells, starts, span, min(rows, len(ordered)), EXTERNAL_ROW)
+    plate.x = max((p.x + p.width for p in plates), default=-PLATE_GAP) + PLATE_GAP
+    return plate
+
+
 def _place(plates: list[Plate], ranks: dict[str, int]) -> None:
     """Keep call order, and try column heights until the map best fills the frame."""
     ordered = sorted(plates, key=lambda p: (ranks[p.module], p.module))
@@ -159,14 +210,15 @@ def _place(plates: list[Plate], ranks: dict[str, int]) -> None:
         return max(width / ASPECT, height), limit
 
     _, best = min(scale(tallest + step * 50) for step in range(steps + 1))
-    _flow(ordered, best)
+    _, height = _flow(ordered, best)
+    _spread(ordered, height)
 
 
 def bake_layout(nodes: list[dict], edges: list[dict]) -> None:
     """Set `x` and `y` on every node, in place. Same input, same output."""
     module_of = {n["id"]: n["module"] for n in nodes}
     modules = sorted(n["id"] for n in nodes if n["type"] == "module")
-    names = {n["id"]: n["name"] for n in nodes if n["type"] == "module"}
+    names = {n["id"]: n["name"] for n in nodes}
     members: dict[str, list[dict]] = defaultdict(list)
     externals: list[dict] = []
     for n in nodes:
@@ -178,25 +230,19 @@ def bake_layout(nodes: list[dict], edges: list[dict]) -> None:
     plates = []
     for module in modules:
         if members[module]:
-            cells, cols, rows = _pack(_blocks(members[module], edges))
-            plates.append(Plate(module, names[module], cells, cols, rows, COLUMN, ROW))
-    ranks = _ranks(modules, edges, module_of)
-
-    if externals:
-        ordered = sorted(externals, key=lambda n: (n["module"], n["name"]))
-        cols = max(1, math.ceil(math.sqrt(len(ordered) / 1.4)))
-        cells = {n["id"]: (i % cols, i // cols) for i, n in enumerate(ordered)}
-        rows = (len(ordered) - 1) // cols + 1
-        plates.append(Plate("__external__", "outside", cells, cols, rows, EXTERNAL_COLUMN, EXTERNAL_ROW))
-        ranks["__external__"] = max(ranks.values(), default=0) + 1
+            cells, _, rows = _pack(_blocks(members[module], edges))
+            starts, span = _column_starts(cells, names)
+            plates.append(Plate(module, names[module], cells, starts, span, rows, ROW))
 
     if plates:
-        _place(plates, ranks)
+        _place(plates, _ranks(modules, edges, module_of))
+    if externals:
+        plates.append(_outside_plate(externals, plates))
 
     by_id = {n["id"]: n for n in nodes}
     for plate in plates:
         for nid, (col, row) in plate.cells.items():
-            by_id[nid]["x"] = round(plate.x + PAD_X + col * plate.column, 1)
+            by_id[nid]["x"] = round(plate.x + PAD_X + plate.starts[col], 1)
             by_id[nid]["y"] = round(plate.y + PAD_TOP + row * plate.row, 1)
         if plate.module in by_id:
             by_id[plate.module]["x"] = round(plate.x, 1)
@@ -206,5 +252,5 @@ def bake_layout(nodes: list[dict], edges: list[dict]) -> None:
     bottom = max((p.y + p.height for p in plates), default=0) + PLATE_GAP
     empty = [m for m in modules if not members[m]]
     for index, module in enumerate(empty):
-        by_id[module]["x"] = float(index * COLUMN)
+        by_id[module]["x"] = float(index * EMPTY_MODULE_COLUMN)
         by_id[module]["y"] = float(bottom)

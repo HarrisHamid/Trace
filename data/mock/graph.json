@@ -1,77 +1,539 @@
 {
-  "repo": "demo/taskboard",
-  "commit_sha": "0000000000000000000000000000000000000000",
-  "nodes": [
-    {"id": "taskboard.api.auth", "type": "module", "name": "auth", "file": "taskboard/api/auth.py", "line_start": 1, "line_end": 30, "module": "taskboard.api.auth", "docstring": "Login and session routes.", "x": -48, "y": -61},
-    {"id": "taskboard.api.auth:POST /api/login", "type": "route", "name": "POST /api/login", "file": "taskboard/api/auth.py", "line_start": 12, "line_end": 12, "module": "taskboard.api.auth", "x": 0, "y": 0},
-    {"id": "taskboard.api.auth:GET /api/me", "type": "route", "name": "GET /api/me", "file": "taskboard/api/auth.py", "line_start": 24, "line_end": 24, "module": "taskboard.api.auth", "x": 0, "y": 150},
-    {"id": "taskboard.api.auth:login", "type": "function", "name": "login", "file": "taskboard/api/auth.py", "line_start": 12, "line_end": 21, "module": "taskboard.api.auth", "signature": "async def login(form: LoginForm, users: UserServiceDep) -> Token", "docstring": "Exchange an email and password for an access token.", "x": 220, "y": 0},
-    {"id": "taskboard.api.auth:read_me", "type": "function", "name": "read_me", "file": "taskboard/api/auth.py", "line_start": 24, "line_end": 27, "module": "taskboard.api.auth", "signature": "async def read_me(user: CurrentUser) -> UserOut", "docstring": "Return the logged-in user.", "x": 220, "y": 150},
-
-    {"id": "taskboard.api.deps", "type": "module", "name": "deps", "file": "taskboard/api/deps.py", "line_start": 1, "line_end": 24, "module": "taskboard.api.deps", "docstring": "FastAPI dependencies.", "x": -48, "y": 397},
-    {"id": "taskboard.api.deps:get_session", "type": "dependency", "name": "get_session", "file": "taskboard/api/deps.py", "line_start": 6, "line_end": 9, "module": "taskboard.api.deps", "signature": "def get_session() -> Iterator[Session]", "docstring": "Yield a database session for one request.", "x": 220, "y": 458},
-    {"id": "taskboard.api.deps:get_user_service", "type": "function", "name": "get_user_service", "file": "taskboard/api/deps.py", "line_start": 11, "line_end": 13, "module": "taskboard.api.deps", "signature": "def get_user_service(session: SessionDep) -> UserService", "docstring": "Build a UserService on the request's session.", "x": 0, "y": 458},
-    {"id": "taskboard.api.deps:get_current_user", "type": "dependency", "name": "get_current_user", "file": "taskboard/api/deps.py", "line_start": 15, "line_end": 21, "module": "taskboard.api.deps", "signature": "def get_current_user(token: TokenDep, users: UserServiceDep) -> User", "docstring": "Resolve the bearer token to a user, or reject the request.", "x": 0, "y": 608},
-
-    {"id": "taskboard.services.users", "type": "module", "name": "users", "file": "taskboard/services/users.py", "line_start": 1, "line_end": 52, "module": "taskboard.services.users", "docstring": "User lookup and authentication.", "x": 527, "y": -61},
-    {"id": "taskboard.services.users:UserStore", "type": "class", "name": "UserStore", "file": "taskboard/services/users.py", "line_start": 6, "line_end": 9, "module": "taskboard.services.users", "signature": "class UserStore(Protocol)", "docstring": "Storage interface for users.", "x": 790, "y": 0},
-    {"id": "taskboard.services.users:UserStore.find_by_email", "type": "function", "name": "find_by_email", "file": "taskboard/services/users.py", "line_start": 8, "line_end": 9, "module": "taskboard.services.users", "signature": "def find_by_email(self, email: str) -> User | None", "docstring": "Look up a user row by email.", "x": 790, "y": 150},
-    {"id": "taskboard.services.users:SqlUserStore", "type": "class", "name": "SqlUserStore", "file": "taskboard/services/users.py", "line_start": 12, "line_end": 19, "module": "taskboard.services.users", "signature": "class SqlUserStore(UserStore)", "docstring": "UserStore backed by the SQL session.", "x": 1010, "y": 0},
-    {"id": "taskboard.services.users:SqlUserStore.find_by_email", "type": "function", "name": "find_by_email", "file": "taskboard/services/users.py", "line_start": 17, "line_end": 19, "module": "taskboard.services.users", "signature": "def find_by_email(self, email: str) -> User | None", "docstring": "Run a SELECT for the user with this email.", "x": 1010, "y": 150},
-    {"id": "taskboard.services.users:UserService", "type": "class", "name": "UserService", "file": "taskboard/services/users.py", "line_start": 22, "line_end": 52, "module": "taskboard.services.users", "signature": "class UserService", "docstring": "Authentication and user lookups.", "x": 570, "y": 0},
-    {"id": "taskboard.services.users:UserService.authenticate", "type": "function", "name": "authenticate", "file": "taskboard/services/users.py", "line_start": 31, "line_end": 40, "module": "taskboard.services.users", "signature": "def authenticate(self, email: str, password: str) -> User | None", "docstring": "Return the user for an email and password, or None.", "x": 570, "y": 150},
-    {"id": "taskboard.services.users:UserService.get", "type": "function", "name": "get", "file": "taskboard/services/users.py", "line_start": 42, "line_end": 44, "module": "taskboard.services.users", "signature": "def get(self, user_id: int) -> User | None", "docstring": "Load a user by id.", "x": 570, "y": 300},
-
-    {"id": "taskboard.core.security", "type": "module", "name": "security", "file": "taskboard/core/security.py", "line_start": 1, "line_end": 40, "module": "taskboard.core.security", "docstring": "Password hashing and token signing.", "x": 541, "y": 547},
-    {"id": "taskboard.core.security:TokenError", "type": "class", "name": "TokenError", "file": "taskboard/core/security.py", "line_start": 7, "line_end": 8, "module": "taskboard.core.security", "signature": "class TokenError(Exception)", "docstring": "The token is invalid or expired.", "x": 790, "y": 758},
-    {"id": "taskboard.services.users:?self.rehash", "type": "unresolved", "name": "self.rehash", "file": "taskboard/services/users.py", "line_start": 39, "line_end": 39, "module": "taskboard.services.users", "x": 790, "y": 300},
-    {"id": "taskboard.core.security:hash_password", "type": "function", "name": "hash_password", "file": "taskboard/core/security.py", "line_start": 11, "line_end": 13, "module": "taskboard.core.security", "signature": "def hash_password(password: str) -> str", "docstring": "Hash a plain password with bcrypt.", "x": 1010, "y": 758},
-    {"id": "taskboard.core.security:verify_password", "type": "function", "name": "verify_password", "file": "taskboard/core/security.py", "line_start": 15, "line_end": 17, "module": "taskboard.core.security", "signature": "def verify_password(password: str, hashed: str) -> bool", "docstring": "Check a plain password against a stored bcrypt hash.", "x": 1010, "y": 608},
-    {"id": "taskboard.core.security:create_access_token", "type": "function", "name": "create_access_token", "file": "taskboard/core/security.py", "line_start": 20, "line_end": 26, "module": "taskboard.core.security", "signature": "def create_access_token(user_id: int) -> str", "docstring": "Sign a JWT for the given user id.", "x": 570, "y": 608},
-    {"id": "taskboard.core.security:decode_access_token", "type": "function", "name": "decode_access_token", "file": "taskboard/core/security.py", "line_start": 29, "line_end": 37, "module": "taskboard.core.security", "signature": "def decode_access_token(token: str) -> int", "docstring": "Decode a JWT and return the user id, or raise TokenError.", "x": 570, "y": 758},
-
-    {"id": "jwt:encode", "type": "external", "name": "jwt.encode", "file": "<external>", "line_start": 0, "line_end": 0, "module": "jwt", "x": 1360, "y": 758},
-    {"id": "passlib.hash:bcrypt.verify", "type": "external", "name": "bcrypt.verify", "file": "<external>", "line_start": 0, "line_end": 0, "module": "passlib.hash", "x": 1360, "y": 608}
-  ],
-  "edges": [
-    {"source": "taskboard.api.auth", "target": "taskboard.api.deps", "type": "imports", "line": 4, "resolved": true},
-    {"source": "taskboard.api.auth", "target": "taskboard.core.security", "type": "imports", "line": 5, "resolved": true},
-    {"source": "taskboard.api.auth", "target": "taskboard.services.users", "type": "imports", "line": 6, "resolved": true},
-    {"source": "taskboard.api.deps", "target": "taskboard.core.security", "type": "imports", "line": 3, "resolved": true},
-    {"source": "taskboard.api.deps", "target": "taskboard.services.users", "type": "imports", "line": 4, "resolved": true},
-    {"source": "taskboard.services.users", "target": "taskboard.core.security", "type": "imports", "line": 3, "resolved": true},
-
-    {"source": "taskboard.api.auth:POST /api/login", "target": "taskboard.api.auth:login", "type": "routes_to", "line": 12, "resolved": true},
-    {"source": "taskboard.api.auth:GET /api/me", "target": "taskboard.api.auth:read_me", "type": "routes_to", "line": 24, "resolved": true},
-
-    {"source": "taskboard.api.auth:login", "target": "taskboard.api.deps:get_user_service", "type": "injects", "line": 13, "resolved": true},
-    {"source": "taskboard.api.auth:read_me", "target": "taskboard.api.deps:get_current_user", "type": "injects", "line": 25, "resolved": true},
-    {"source": "taskboard.api.deps:get_user_service", "target": "taskboard.api.deps:get_session", "type": "injects", "line": 11, "resolved": true},
-    {"source": "taskboard.api.deps:get_current_user", "target": "taskboard.api.deps:get_user_service", "type": "injects", "line": 15, "resolved": true},
-
-    {"source": "taskboard.api.auth:login", "target": "taskboard.services.users:UserService.authenticate", "type": "calls", "line": 16, "resolved": true},
-    {"source": "taskboard.api.auth:login", "target": "taskboard.core.security:create_access_token", "type": "calls", "line": 19, "resolved": true},
-    {"source": "taskboard.api.deps:get_user_service", "target": "taskboard.services.users:SqlUserStore", "type": "calls", "line": 12, "resolved": true},
-    {"source": "taskboard.api.deps:get_user_service", "target": "taskboard.services.users:UserService", "type": "calls", "line": 13, "resolved": true},
-    {"source": "taskboard.api.deps:get_current_user", "target": "taskboard.core.security:decode_access_token", "type": "calls", "line": 17, "resolved": true},
-    {"source": "taskboard.api.deps:get_current_user", "target": "taskboard.services.users:UserService.get", "type": "calls", "line": 19, "resolved": true},
-    {"source": "taskboard.services.users:UserService.authenticate", "target": "taskboard.services.users:UserStore.find_by_email", "type": "calls", "line": 33, "resolved": true},
-    {"source": "taskboard.services.users:UserService.authenticate", "target": "taskboard.core.security:verify_password", "type": "calls", "line": 36, "resolved": true},
-    {"source": "taskboard.core.security:decode_access_token", "target": "taskboard.core.security:TokenError", "type": "calls", "line": 35, "resolved": true},
-    {"source": "taskboard.core.security:create_access_token", "target": "jwt:encode", "type": "calls", "line": 24, "resolved": true},
-    {"source": "taskboard.core.security:verify_password", "target": "passlib.hash:bcrypt.verify", "type": "calls", "line": 17, "resolved": true},
-
-    {"source": "taskboard.services.users:SqlUserStore", "target": "taskboard.services.users:UserStore", "type": "inherits", "line": 12, "resolved": true},
-    {"source": "taskboard.services.users:SqlUserStore.find_by_email", "target": "taskboard.services.users:UserStore.find_by_email", "type": "implements", "line": 17, "resolved": true},
-
-    {"source": "taskboard.services.users:UserService.authenticate", "target": "taskboard.services.users:?self.rehash", "type": "uncertain", "line": 39, "resolved": false, "note": "callable_attribute: self.rehash"}
-  ],
-  "stats": {
-    "nodes_by_type": {"class": 4, "dependency": 2, "external": 2, "function": 11, "module": 4, "route": 2, "unresolved": 1},
-    "edges_by_type": {"calls": 11, "implements": 1, "imports": 6, "inherits": 1, "injects": 4, "routes_to": 2, "uncertain": 1},
-    "calls_resolved": 9,
-    "calls_uncertain": 1,
-    "calls_external": 2,
-    "call_resolution_rate": 0.9
+ "commit_sha": "0000000000000000000000000000000000000000",
+ "edges": [
+  {
+   "line": 4,
+   "resolved": true,
+   "source": "taskboard.api.auth",
+   "target": "taskboard.api.deps",
+   "type": "imports"
+  },
+  {
+   "line": 5,
+   "resolved": true,
+   "source": "taskboard.api.auth",
+   "target": "taskboard.core.security",
+   "type": "imports"
+  },
+  {
+   "line": 6,
+   "resolved": true,
+   "source": "taskboard.api.auth",
+   "target": "taskboard.services.users",
+   "type": "imports"
+  },
+  {
+   "line": 3,
+   "resolved": true,
+   "source": "taskboard.api.deps",
+   "target": "taskboard.core.security",
+   "type": "imports"
+  },
+  {
+   "line": 4,
+   "resolved": true,
+   "source": "taskboard.api.deps",
+   "target": "taskboard.services.users",
+   "type": "imports"
+  },
+  {
+   "line": 3,
+   "resolved": true,
+   "source": "taskboard.services.users",
+   "target": "taskboard.core.security",
+   "type": "imports"
+  },
+  {
+   "line": 12,
+   "resolved": true,
+   "source": "taskboard.api.auth:POST /api/login",
+   "target": "taskboard.api.auth:login",
+   "type": "routes_to"
+  },
+  {
+   "line": 24,
+   "resolved": true,
+   "source": "taskboard.api.auth:GET /api/me",
+   "target": "taskboard.api.auth:read_me",
+   "type": "routes_to"
+  },
+  {
+   "line": 13,
+   "resolved": true,
+   "source": "taskboard.api.auth:login",
+   "target": "taskboard.api.deps:get_user_service",
+   "type": "injects"
+  },
+  {
+   "line": 25,
+   "resolved": true,
+   "source": "taskboard.api.auth:read_me",
+   "target": "taskboard.api.deps:get_current_user",
+   "type": "injects"
+  },
+  {
+   "line": 11,
+   "resolved": true,
+   "source": "taskboard.api.deps:get_user_service",
+   "target": "taskboard.api.deps:get_session",
+   "type": "injects"
+  },
+  {
+   "line": 15,
+   "resolved": true,
+   "source": "taskboard.api.deps:get_current_user",
+   "target": "taskboard.api.deps:get_user_service",
+   "type": "injects"
+  },
+  {
+   "line": 16,
+   "resolved": true,
+   "source": "taskboard.api.auth:login",
+   "target": "taskboard.services.users:UserService.authenticate",
+   "type": "calls"
+  },
+  {
+   "line": 19,
+   "resolved": true,
+   "source": "taskboard.api.auth:login",
+   "target": "taskboard.core.security:create_access_token",
+   "type": "calls"
+  },
+  {
+   "line": 12,
+   "resolved": true,
+   "source": "taskboard.api.deps:get_user_service",
+   "target": "taskboard.services.users:SqlUserStore",
+   "type": "calls"
+  },
+  {
+   "line": 13,
+   "resolved": true,
+   "source": "taskboard.api.deps:get_user_service",
+   "target": "taskboard.services.users:UserService",
+   "type": "calls"
+  },
+  {
+   "line": 17,
+   "resolved": true,
+   "source": "taskboard.api.deps:get_current_user",
+   "target": "taskboard.core.security:decode_access_token",
+   "type": "calls"
+  },
+  {
+   "line": 19,
+   "resolved": true,
+   "source": "taskboard.api.deps:get_current_user",
+   "target": "taskboard.services.users:UserService.get",
+   "type": "calls"
+  },
+  {
+   "line": 33,
+   "resolved": true,
+   "source": "taskboard.services.users:UserService.authenticate",
+   "target": "taskboard.services.users:UserStore.find_by_email",
+   "type": "calls"
+  },
+  {
+   "line": 36,
+   "resolved": true,
+   "source": "taskboard.services.users:UserService.authenticate",
+   "target": "taskboard.core.security:verify_password",
+   "type": "calls"
+  },
+  {
+   "line": 35,
+   "resolved": true,
+   "source": "taskboard.core.security:decode_access_token",
+   "target": "taskboard.core.security:TokenError",
+   "type": "calls"
+  },
+  {
+   "line": 24,
+   "resolved": true,
+   "source": "taskboard.core.security:create_access_token",
+   "target": "jwt:encode",
+   "type": "calls"
+  },
+  {
+   "line": 17,
+   "resolved": true,
+   "source": "taskboard.core.security:verify_password",
+   "target": "passlib.hash:bcrypt.verify",
+   "type": "calls"
+  },
+  {
+   "line": 12,
+   "resolved": true,
+   "source": "taskboard.services.users:SqlUserStore",
+   "target": "taskboard.services.users:UserStore",
+   "type": "inherits"
+  },
+  {
+   "line": 17,
+   "resolved": true,
+   "source": "taskboard.services.users:SqlUserStore.find_by_email",
+   "target": "taskboard.services.users:UserStore.find_by_email",
+   "type": "implements"
+  },
+  {
+   "line": 39,
+   "note": "callable_attribute: self.rehash",
+   "resolved": false,
+   "source": "taskboard.services.users:UserService.authenticate",
+   "target": "taskboard.services.users:?self.rehash",
+   "type": "uncertain"
   }
+ ],
+ "nodes": [
+  {
+   "docstring": "Login and session routes.",
+   "file": "taskboard/api/auth.py",
+   "id": "taskboard.api.auth",
+   "line_end": 30,
+   "line_start": 1,
+   "module": "taskboard.api.auth",
+   "name": "auth",
+   "type": "module",
+   "x": 0.0,
+   "y": 0.0
+  },
+  {
+   "file": "taskboard/api/auth.py",
+   "id": "taskboard.api.auth:POST /api/login",
+   "line_end": 12,
+   "line_start": 12,
+   "module": "taskboard.api.auth",
+   "name": "POST /api/login",
+   "type": "route",
+   "x": 52.0,
+   "y": 100.0
+  },
+  {
+   "file": "taskboard/api/auth.py",
+   "id": "taskboard.api.auth:GET /api/me",
+   "line_end": 24,
+   "line_start": 24,
+   "module": "taskboard.api.auth",
+   "name": "GET /api/me",
+   "type": "route",
+   "x": 52.0,
+   "y": 175.0
+  },
+  {
+   "docstring": "Exchange an email and password for an access token.",
+   "file": "taskboard/api/auth.py",
+   "id": "taskboard.api.auth:login",
+   "line_end": 21,
+   "line_start": 12,
+   "module": "taskboard.api.auth",
+   "name": "login",
+   "signature": "async def login(form: LoginForm, users: UserServiceDep) -> Token",
+   "type": "function",
+   "x": 414.8,
+   "y": 100.0
+  },
+  {
+   "docstring": "Return the logged-in user.",
+   "file": "taskboard/api/auth.py",
+   "id": "taskboard.api.auth:read_me",
+   "line_end": 27,
+   "line_start": 24,
+   "module": "taskboard.api.auth",
+   "name": "read_me",
+   "signature": "async def read_me(user: CurrentUser) -> UserOut",
+   "type": "function",
+   "x": 414.8,
+   "y": 175.0
+  },
+  {
+   "docstring": "FastAPI dependencies.",
+   "file": "taskboard/api/deps.py",
+   "id": "taskboard.api.deps",
+   "line_end": 24,
+   "line_start": 1,
+   "module": "taskboard.api.deps",
+   "name": "deps",
+   "type": "module",
+   "x": 0.0,
+   "y": 630.0
+  },
+  {
+   "docstring": "Yield a database session for one request.",
+   "file": "taskboard/api/deps.py",
+   "id": "taskboard.api.deps:get_session",
+   "line_end": 9,
+   "line_start": 6,
+   "module": "taskboard.api.deps",
+   "name": "get_session",
+   "signature": "def get_session() -> Iterator[Session]",
+   "type": "dependency",
+   "x": 52.0,
+   "y": 730.0
+  },
+  {
+   "docstring": "Build a UserService on the request's session.",
+   "file": "taskboard/api/deps.py",
+   "id": "taskboard.api.deps:get_user_service",
+   "line_end": 13,
+   "line_start": 11,
+   "module": "taskboard.api.deps",
+   "name": "get_user_service",
+   "signature": "def get_user_service(session: SessionDep) -> UserService",
+   "type": "function",
+   "x": 429.6,
+   "y": 730.0
+  },
+  {
+   "docstring": "Resolve the bearer token to a user, or reject the request.",
+   "file": "taskboard/api/deps.py",
+   "id": "taskboard.api.deps:get_current_user",
+   "line_end": 21,
+   "line_start": 15,
+   "module": "taskboard.api.deps",
+   "name": "get_current_user",
+   "signature": "def get_current_user(token: TokenDep, users: UserServiceDep) -> User",
+   "type": "dependency",
+   "x": 52.0,
+   "y": 805.0
+  },
+  {
+   "docstring": "User lookup and authentication.",
+   "file": "taskboard/services/users.py",
+   "id": "taskboard.services.users",
+   "line_end": 52,
+   "line_start": 1,
+   "module": "taskboard.services.users",
+   "name": "users",
+   "type": "module",
+   "x": 882.2,
+   "y": 0.0
+  },
+  {
+   "docstring": "Storage interface for users.",
+   "file": "taskboard/services/users.py",
+   "id": "taskboard.services.users:UserStore",
+   "line_end": 9,
+   "line_start": 6,
+   "module": "taskboard.services.users",
+   "name": "UserStore",
+   "signature": "class UserStore(Protocol)",
+   "type": "class",
+   "x": 934.2,
+   "y": 100.0
+  },
+  {
+   "docstring": "Look up a user row by email.",
+   "file": "taskboard/services/users.py",
+   "id": "taskboard.services.users:UserStore.find_by_email",
+   "line_end": 9,
+   "line_start": 8,
+   "module": "taskboard.services.users",
+   "name": "find_by_email",
+   "signature": "def find_by_email(self, email: str) -> User | None",
+   "type": "function",
+   "x": 934.2,
+   "y": 175.0
+  },
+  {
+   "docstring": "UserStore backed by the SQL session.",
+   "file": "taskboard/services/users.py",
+   "id": "taskboard.services.users:SqlUserStore",
+   "line_end": 19,
+   "line_start": 12,
+   "module": "taskboard.services.users",
+   "name": "SqlUserStore",
+   "signature": "class SqlUserStore(UserStore)",
+   "type": "class",
+   "x": 1267.2,
+   "y": 100.0
+  },
+  {
+   "docstring": "Run a SELECT for the user with this email.",
+   "file": "taskboard/services/users.py",
+   "id": "taskboard.services.users:SqlUserStore.find_by_email",
+   "line_end": 19,
+   "line_start": 17,
+   "module": "taskboard.services.users",
+   "name": "find_by_email",
+   "signature": "def find_by_email(self, email: str) -> User | None",
+   "type": "function",
+   "x": 1267.2,
+   "y": 175.0
+  },
+  {
+   "docstring": "Authentication and user lookups.",
+   "file": "taskboard/services/users.py",
+   "id": "taskboard.services.users:UserService",
+   "line_end": 52,
+   "line_start": 22,
+   "module": "taskboard.services.users",
+   "name": "UserService",
+   "signature": "class UserService",
+   "type": "class",
+   "x": 934.2,
+   "y": 250.0
+  },
+  {
+   "docstring": "Return the user for an email and password, or None.",
+   "file": "taskboard/services/users.py",
+   "id": "taskboard.services.users:UserService.authenticate",
+   "line_end": 40,
+   "line_start": 31,
+   "module": "taskboard.services.users",
+   "name": "authenticate",
+   "signature": "def authenticate(self, email: str, password: str) -> User | None",
+   "type": "function",
+   "x": 934.2,
+   "y": 325.0
+  },
+  {
+   "docstring": "Load a user by id.",
+   "file": "taskboard/services/users.py",
+   "id": "taskboard.services.users:UserService.get",
+   "line_end": 44,
+   "line_start": 42,
+   "module": "taskboard.services.users",
+   "name": "get",
+   "signature": "def get(self, user_id: int) -> User | None",
+   "type": "function",
+   "x": 934.2,
+   "y": 400.0
+  },
+  {
+   "docstring": "Password hashing and token signing.",
+   "file": "taskboard/core/security.py",
+   "id": "taskboard.core.security",
+   "line_end": 40,
+   "line_start": 1,
+   "module": "taskboard.core.security",
+   "name": "security",
+   "type": "module",
+   "x": 882.2,
+   "y": 555.0
+  },
+  {
+   "docstring": "The token is invalid or expired.",
+   "file": "taskboard/core/security.py",
+   "id": "taskboard.core.security:TokenError",
+   "line_end": 8,
+   "line_start": 7,
+   "module": "taskboard.core.security",
+   "name": "TokenError",
+   "signature": "class TokenError(Exception)",
+   "type": "class",
+   "x": 934.2,
+   "y": 655.0
+  },
+  {
+   "file": "taskboard/services/users.py",
+   "id": "taskboard.services.users:?self.rehash",
+   "line_end": 39,
+   "line_start": 39,
+   "module": "taskboard.services.users",
+   "name": "self.rehash",
+   "type": "unresolved",
+   "x": 1267.2,
+   "y": 250.0
+  },
+  {
+   "docstring": "Hash a plain password with bcrypt.",
+   "file": "taskboard/core/security.py",
+   "id": "taskboard.core.security:hash_password",
+   "line_end": 13,
+   "line_start": 11,
+   "module": "taskboard.core.security",
+   "name": "hash_password",
+   "signature": "def hash_password(password: str) -> str",
+   "type": "function",
+   "x": 1356.3,
+   "y": 655.0
+  },
+  {
+   "docstring": "Check a plain password against a stored bcrypt hash.",
+   "file": "taskboard/core/security.py",
+   "id": "taskboard.core.security:verify_password",
+   "line_end": 17,
+   "line_start": 15,
+   "module": "taskboard.core.security",
+   "name": "verify_password",
+   "signature": "def verify_password(password: str, hashed: str) -> bool",
+   "type": "function",
+   "x": 934.2,
+   "y": 730.0
+  },
+  {
+   "docstring": "Sign a JWT for the given user id.",
+   "file": "taskboard/core/security.py",
+   "id": "taskboard.core.security:create_access_token",
+   "line_end": 26,
+   "line_start": 20,
+   "module": "taskboard.core.security",
+   "name": "create_access_token",
+   "signature": "def create_access_token(user_id: int) -> str",
+   "type": "function",
+   "x": 1356.3,
+   "y": 730.0
+  },
+  {
+   "docstring": "Decode a JWT and return the user id, or raise TokenError.",
+   "file": "taskboard/core/security.py",
+   "id": "taskboard.core.security:decode_access_token",
+   "line_end": 37,
+   "line_start": 29,
+   "module": "taskboard.core.security",
+   "name": "decode_access_token",
+   "signature": "def decode_access_token(token: str) -> int",
+   "type": "function",
+   "x": 934.2,
+   "y": 805.0
+  },
+  {
+   "file": "<external>",
+   "id": "jwt:encode",
+   "line_end": 0,
+   "line_start": 0,
+   "module": "jwt",
+   "name": "jwt.encode",
+   "type": "external",
+   "x": 1905.5,
+   "y": 100
+  },
+  {
+   "file": "<external>",
+   "id": "passlib.hash:bcrypt.verify",
+   "line_end": 0,
+   "line_start": 0,
+   "module": "passlib.hash",
+   "name": "bcrypt.verify",
+   "type": "external",
+   "x": 1905.5,
+   "y": 162
+  }
+ ],
+ "repo": "demo/taskboard",
+ "stats": {
+  "call_resolution_rate": 0.9,
+  "calls_external": 2,
+  "calls_resolved": 9,
+  "calls_uncertain": 1,
+  "edges_by_type": {
+   "calls": 11,
+   "implements": 1,
+   "imports": 6,
+   "inherits": 1,
+   "injects": 4,
+   "routes_to": 2,
+   "uncertain": 1
+  },
+  "nodes_by_type": {
+   "class": 4,
+   "dependency": 2,
+   "external": 2,
+   "function": 11,
+   "module": 4,
+   "route": 2,
+   "unresolved": 1
+  }
+ }
 }

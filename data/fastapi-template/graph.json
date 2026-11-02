@@ -3405,8 +3405,8 @@
    "name": "(…).read_text",
    "signature": null,
    "type": "external",
-   "x": 2540.0,
-   "y": 1056.0
+   "x": 4654.5,
+   "y": 100
   },
   {
    "docstring": null,
@@ -3418,8 +3418,8 @@
    "name": "Item.model_validate",
    "signature": null,
    "type": "external",
-   "x": 2710.0,
-   "y": 1056.0
+   "x": 4654.5,
+   "y": 162
   },
   {
    "docstring": null,
@@ -3431,8 +3431,8 @@
    "name": "ItemPublic.model_validate",
    "signature": null,
    "type": "external",
-   "x": 2880.0,
-   "y": 1056.0
+   "x": 4654.5,
+   "y": 224
   },
   {
    "docstring": null,
@@ -3444,8 +3444,8 @@
    "name": "User.model_validate",
    "signature": null,
    "type": "external",
-   "x": 3050.0,
-   "y": 1056.0
+   "x": 4654.5,
+   "y": 286
   },
   {
    "docstring": null,
@@ -3457,8 +3457,8 @@
    "name": "UserCreate.model_validate",
    "signature": null,
    "type": "external",
-   "x": 3220.0,
-   "y": 1056.0
+   "x": 4654.5,
+   "y": 348
   },
   {
    "docstring": null,
@@ -3470,8 +3470,8 @@
    "name": "UserPublic.model_validate",
    "signature": null,
    "type": "external",
-   "x": 3390.0,
-   "y": 1056.0
+   "x": 4654.5,
+   "y": 410
   },
   {
    "docstring": null,
@@ -3483,8 +3483,8 @@
    "name": "current_user.sqlmodel_update",
    "signature": null,
    "type": "external",
-   "x": 3560.0,
-   "y": 1056.0
+   "x": 4654.5,
+   "y": 472
   },
   {
    "docstring": null,
@@ -3496,8 +3496,8 @@
    "name": "db_user.sqlmodel_update",
    "signature": null,
    "type": "external",
-   "x": 3730.0,
-   "y": 1056.0
+   "x": 4654.5,
+   "y": 534
   },
   {
    "docstring": null,
@@ -3509,8 +3509,8 @@
    "name": "expires.timestamp",
    "signature": null,
    "type": "external",
-   "x": 2540.0,
-   "y": 1118.0
+   "x": 4654.5,
+   "y": 596
   },
   {
    "docstring": null,
@@ -3522,8 +3522,8 @@
    "name": "item.sqlmodel_update",
    "signature": null,
    "type": "external",
-   "x": 2710.0,
-   "y": 1118.0
+   "x": 4654.5,
+   "y": 658
   },
   {
    "docstring": null,
@@ -3535,8 +3535,8 @@
    "name": "item_in.model_dump",
    "signature": null,
    "type": "external",
-   "x": 2880.0,
-   "y": 1118.0
+   "x": 4654.5,
+   "y": 720
   },
   {
    "docstring": null,
@@ -3548,8 +3548,8 @@
    "name": "message.send",
    "signature": null,
    "type": "external",
-   "x": 3050.0,
-   "y": 1118.0
+   "x": 4654.5,
+   "y": 782
   },
   {
    "docstring": null,
@@ -3561,8 +3561,8 @@
    "name": "password_hash.hash",
    "signature": null,
    "type": "external",
-   "x": 3220.0,
-   "y": 1118.0
+   "x": 4654.5,
+   "y": 844
   },
   {
    "docstring": null,
@@ -3574,8 +3574,8 @@
    "name": "password_hash.verify_and_update",
    "signature": null,
    "type": "external",
-   "x": 3390.0,
-   "y": 1118.0
+   "x": 4654.5,
+   "y": 906
   },
   {
    "docstring": null,
@@ -3587,8 +3587,8 @@
    "name": "session.add",
    "signature": null,
    "type": "external",
-   "x": 3560.0,
-   "y": 1118.0
+   "x": 4654.5,
+   "y": 968
   },
   {
    "docstring": null,
@@ -3600,8 +3600,8 @@
    "name": "session.commit",
    "signature": null,
    "type": "external",
-   "x": 3730.0,
-   "y": 1118.0
+   "x": 4654.5,
+   "y": 1030
   },
   {
    "docstring": null,
@@ -3613,8 +3613,8 @@
    "name": "session.delete",
    "signature": null,
    "type": "external",
-   "x": 2540.0,
-   "y": 1180.0
+   "x": 4654.5,
+   "y": 1092
   },
   {
    "docstring": null,
@@ -3626,8 +3626,8 @@
    "name": "session.exec",
    "signature": null,
    "type": "external",
-   "x": 2710.0,
-   "y": 1180.0
+   "x": 4654.5,
+   "y": 1154
   },
   {
    "docstring": null,
@@ -3639,8 +3639,8 @@
    "name": "session.exec().all",
    "signature": null,
    "type": "external",
-   "x": 2880.0,
-   "y": 1180.0
+   "x": 4654.5,
+   "y": 1216
   },
   {
    "docstring": null,
@@ -3652,8 +3652,8 @@
    "name": "session.exec().first",
    "signature": null,
    "type": "external",
-   "x": 3050.0,
-   "y": 1180.0
+   "x": 4654.5,
+   "y": 1278
   },
   {
    "docstring": null,
@@ -3665,8 +3665,8 @@
    "name": "session.exec().one",
    "signature": null,
    "type": "external",
-   "x": 3220.0,
-   "y": 1180.0
+   "x": 4654.5,
+   "y": 1340
   },
   {
    "docstring": null,
@@ -3678,8 +3678,8 @@
    "name": "session.get",
    "signature": null,
    "type": "external",
-   "x": 3390.0,
-   "y": 1180.0
+   "x": 4654.5,
+   "y": 1402
   },
   {
    "docstring": null,
@@ -3691,8 +3691,8 @@
    "name": "session.refresh",
    "signature": null,
    "type": "external",
-   "x": 3560.0,
-   "y": 1180.0
+   "x": 4654.5,
+   "y": 1464
   },
   {
    "docstring": null,
@@ -3704,8 +3704,8 @@
    "name": "template.render",
    "signature": null,
    "type": "external",
-   "x": 3730.0,
-   "y": 1180.0
+   "x": 4654.5,
+   "y": 1526
   },
   {
    "docstring": null,
@@ -3717,8 +3717,8 @@
    "name": "user_in.model_dump",
    "signature": null,
    "type": "external",
-   "x": 2540.0,
-   "y": 1242.0
+   "x": 4654.5,
+   "y": 1588
   },
   {
    "docstring": null,
@@ -3730,8 +3730,8 @@
    "name": "timedelta",
    "signature": null,
    "type": "external",
-   "x": 2710.0,
-   "y": 1242.0
+   "x": 4654.5,
+   "y": 1650
   },
   {
    "docstring": null,
@@ -3743,8 +3743,8 @@
    "name": "warn",
    "signature": null,
    "type": "external",
-   "x": 2880.0,
-   "y": 1242.0
+   "x": 4654.5,
+   "y": 1712
   },
   {
    "docstring": null,
@@ -3757,7 +3757,7 @@
    "signature": null,
    "type": "module",
    "x": 0.0,
-   "y": 1892.0
+   "y": 2025.0
   },
   {
    "docstring": null,
@@ -3770,7 +3770,7 @@
    "signature": null,
    "type": "module",
    "x": 260.0,
-   "y": 1892.0
+   "y": 2025.0
   },
   {
    "docstring": null,
@@ -3782,8 +3782,8 @@
    "name": "deps",
    "signature": null,
    "type": "module",
-   "x": 1620.0,
-   "y": 464.0
+   "x": 2053.2,
+   "y": 1695.0
   },
   {
    "docstring": null,
@@ -3795,8 +3795,8 @@
    "name": "get_current_active_superuser",
    "signature": "def get_current_active_superuser(current_user: CurrentUser) -> User",
    "type": "dependency",
-   "x": 1990.0,
-   "y": 656.0
+   "x": 2482.8,
+   "y": 1870.0
   },
   {
    "docstring": null,
@@ -3808,8 +3808,8 @@
    "name": "get_current_user",
    "signature": "def get_current_user(session: SessionDep, token: TokenDep) -> User",
    "type": "dependency",
-   "x": 1730.0,
-   "y": 656.0
+   "x": 2105.2,
+   "y": 1870.0
   },
   {
    "docstring": null,
@@ -3821,8 +3821,8 @@
    "name": "get_db",
    "signature": "def get_db() -> Generator[Session]",
    "type": "dependency",
-   "x": 1990.0,
-   "y": 556.0
+   "x": 2482.8,
+   "y": 1795.0
   },
   {
    "docstring": null,
@@ -3834,8 +3834,8 @@
    "name": "reusable_oauth2",
    "signature": "reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f'{settings.API_V1_STR}/login/access-token')",
    "type": "dependency",
-   "x": 1730.0,
-   "y": 556.0
+   "x": 2105.2,
+   "y": 1795.0
   },
   {
    "docstring": null,
@@ -3848,7 +3848,7 @@
    "signature": null,
    "type": "module",
    "x": 520.0,
-   "y": 1892.0
+   "y": 2025.0
   },
   {
    "docstring": null,
@@ -3861,7 +3861,7 @@
    "signature": null,
    "type": "module",
    "x": 780.0,
-   "y": 1892.0
+   "y": 2025.0
   },
   {
    "docstring": null,
@@ -3886,8 +3886,8 @@
    "name": "DELETE /api/v1/items/{id}",
    "signature": null,
    "type": "route",
-   "x": 110.0,
-   "y": 492.0
+   "x": 52.0,
+   "y": 400.0
   },
   {
    "docstring": "Retrieve items.",
@@ -3899,8 +3899,8 @@
    "name": "GET /api/v1/items/",
    "signature": null,
    "type": "route",
-   "x": 110.0,
-   "y": 92.0
+   "x": 52.0,
+   "y": 100.0
   },
   {
    "docstring": "Get item by ID.",
@@ -3912,8 +3912,8 @@
    "name": "GET /api/v1/items/{id}",
    "signature": null,
    "type": "route",
-   "x": 110.0,
-   "y": 192.0
+   "x": 52.0,
+   "y": 175.0
   },
   {
    "docstring": "Create new item.",
@@ -3925,8 +3925,8 @@
    "name": "POST /api/v1/items/",
    "signature": null,
    "type": "route",
-   "x": 110.0,
-   "y": 292.0
+   "x": 52.0,
+   "y": 250.0
   },
   {
    "docstring": "Update an item.",
@@ -3938,8 +3938,8 @@
    "name": "PUT /api/v1/items/{id}",
    "signature": null,
    "type": "route",
-   "x": 110.0,
-   "y": 392.0
+   "x": 52.0,
+   "y": 325.0
   },
   {
    "docstring": "Create new item.",
@@ -3951,8 +3951,8 @@
    "name": "create_item",
    "signature": "def create_item(*, session: SessionDep, current_user: CurrentUser, item_in: ItemCreate) -> Any",
    "type": "function",
-   "x": 370.0,
-   "y": 292.0
+   "x": 563.2,
+   "y": 250.0
   },
   {
    "docstring": "Delete an item.",
@@ -3964,8 +3964,8 @@
    "name": "delete_item",
    "signature": "def delete_item(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) -> Message",
    "type": "function",
-   "x": 370.0,
-   "y": 492.0
+   "x": 563.2,
+   "y": 400.0
   },
   {
    "docstring": "Get item by ID.",
@@ -3977,8 +3977,8 @@
    "name": "read_item",
    "signature": "def read_item(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) -> Any",
    "type": "function",
-   "x": 370.0,
-   "y": 192.0
+   "x": 563.2,
+   "y": 175.0
   },
   {
    "docstring": "Retrieve items.",
@@ -3990,8 +3990,8 @@
    "name": "read_items",
    "signature": "def read_items(session: SessionDep, current_user: CurrentUser, skip: int=0, limit: int=100) -> Any",
    "type": "function",
-   "x": 370.0,
-   "y": 92.0
+   "x": 563.2,
+   "y": 100.0
   },
   {
    "docstring": "Update an item.",
@@ -4003,8 +4003,8 @@
    "name": "update_item",
    "signature": "def update_item(*, session: SessionDep, current_user: CurrentUser, id: uuid.UUID, item_in: ItemUpdate) -> Any",
    "type": "function",
-   "x": 370.0,
-   "y": 392.0
+   "x": 563.2,
+   "y": 325.0
   },
   {
    "docstring": null,
@@ -4017,7 +4017,7 @@
    "signature": null,
    "type": "module",
    "x": 0.0,
-   "y": 632.0
+   "y": 565.0
   },
   {
    "docstring": "OAuth2 compatible token login, get an access token for future requests",
@@ -4029,8 +4029,8 @@
    "name": "POST /api/v1/login/access-token",
    "signature": null,
    "type": "route",
-   "x": 110.0,
-   "y": 724.0
+   "x": 52.0,
+   "y": 665.0
   },
   {
    "docstring": "Test access token",
@@ -4042,8 +4042,8 @@
    "name": "POST /api/v1/login/test-token",
    "signature": null,
    "type": "route",
-   "x": 110.0,
-   "y": 824.0
+   "x": 52.0,
+   "y": 740.0
   },
   {
    "docstring": "HTML Content for Password Recovery",
@@ -4055,8 +4055,8 @@
    "name": "POST /api/v1/password-recovery-html-content/{email}",
    "signature": null,
    "type": "route",
-   "x": 110.0,
-   "y": 1124.0
+   "x": 52.0,
+   "y": 965.0
   },
   {
    "docstring": "Password Recovery",
@@ -4068,8 +4068,8 @@
    "name": "POST /api/v1/password-recovery/{email}",
    "signature": null,
    "type": "route",
-   "x": 110.0,
-   "y": 924.0
+   "x": 52.0,
+   "y": 815.0
   },
   {
    "docstring": "Reset password",
@@ -4081,8 +4081,8 @@
    "name": "POST /api/v1/reset-password/",
    "signature": null,
    "type": "route",
-   "x": 110.0,
-   "y": 1024.0
+   "x": 52.0,
+   "y": 890.0
   },
   {
    "docstring": "OAuth2 compatible token login, get an access token for future requests",
@@ -4094,8 +4094,8 @@
    "name": "login_access_token",
    "signature": "def login_access_token(session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token",
    "type": "function",
-   "x": 370.0,
-   "y": 724.0
+   "x": 949.4,
+   "y": 665.0
   },
   {
    "docstring": "Password Recovery",
@@ -4107,8 +4107,8 @@
    "name": "recover_password",
    "signature": "def recover_password(email: str, session: SessionDep) -> Message",
    "type": "function",
-   "x": 370.0,
-   "y": 924.0
+   "x": 949.4,
+   "y": 815.0
   },
   {
    "docstring": "HTML Content for Password Recovery",
@@ -4120,8 +4120,8 @@
    "name": "recover_password_html_content",
    "signature": "def recover_password_html_content(email: str, session: SessionDep) -> Any",
    "type": "function",
-   "x": 370.0,
-   "y": 1124.0
+   "x": 949.4,
+   "y": 965.0
   },
   {
    "docstring": "Reset password",
@@ -4133,8 +4133,8 @@
    "name": "reset_password",
    "signature": "def reset_password(session: SessionDep, body: NewPassword) -> Message",
    "type": "function",
-   "x": 370.0,
-   "y": 1024.0
+   "x": 949.4,
+   "y": 890.0
   },
   {
    "docstring": "Test access token",
@@ -4146,8 +4146,8 @@
    "name": "test_token",
    "signature": "def test_token(current_user: CurrentUser) -> Any",
    "type": "function",
-   "x": 370.0,
-   "y": 824.0
+   "x": 949.4,
+   "y": 740.0
   },
   {
    "docstring": null,
@@ -4160,7 +4160,7 @@
    "signature": null,
    "type": "module",
    "x": 0.0,
-   "y": 1264.0
+   "y": 1130.0
   },
   {
    "docstring": "Create a new user.",
@@ -4172,8 +4172,8 @@
    "name": "POST /api/v1/private/users/",
    "signature": null,
    "type": "route",
-   "x": 110.0,
-   "y": 1456.0
+   "x": 52.0,
+   "y": 1305.0
   },
   {
    "docstring": null,
@@ -4185,8 +4185,8 @@
    "name": "PrivateUserCreate",
    "signature": "class PrivateUserCreate(BaseModel)",
    "type": "class",
-   "x": 110.0,
-   "y": 1356.0
+   "x": 52.0,
+   "y": 1230.0
   },
   {
    "docstring": "Create a new user.",
@@ -4198,8 +4198,8 @@
    "name": "create_user",
    "signature": "def create_user(user_in: PrivateUserCreate, session: SessionDep) -> Any",
    "type": "function",
-   "x": 370.0,
-   "y": 1456.0
+   "x": 593.0,
+   "y": 1305.0
   },
   {
    "docstring": null,
@@ -4211,8 +4211,8 @@
    "name": "users",
    "signature": null,
    "type": "module",
-   "x": 550.0,
-   "y": 0.0
+   "x": 0.0,
+   "y": 1470.0
   },
   {
    "docstring": "Delete own user.",
@@ -4224,8 +4224,8 @@
    "name": "DELETE /api/v1/users/me",
    "signature": null,
    "type": "route",
-   "x": 1180.0,
-   "y": 292.0
+   "x": 970.5,
+   "y": 1720.0
   },
   {
    "docstring": "Delete a user.",
@@ -4237,8 +4237,8 @@
    "name": "DELETE /api/v1/users/{user_id}",
    "signature": null,
    "type": "route",
-   "x": 1180.0,
-   "y": 492.0
+   "x": 970.5,
+   "y": 1870.0
   },
   {
    "docstring": "Retrieve users.",
@@ -4250,8 +4250,8 @@
    "name": "GET /api/v1/users/",
    "signature": null,
    "type": "route",
-   "x": 660.0,
-   "y": 92.0
+   "x": 52.0,
+   "y": 1570.0
   },
   {
    "docstring": "Get current user.",
@@ -4263,8 +4263,8 @@
    "name": "GET /api/v1/users/me",
    "signature": null,
    "type": "route",
-   "x": 660.0,
-   "y": 292.0
+   "x": 52.0,
+   "y": 1720.0
   },
   {
    "docstring": "Get a specific user by id.",
@@ -4276,8 +4276,8 @@
    "name": "GET /api/v1/users/{user_id}",
    "signature": null,
    "type": "route",
-   "x": 1180.0,
-   "y": 392.0
+   "x": 970.5,
+   "y": 1795.0
   },
   {
    "docstring": "Update own user.",
@@ -4289,8 +4289,8 @@
    "name": "PATCH /api/v1/users/me",
    "signature": null,
    "type": "route",
-   "x": 660.0,
-   "y": 192.0
+   "x": 52.0,
+   "y": 1645.0
   },
   {
    "docstring": "Update own password.",
@@ -4302,8 +4302,8 @@
    "name": "PATCH /api/v1/users/me/password",
    "signature": null,
    "type": "route",
-   "x": 1180.0,
-   "y": 192.0
+   "x": 970.5,
+   "y": 1645.0
   },
   {
    "docstring": "Update a user.",
@@ -4315,8 +4315,8 @@
    "name": "PATCH /api/v1/users/{user_id}",
    "signature": null,
    "type": "route",
-   "x": 660.0,
-   "y": 492.0
+   "x": 52.0,
+   "y": 1870.0
   },
   {
    "docstring": "Create new user.",
@@ -4328,8 +4328,8 @@
    "name": "POST /api/v1/users/",
    "signature": null,
    "type": "route",
-   "x": 1180.0,
-   "y": 92.0
+   "x": 970.5,
+   "y": 1570.0
   },
   {
    "docstring": "Create new user without the need to be logged in.",
@@ -4341,8 +4341,8 @@
    "name": "POST /api/v1/users/signup",
    "signature": null,
    "type": "route",
-   "x": 660.0,
-   "y": 392.0
+   "x": 52.0,
+   "y": 1795.0
   },
   {
    "docstring": "Create new user.",
@@ -4354,8 +4354,8 @@
    "name": "create_user",
    "signature": "def create_user(*, session: SessionDep, user_in: UserCreate) -> Any",
    "type": "function",
-   "x": 1440.0,
-   "y": 92.0
+   "x": 1570.9,
+   "y": 1570.0
   },
   {
    "docstring": "Delete a user.",
@@ -4367,8 +4367,8 @@
    "name": "delete_user",
    "signature": "def delete_user(session: SessionDep, current_user: CurrentUser, user_id: uuid.UUID) -> Message",
    "type": "function",
-   "x": 1440.0,
-   "y": 492.0
+   "x": 1570.9,
+   "y": 1870.0
   },
   {
    "docstring": "Delete own user.",
@@ -4380,8 +4380,8 @@
    "name": "delete_user_me",
    "signature": "def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any",
    "type": "function",
-   "x": 1440.0,
-   "y": 292.0
+   "x": 1570.9,
+   "y": 1720.0
   },
   {
    "docstring": "Get a specific user by id.",
@@ -4393,8 +4393,8 @@
    "name": "read_user_by_id",
    "signature": "def read_user_by_id(user_id: uuid.UUID, session: SessionDep, current_user: CurrentUser) -> Any",
    "type": "function",
-   "x": 1440.0,
-   "y": 392.0
+   "x": 1570.9,
+   "y": 1795.0
   },
   {
    "docstring": "Get current user.",
@@ -4406,8 +4406,8 @@
    "name": "read_user_me",
    "signature": "def read_user_me(current_user: CurrentUser) -> Any",
    "type": "function",
-   "x": 920.0,
-   "y": 292.0
+   "x": 622.6,
+   "y": 1720.0
   },
   {
    "docstring": "Retrieve users.",
@@ -4419,8 +4419,8 @@
    "name": "read_users",
    "signature": "def read_users(session: SessionDep, skip: int=0, limit: int=100) -> Any",
    "type": "function",
-   "x": 920.0,
-   "y": 92.0
+   "x": 622.6,
+   "y": 1570.0
   },
   {
    "docstring": "Create new user without the need to be logged in.",
@@ -4432,8 +4432,8 @@
    "name": "register_user",
    "signature": "def register_user(session: SessionDep, user_in: UserRegister) -> Any",
    "type": "function",
-   "x": 920.0,
-   "y": 392.0
+   "x": 622.6,
+   "y": 1795.0
   },
   {
    "docstring": "Update own password.",
@@ -4445,8 +4445,8 @@
    "name": "update_password_me",
    "signature": "def update_password_me(*, session: SessionDep, body: UpdatePassword, current_user: CurrentUser) -> Any",
    "type": "function",
-   "x": 1440.0,
-   "y": 192.0
+   "x": 1570.9,
+   "y": 1645.0
   },
   {
    "docstring": "Update a user.",
@@ -4458,8 +4458,8 @@
    "name": "update_user",
    "signature": "def update_user(*, session: SessionDep, user_id: uuid.UUID, user_in: UserUpdate) -> Any",
    "type": "function",
-   "x": 920.0,
-   "y": 492.0
+   "x": 622.6,
+   "y": 1870.0
   },
   {
    "docstring": "Update own user.",
@@ -4471,8 +4471,8 @@
    "name": "update_user_me",
    "signature": "def update_user_me(*, session: SessionDep, user_in: UserUpdateMe, current_user: CurrentUser) -> Any",
    "type": "function",
-   "x": 920.0,
-   "y": 192.0
+   "x": 622.6,
+   "y": 1645.0
   },
   {
    "docstring": null,
@@ -4484,8 +4484,8 @@
    "name": "routes.utils",
    "signature": null,
    "type": "module",
-   "x": 550.0,
-   "y": 632.0
+   "x": 2053.2,
+   "y": 0.0
   },
   {
    "docstring": null,
@@ -4497,8 +4497,8 @@
    "name": "GET /api/v1/utils/health-check/",
    "signature": null,
    "type": "route",
-   "x": 660.0,
-   "y": 824.0
+   "x": 2105.2,
+   "y": 175.0
   },
   {
    "docstring": "Test emails.",
@@ -4510,8 +4510,8 @@
    "name": "POST /api/v1/utils/test-email/",
    "signature": null,
    "type": "route",
-   "x": 660.0,
-   "y": 724.0
+   "x": 2105.2,
+   "y": 100.0
   },
   {
    "docstring": null,
@@ -4523,8 +4523,8 @@
    "name": "health_check",
    "signature": "async def health_check() -> bool",
    "type": "function",
-   "x": 920.0,
-   "y": 824.0
+   "x": 2705.5,
+   "y": 175.0
   },
   {
    "docstring": "Test emails.",
@@ -4536,8 +4536,8 @@
    "name": "test_email",
    "signature": "def test_email(email_to: EmailStr) -> Message",
    "type": "function",
-   "x": 920.0,
-   "y": 724.0
+   "x": 2705.5,
+   "y": 100.0
   },
   {
    "docstring": null,
@@ -4550,7 +4550,7 @@
    "signature": null,
    "type": "module",
    "x": 1040.0,
-   "y": 1892.0
+   "y": 2025.0
   },
   {
    "docstring": null,
@@ -4562,8 +4562,8 @@
    "name": "config",
    "signature": null,
    "type": "module",
-   "x": 550.0,
-   "y": 964.0
+   "x": 2053.2,
+   "y": 367.5
   },
   {
    "docstring": null,
@@ -4575,8 +4575,8 @@
    "name": "Settings",
    "signature": "class Settings(BaseSettings)",
    "type": "class",
-   "x": 660.0,
-   "y": 1056.0
+   "x": 2105.2,
+   "y": 467.5
   },
   {
    "docstring": null,
@@ -4588,8 +4588,8 @@
    "name": "_check_default_secret",
    "signature": "def _check_default_secret(self, var_name: str, value: str | None) -> None",
    "type": "function",
-   "x": 660.0,
-   "y": 1456.0
+   "x": 2105.2,
+   "y": 767.5
   },
   {
    "docstring": null,
@@ -4601,8 +4601,8 @@
    "name": "_enforce_non_default_secrets",
    "signature": "def _enforce_non_default_secrets(self) -> Self",
    "type": "function",
-   "x": 660.0,
-   "y": 1556.0
+   "x": 2105.2,
+   "y": 842.5
   },
   {
    "docstring": null,
@@ -4614,8 +4614,8 @@
    "name": "_set_default_emails_from",
    "signature": "def _set_default_emails_from(self) -> Self",
    "type": "function",
-   "x": 660.0,
-   "y": 1256.0
+   "x": 2105.2,
+   "y": 617.5
   },
   {
    "docstring": null,
@@ -4627,8 +4627,8 @@
    "name": "_use_psycopg_driver",
    "signature": "def _use_psycopg_driver(cls, value: str | PostgresDsn) -> str",
    "type": "function",
-   "x": 660.0,
-   "y": 1156.0
+   "x": 2105.2,
+   "y": 542.5
   },
   {
    "docstring": null,
@@ -4640,8 +4640,8 @@
    "name": "emails_enabled",
    "signature": "def emails_enabled(self) -> bool",
    "type": "function",
-   "x": 660.0,
-   "y": 1356.0
+   "x": 2105.2,
+   "y": 692.5
   },
   {
    "docstring": null,
@@ -4653,8 +4653,8 @@
    "name": "db",
    "signature": null,
    "type": "module",
-   "x": 1620.0,
-   "y": 796.0
+   "x": 3113.6,
+   "y": 0.0
   },
   {
    "docstring": null,
@@ -4666,8 +4666,8 @@
    "name": "init_db",
    "signature": "def init_db(session: Session) -> None",
    "type": "function",
-   "x": 1730.0,
-   "y": 888.0
+   "x": 3165.6,
+   "y": 100.0
   },
   {
    "docstring": null,
@@ -4679,8 +4679,8 @@
    "name": "security",
    "signature": null,
    "type": "module",
-   "x": 2430.0,
-   "y": 632.0
+   "x": 3113.6,
+   "y": 1695.0
   },
   {
    "docstring": null,
@@ -4692,8 +4692,8 @@
    "name": "create_access_token",
    "signature": "def create_access_token(subject: str | Any, expires_delta: timedelta) -> str",
    "type": "function",
-   "x": 2540.0,
-   "y": 724.0
+   "x": 3165.6,
+   "y": 1795.0
   },
   {
    "docstring": null,
@@ -4705,8 +4705,8 @@
    "name": "get_password_hash",
    "signature": "def get_password_hash(password: str) -> str",
    "type": "function",
-   "x": 2540.0,
-   "y": 824.0
+   "x": 3165.6,
+   "y": 1870.0
   },
   {
    "docstring": null,
@@ -4718,8 +4718,8 @@
    "name": "verify_password",
    "signature": "def verify_password(plain_password: str, hashed_password: str) -> tuple[bool, str | None]",
    "type": "function",
-   "x": 2800.0,
-   "y": 724.0
+   "x": 3587.8,
+   "y": 1795.0
   },
   {
    "docstring": null,
@@ -4731,8 +4731,8 @@
    "name": "crud",
    "signature": null,
    "type": "module",
-   "x": 1620.0,
-   "y": 1460.0
+   "x": 3113.6,
+   "y": 735.0
   },
   {
    "docstring": null,
@@ -4744,8 +4744,8 @@
    "name": "authenticate",
    "signature": "def authenticate(*, session: Session, email: str, password: str) -> User | None",
    "type": "function",
-   "x": 1990.0,
-   "y": 1652.0
+   "x": 3558.0,
+   "y": 910.0
   },
   {
    "docstring": null,
@@ -4757,8 +4757,8 @@
    "name": "create_item",
    "signature": "def create_item(*, session: Session, item_in: ItemCreate, owner_id: uuid.UUID) -> Item",
    "type": "function",
-   "x": 1730.0,
-   "y": 1752.0
+   "x": 3165.6,
+   "y": 985.0
   },
   {
    "docstring": null,
@@ -4770,8 +4770,8 @@
    "name": "create_user",
    "signature": "def create_user(*, session: Session, user_create: UserCreate) -> User",
    "type": "function",
-   "x": 1730.0,
-   "y": 1552.0
+   "x": 3165.6,
+   "y": 835.0
   },
   {
    "docstring": null,
@@ -4783,8 +4783,8 @@
    "name": "get_user_by_email",
    "signature": "def get_user_by_email(*, session: Session, email: str) -> User | None",
    "type": "function",
-   "x": 1730.0,
-   "y": 1652.0
+   "x": 3165.6,
+   "y": 910.0
   },
   {
    "docstring": null,
@@ -4796,8 +4796,8 @@
    "name": "update_user",
    "signature": "def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> Any",
    "type": "function",
-   "x": 1990.0,
-   "y": 1552.0
+   "x": 3558.0,
+   "y": 835.0
   },
   {
    "docstring": null,
@@ -4809,8 +4809,8 @@
    "name": "initial_data",
    "signature": null,
    "type": "module",
-   "x": 1620.0,
-   "y": 0.0
+   "x": 2053.2,
+   "y": 1035.0
   },
   {
    "docstring": null,
@@ -4822,8 +4822,8 @@
    "name": "init",
    "signature": "def init() -> None",
    "type": "function",
-   "x": 1730.0,
-   "y": 92.0
+   "x": 2105.2,
+   "y": 1135.0
   },
   {
    "docstring": null,
@@ -4835,8 +4835,8 @@
    "name": "main",
    "signature": "def main() -> None",
    "type": "function",
-   "x": 1990.0,
-   "y": 92.0
+   "x": 2105.2,
+   "y": 1210.0
   },
   {
    "docstring": null,
@@ -4848,8 +4848,8 @@
    "name": "app.main",
    "signature": null,
    "type": "module",
-   "x": 1620.0,
-   "y": 232.0
+   "x": 2053.2,
+   "y": 1402.5
   },
   {
    "docstring": null,
@@ -4861,8 +4861,8 @@
    "name": "custom_generate_unique_id",
    "signature": "def custom_generate_unique_id(route: APIRoute) -> str",
    "type": "function",
-   "x": 1730.0,
-   "y": 324.0
+   "x": 2105.2,
+   "y": 1502.5
   },
   {
    "docstring": null,
@@ -4874,8 +4874,8 @@
    "name": "models",
    "signature": null,
    "type": "module",
-   "x": 2430.0,
-   "y": 0.0
+   "x": 3113.6,
+   "y": 1140.0
   },
   {
    "docstring": null,
@@ -4887,8 +4887,8 @@
    "name": "Item",
    "signature": "class Item(ItemBase, table=True)",
    "type": "class",
-   "x": 2800.0,
-   "y": 392.0
+   "x": 3543.2,
+   "y": 1465.0
   },
   {
    "docstring": null,
@@ -4900,8 +4900,8 @@
    "name": "ItemBase",
    "signature": "class ItemBase(SQLModel)",
    "type": "class",
-   "x": 3060.0,
-   "y": 292.0
+   "x": 3861.4,
+   "y": 1390.0
   },
   {
    "docstring": null,
@@ -4913,8 +4913,8 @@
    "name": "ItemCreate",
    "signature": "class ItemCreate(ItemBase)",
    "type": "class",
-   "x": 3320.0,
-   "y": 292.0
+   "x": 4209.3,
+   "y": 1390.0
   },
   {
    "docstring": null,
@@ -4926,8 +4926,8 @@
    "name": "ItemPublic",
    "signature": "class ItemPublic(ItemBase)",
    "type": "class",
-   "x": 3060.0,
-   "y": 392.0
+   "x": 3861.4,
+   "y": 1465.0
   },
   {
    "docstring": null,
@@ -4939,8 +4939,8 @@
    "name": "ItemUpdate",
    "signature": "class ItemUpdate(SQLModel)",
    "type": "class",
-   "x": 2540.0,
-   "y": 392.0
+   "x": 3165.6,
+   "y": 1465.0
   },
   {
    "docstring": null,
@@ -4952,8 +4952,8 @@
    "name": "ItemsPublic",
    "signature": "class ItemsPublic(SQLModel)",
    "type": "class",
-   "x": 3320.0,
-   "y": 392.0
+   "x": 4209.3,
+   "y": 1465.0
   },
   {
    "docstring": null,
@@ -4965,8 +4965,8 @@
    "name": "Message",
    "signature": "class Message(SQLModel)",
    "type": "class",
-   "x": 2540.0,
-   "y": 492.0
+   "x": 3165.6,
+   "y": 1540.0
   },
   {
    "docstring": null,
@@ -4978,8 +4978,8 @@
    "name": "NewPassword",
    "signature": "class NewPassword(SQLModel)",
    "type": "class",
-   "x": 3320.0,
-   "y": 492.0
+   "x": 4209.3,
+   "y": 1540.0
   },
   {
    "docstring": null,
@@ -4991,8 +4991,8 @@
    "name": "Token",
    "signature": "class Token(SQLModel)",
    "type": "class",
-   "x": 2800.0,
-   "y": 492.0
+   "x": 3543.2,
+   "y": 1540.0
   },
   {
    "docstring": null,
@@ -5004,8 +5004,8 @@
    "name": "TokenPayload",
    "signature": "class TokenPayload(SQLModel)",
    "type": "class",
-   "x": 3060.0,
-   "y": 492.0
+   "x": 3861.4,
+   "y": 1540.0
   },
   {
    "docstring": null,
@@ -5017,8 +5017,8 @@
    "name": "UpdatePassword",
    "signature": "class UpdatePassword(SQLModel)",
    "type": "class",
-   "x": 3060.0,
-   "y": 192.0
+   "x": 3861.4,
+   "y": 1315.0
   },
   {
    "docstring": null,
@@ -5030,8 +5030,8 @@
    "name": "User",
    "signature": "class User(UserBase, table=True)",
    "type": "class",
-   "x": 3320.0,
-   "y": 192.0
+   "x": 4209.3,
+   "y": 1315.0
   },
   {
    "docstring": null,
@@ -5043,8 +5043,8 @@
    "name": "UserBase",
    "signature": "class UserBase(SQLModel)",
    "type": "class",
-   "x": 2800.0,
-   "y": 92.0
+   "x": 3543.2,
+   "y": 1240.0
   },
   {
    "docstring": null,
@@ -5056,8 +5056,8 @@
    "name": "UserCreate",
    "signature": "class UserCreate(UserBase)",
    "type": "class",
-   "x": 3060.0,
-   "y": 92.0
+   "x": 3861.4,
+   "y": 1240.0
   },
   {
    "docstring": null,
@@ -5069,8 +5069,8 @@
    "name": "UserPublic",
    "signature": "class UserPublic(UserBase)",
    "type": "class",
-   "x": 2540.0,
-   "y": 292.0
+   "x": 3165.6,
+   "y": 1390.0
   },
   {
    "docstring": null,
@@ -5082,8 +5082,8 @@
    "name": "UserRegister",
    "signature": "class UserRegister(SQLModel)",
    "type": "class",
-   "x": 3320.0,
-   "y": 92.0
+   "x": 4209.3,
+   "y": 1240.0
   },
   {
    "docstring": null,
@@ -5095,8 +5095,8 @@
    "name": "UserUpdate",
    "signature": "class UserUpdate(SQLModel)",
    "type": "class",
-   "x": 2540.0,
-   "y": 192.0
+   "x": 3165.6,
+   "y": 1315.0
   },
   {
    "docstring": null,
@@ -5108,8 +5108,8 @@
    "name": "UserUpdateMe",
    "signature": "class UserUpdateMe(SQLModel)",
    "type": "class",
-   "x": 2800.0,
-   "y": 192.0
+   "x": 3543.2,
+   "y": 1315.0
   },
   {
    "docstring": null,
@@ -5121,8 +5121,8 @@
    "name": "UsersPublic",
    "signature": "class UsersPublic(SQLModel)",
    "type": "class",
-   "x": 2800.0,
-   "y": 292.0
+   "x": 3543.2,
+   "y": 1390.0
   },
   {
    "docstring": null,
@@ -5134,8 +5134,8 @@
    "name": "get_datetime_utc",
    "signature": "def get_datetime_utc() -> datetime",
    "type": "function",
-   "x": 2540.0,
-   "y": 92.0
+   "x": 3165.6,
+   "y": 1240.0
   },
   {
    "docstring": null,
@@ -5147,8 +5147,8 @@
    "name": "app.utils",
    "signature": null,
    "type": "module",
-   "x": 1620.0,
-   "y": 1028.0
+   "x": 3113.6,
+   "y": 255.0
   },
   {
    "docstring": null,
@@ -5160,8 +5160,8 @@
    "name": "EmailData",
    "signature": "class EmailData",
    "type": "class",
-   "x": 1730.0,
-   "y": 1120.0
+   "x": 3165.6,
+   "y": 355.0
   },
   {
    "docstring": null,
@@ -5173,8 +5173,8 @@
    "name": "generate_new_account_email",
    "signature": "def generate_new_account_email(email_to: str, username: str, password: str) -> EmailData",
    "type": "function",
-   "x": 2250.0,
-   "y": 1220.0
+   "x": 3736.2,
+   "y": 505.0
   },
   {
    "docstring": null,
@@ -5186,8 +5186,8 @@
    "name": "generate_password_reset_token",
    "signature": "def generate_password_reset_token(email: str) -> str",
    "type": "function",
-   "x": 1730.0,
-   "y": 1320.0
+   "x": 3165.6,
+   "y": 580.0
   },
   {
    "docstring": null,
@@ -5199,8 +5199,8 @@
    "name": "generate_reset_password_email",
    "signature": "def generate_reset_password_email(email_to: str, email: str, token: str) -> EmailData",
    "type": "function",
-   "x": 1990.0,
-   "y": 1220.0
+   "x": 3165.6,
+   "y": 505.0
   },
   {
    "docstring": null,
@@ -5212,8 +5212,8 @@
    "name": "generate_test_email",
    "signature": "def generate_test_email(email_to: str) -> EmailData",
    "type": "function",
-   "x": 1730.0,
-   "y": 1220.0
+   "x": 3736.2,
+   "y": 430.0
   },
   {
    "docstring": null,
@@ -5225,8 +5225,8 @@
    "name": "render_email_template",
    "signature": "def render_email_template(*, template_name: str, context: dict[str, Any]) -> str",
    "type": "function",
-   "x": 1990.0,
-   "y": 1120.0
+   "x": 3736.2,
+   "y": 355.0
   },
   {
    "docstring": null,
@@ -5238,8 +5238,8 @@
    "name": "send_email",
    "signature": "def send_email(*, email_to: str, subject: str='', html_content: str='') -> None",
    "type": "function",
-   "x": 2250.0,
-   "y": 1120.0
+   "x": 3165.6,
+   "y": 430.0
   },
   {
    "docstring": null,
@@ -5251,8 +5251,8 @@
    "name": "verify_password_reset_token",
    "signature": "def verify_password_reset_token(token: str) -> str | None",
    "type": "function",
-   "x": 1990.0,
-   "y": 1320.0
+   "x": 3736.2,
+   "y": 580.0
   },
   {
    "docstring": null,
@@ -5264,8 +5264,8 @@
    "name": "ValueError",
    "signature": null,
    "type": "external",
-   "x": 3050.0,
-   "y": 1242.0
+   "x": 4654.5,
+   "y": 1774
   },
   {
    "docstring": null,
@@ -5277,8 +5277,8 @@
    "name": "bool",
    "signature": null,
    "type": "external",
-   "x": 3220.0,
-   "y": 1242.0
+   "x": 4654.5,
+   "y": 1836
   },
   {
    "docstring": null,
@@ -5290,8 +5290,8 @@
    "name": "str",
    "signature": null,
    "type": "external",
-   "x": 3390.0,
-   "y": 1242.0
+   "x": 5254.9,
+   "y": 100
   },
   {
    "docstring": null,
@@ -5303,8 +5303,8 @@
    "name": "str.replace",
    "signature": null,
    "type": "external",
-   "x": 3560.0,
-   "y": 1242.0
+   "x": 5254.9,
+   "y": 162
   },
   {
    "docstring": null,
@@ -5316,8 +5316,8 @@
    "name": "str.startswith",
    "signature": null,
    "type": "external",
-   "x": 3730.0,
-   "y": 1242.0
+   "x": 5254.9,
+   "y": 224
   },
   {
    "docstring": null,
@@ -5329,8 +5329,8 @@
    "name": "datetime.now",
    "signature": null,
    "type": "external",
-   "x": 2540.0,
-   "y": 1304.0
+   "x": 5254.9,
+   "y": 286
   },
   {
    "docstring": null,
@@ -5342,8 +5342,8 @@
    "name": "message.Message",
    "signature": null,
    "type": "external",
-   "x": 2710.0,
-   "y": 1304.0
+   "x": 5254.9,
+   "y": 348
   },
   {
    "docstring": null,
@@ -5355,8 +5355,8 @@
    "name": "FastAPI",
    "signature": null,
    "type": "external",
-   "x": 2880.0,
-   "y": 1304.0
+   "x": 5254.9,
+   "y": 410
   },
   {
    "docstring": null,
@@ -5368,8 +5368,8 @@
    "name": "FastAPI.frontend",
    "signature": null,
    "type": "external",
-   "x": 3050.0,
-   "y": 1304.0
+   "x": 5254.9,
+   "y": 472
   },
   {
    "docstring": null,
@@ -5381,8 +5381,8 @@
    "name": "FastAPI.include_router",
    "signature": null,
    "type": "external",
-   "x": 3220.0,
-   "y": 1304.0
+   "x": 5254.9,
+   "y": 534
   },
   {
    "docstring": null,
@@ -5394,8 +5394,8 @@
    "name": "HTTPException",
    "signature": null,
    "type": "external",
-   "x": 3390.0,
-   "y": 1304.0
+   "x": 5254.9,
+   "y": 596
   },
   {
    "docstring": null,
@@ -5407,8 +5407,8 @@
    "name": "Depends",
    "signature": null,
    "type": "external",
-   "x": 3560.0,
-   "y": 1304.0
+   "x": 5254.9,
+   "y": 658
   },
   {
    "docstring": null,
@@ -5420,8 +5420,8 @@
    "name": "APIRouter",
    "signature": null,
    "type": "external",
-   "x": 3730.0,
-   "y": 1304.0
+   "x": 5254.9,
+   "y": 720
   },
   {
    "docstring": null,
@@ -5433,8 +5433,8 @@
    "name": "APIRouter.delete",
    "signature": null,
    "type": "external",
-   "x": 2540.0,
-   "y": 1366.0
+   "x": 5254.9,
+   "y": 782
   },
   {
    "docstring": null,
@@ -5446,8 +5446,8 @@
    "name": "APIRouter.get",
    "signature": null,
    "type": "external",
-   "x": 2710.0,
-   "y": 1366.0
+   "x": 5254.9,
+   "y": 844
   },
   {
    "docstring": null,
@@ -5459,8 +5459,8 @@
    "name": "APIRouter.include_router",
    "signature": null,
    "type": "external",
-   "x": 2880.0,
-   "y": 1366.0
+   "x": 5254.9,
+   "y": 906
   },
   {
    "docstring": null,
@@ -5472,8 +5472,8 @@
    "name": "APIRouter.patch",
    "signature": null,
    "type": "external",
-   "x": 3050.0,
-   "y": 1366.0
+   "x": 5254.9,
+   "y": 968
   },
   {
    "docstring": null,
@@ -5485,8 +5485,8 @@
    "name": "APIRouter.post",
    "signature": null,
    "type": "external",
-   "x": 3220.0,
-   "y": 1366.0
+   "x": 5254.9,
+   "y": 1030
   },
   {
    "docstring": null,
@@ -5498,8 +5498,8 @@
    "name": "APIRouter.put",
    "signature": null,
    "type": "external",
-   "x": 3390.0,
-   "y": 1366.0
+   "x": 5254.9,
+   "y": 1092
   },
   {
    "docstring": null,
@@ -5511,8 +5511,8 @@
    "name": "OAuth2PasswordBearer",
    "signature": null,
    "type": "external",
-   "x": 3560.0,
-   "y": 1366.0
+   "x": 5254.9,
+   "y": 1154
   },
   {
    "docstring": null,
@@ -5524,8 +5524,8 @@
    "name": "OAuth2PasswordRequestForm",
    "signature": null,
    "type": "external",
-   "x": 3730.0,
-   "y": 1366.0
+   "x": 5254.9,
+   "y": 1216
   },
   {
    "docstring": null,
@@ -5537,8 +5537,8 @@
    "name": "Template",
    "signature": null,
    "type": "external",
-   "x": 2540.0,
-   "y": 1428.0
+   "x": 5254.9,
+   "y": 1278
   },
   {
    "docstring": null,
@@ -5550,8 +5550,8 @@
    "name": "decode",
    "signature": null,
    "type": "external",
-   "x": 2710.0,
-   "y": 1428.0
+   "x": 5254.9,
+   "y": 1340
   },
   {
    "docstring": null,
@@ -5563,8 +5563,8 @@
    "name": "encode",
    "signature": null,
    "type": "external",
-   "x": 2880.0,
-   "y": 1428.0
+   "x": 5254.9,
+   "y": 1402
   },
   {
    "docstring": null,
@@ -5576,8 +5576,8 @@
    "name": "Logger.info",
    "signature": null,
    "type": "external",
-   "x": 3050.0,
-   "y": 1428.0
+   "x": 5254.9,
+   "y": 1464
   },
   {
    "docstring": null,
@@ -5589,8 +5589,8 @@
    "name": "basicConfig",
    "signature": null,
    "type": "external",
-   "x": 3220.0,
-   "y": 1428.0
+   "x": 5254.9,
+   "y": 1526
   },
   {
    "docstring": null,
@@ -5602,8 +5602,8 @@
    "name": "getLogger",
    "signature": null,
    "type": "external",
-   "x": 3390.0,
-   "y": 1428.0
+   "x": 5254.9,
+   "y": 1588
   },
   {
    "docstring": null,
@@ -5615,8 +5615,8 @@
    "name": "Path",
    "signature": null,
    "type": "external",
-   "x": 3560.0,
-   "y": 1428.0
+   "x": 5254.9,
+   "y": 1650
   },
   {
    "docstring": null,
@@ -5628,8 +5628,8 @@
    "name": "Argon2Hasher",
    "signature": null,
    "type": "external",
-   "x": 2540.0,
-   "y": 1490.0
+   "x": 5254.9,
+   "y": 1774
   },
   {
    "docstring": null,
@@ -5641,8 +5641,8 @@
    "name": "BcryptHasher",
    "signature": null,
    "type": "external",
-   "x": 2710.0,
-   "y": 1490.0
+   "x": 5254.9,
+   "y": 1836
   },
   {
    "docstring": null,
@@ -5654,8 +5654,8 @@
    "name": "PasswordHash",
    "signature": null,
    "type": "external",
-   "x": 3730.0,
-   "y": 1428.0
+   "x": 5254.9,
+   "y": 1712
   },
   {
    "docstring": null,
@@ -5667,8 +5667,8 @@
    "name": "field_validator",
    "signature": null,
    "type": "external",
-   "x": 2880.0,
-   "y": 1490.0
+   "x": 5766.1,
+   "y": 100
   },
   {
    "docstring": null,
@@ -5680,8 +5680,8 @@
    "name": "model_validator",
    "signature": null,
    "type": "external",
-   "x": 3050.0,
-   "y": 1490.0
+   "x": 5766.1,
+   "y": 162
   },
   {
    "docstring": null,
@@ -5693,8 +5693,8 @@
    "name": "_BaseMultiHostUrl.hosts",
    "signature": null,
    "type": "external",
-   "x": 3220.0,
-   "y": 1490.0
+   "x": 5766.1,
+   "y": 224
   },
   {
    "docstring": null,
@@ -5706,8 +5706,8 @@
    "name": "SettingsConfigDict",
    "signature": null,
    "type": "external",
-   "x": 3390.0,
-   "y": 1490.0
+   "x": 5766.1,
+   "y": 286
   },
   {
    "docstring": null,
@@ -5719,8 +5719,8 @@
    "name": "init",
    "signature": null,
    "type": "external",
-   "x": 3560.0,
-   "y": 1490.0
+   "x": 5766.1,
+   "y": 348
   },
   {
    "docstring": null,
@@ -5732,8 +5732,8 @@
    "name": "Field",
    "signature": null,
    "type": "external",
-   "x": 3730.0,
-   "y": 1490.0
+   "x": 5766.1,
+   "y": 410
   },
   {
    "docstring": null,
@@ -5745,8 +5745,8 @@
    "name": "Relationship",
    "signature": null,
    "type": "external",
-   "x": 2540.0,
-   "y": 1552.0
+   "x": 5766.1,
+   "y": 472
   },
   {
    "docstring": null,
@@ -5758,8 +5758,8 @@
    "name": "Session",
    "signature": null,
    "type": "external",
-   "x": 2710.0,
-   "y": 1552.0
+   "x": 5766.1,
+   "y": 534
   },
   {
    "docstring": null,
@@ -5771,8 +5771,8 @@
    "name": "col",
    "signature": null,
    "type": "external",
-   "x": 2880.0,
-   "y": 1552.0
+   "x": 5766.1,
+   "y": 596
   },
   {
    "docstring": null,
@@ -5784,8 +5784,8 @@
    "name": "col().desc",
    "signature": null,
    "type": "external",
-   "x": 3050.0,
-   "y": 1552.0
+   "x": 5766.1,
+   "y": 658
   },
   {
    "docstring": null,
@@ -5797,8 +5797,8 @@
    "name": "create_engine",
    "signature": null,
    "type": "external",
-   "x": 3220.0,
-   "y": 1552.0
+   "x": 5766.1,
+   "y": 720
   },
   {
    "docstring": null,
@@ -5810,8 +5810,8 @@
    "name": "delete",
    "signature": null,
    "type": "external",
-   "x": 3390.0,
-   "y": 1552.0
+   "x": 5766.1,
+   "y": 782
   },
   {
    "docstring": null,
@@ -5823,8 +5823,8 @@
    "name": "delete().where",
    "signature": null,
    "type": "external",
-   "x": 3560.0,
-   "y": 1552.0
+   "x": 5766.1,
+   "y": 844
   },
   {
    "docstring": null,
@@ -5836,8 +5836,8 @@
    "name": "func.count",
    "signature": null,
    "type": "external",
-   "x": 3730.0,
-   "y": 1552.0
+   "x": 5766.1,
+   "y": 906
   },
   {
    "docstring": null,
@@ -5849,8 +5849,8 @@
    "name": "select",
    "signature": null,
    "type": "external",
-   "x": 2540.0,
-   "y": 1614.0
+   "x": 5766.1,
+   "y": 968
   },
   {
    "docstring": null,
@@ -5862,8 +5862,8 @@
    "name": "select().order_by",
    "signature": null,
    "type": "external",
-   "x": 2710.0,
-   "y": 1614.0
+   "x": 5766.1,
+   "y": 1030
   },
   {
    "docstring": null,
@@ -5875,8 +5875,8 @@
    "name": "select().select_from",
    "signature": null,
    "type": "external",
-   "x": 2880.0,
-   "y": 1614.0
+   "x": 5766.1,
+   "y": 1092
   },
   {
    "docstring": null,
@@ -5888,8 +5888,8 @@
    "name": "select().where",
    "signature": null,
    "type": "external",
-   "x": 3050.0,
-   "y": 1614.0
+   "x": 5766.1,
+   "y": 1154
   },
   {
    "docstring": null,
@@ -5901,8 +5901,8 @@
    "name": "select()….limit",
    "signature": null,
    "type": "external",
-   "x": 3220.0,
-   "y": 1614.0
+   "x": 5766.1,
+   "y": 1216
   },
   {
    "docstring": null,
@@ -5914,8 +5914,8 @@
    "name": "select()….offset",
    "signature": null,
    "type": "external",
-   "x": 3390.0,
-   "y": 1614.0
+   "x": 5766.1,
+   "y": 1278
   },
   {
    "docstring": null,
@@ -5927,8 +5927,8 @@
    "name": "select()….order_by",
    "signature": null,
    "type": "external",
-   "x": 3560.0,
-   "y": 1614.0
+   "x": 5766.1,
+   "y": 1340
   },
   {
    "docstring": null,
@@ -5940,8 +5940,8 @@
    "name": "select()….where",
    "signature": null,
    "type": "external",
-   "x": 3730.0,
-   "y": 1614.0
+   "x": 5766.1,
+   "y": 1402
   },
   {
    "docstring": null,
@@ -5953,8 +5953,8 @@
    "name": "Starlette.add_middleware",
    "signature": null,
    "type": "external",
-   "x": 2540.0,
-   "y": 1676.0
+   "x": 5766.1,
+   "y": 1464
   },
   {
    "docstring": null,
@@ -5966,8 +5966,8 @@
    "name": "HTMLResponse",
    "signature": null,
    "type": "external",
-   "x": 2710.0,
-   "y": 1676.0
+   "x": 5766.1,
+   "y": 1526
   }
  ],
  "repo": "fastapi/full-stack-fastapi-template",

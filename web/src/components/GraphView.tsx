@@ -3,10 +3,11 @@ import { motion } from 'framer-motion'
 import { useEffect, useImperativeHandle, useMemo, useRef, type Ref } from 'react'
 
 import { cssVar } from '@/lib/css'
+import { isInside } from '@/lib/filegraph'
 import { bayer, type GraphNode, type RunView } from '@/lib/run'
 import { isBelt, tabCentre, type Box, type Scene } from '@/lib/scene'
 import { Sky } from '@/lib/sky'
-import { useTraceStore, type FocusRequest, type View } from '@/store'
+import { useTraceStore, type FocusRequest, type PinnedLine, type View } from '@/store'
 import type { Graph } from '@/types/contracts/graph.schema'
 
 const SERIF = '"Instrument Serif", Georgia, serif'
@@ -26,6 +27,8 @@ const CAPTION_WIDTH = 280
 const CAPTION_GAP = 22
 const FRAME_PADDING = 40
 const LABEL_ROOM = 34
+const LABEL_LEFT_ROOM = 40
+const LABEL_RIGHT_ROOM = 420
 // Connections that explain how the code is wired rather than who calls whom. Hidden until asked for.
 const WIRING = new Set(['imports', 'injects', 'inherits', 'implements'])
 
@@ -127,7 +130,9 @@ function stylesheet(reducedMotion: boolean): cytoscape.StylesheetJson {
       selector: 'edge[type = "uncertain"]',
       style: { 'line-style': 'dashed', 'line-color': ice, 'target-arrow-color': ice, opacity: 0.95 },
     },
+    { selector: 'node.tucked', style: { display: 'none' } },
     { selector: 'node.hovered', style: { 'border-color': foreground } },
+    { selector: 'node.aside', style: { opacity: 0.3 } },
     { selector: 'node.lit', style: { opacity: 1, 'border-width': 3.5, 'border-color': gold } },
     { selector: 'node.current', style: { 'border-width': 5 } },
     { selector: 'node.unverified', style: { 'border-color': vermilion } },
@@ -138,6 +143,7 @@ function stylesheet(reducedMotion: boolean): cytoscape.StylesheetJson {
       selector: 'node.chosen',
       style: { 'outline-width': 1.5, 'outline-color': foreground, 'outline-offset': 5, opacity: 1 },
     },
+    { selector: 'node.faded', style: { opacity: 0.22 } },
     { selector: '.out-of-focus', style: { opacity: 0.07 } },
   ]
 }
@@ -147,9 +153,14 @@ interface Viewport {
   pan: cytoscape.Position
 }
 
+// Tucked away until asked for, so the opening view frames only the repo's own code.
+function mapBounds(scene: Scene): Box {
+  return useTraceStore.getState().showWiring ? scene.fullBounds : scene.bounds
+}
+
 function nodesBox(nodes: cytoscape.NodeCollection): Box {
   const box = nodes.boundingBox({ includeLabels: false })
-  return { x1: box.x1, y1: box.y1, x2: box.x2, y2: box.y2 + LABEL_ROOM }
+  return { x1: box.x1 - LABEL_LEFT_ROOM, y1: box.y1, x2: box.x2 + LABEL_RIGHT_ROOM, y2: box.y2 + LABEL_ROOM }
 }
 
 function fitBox(cy: cytoscape.Core, box: Box, rightInset: number): Viewport {
@@ -187,7 +198,7 @@ function fly(cy: cytoscape.Core, viewport: Viewport, duration: number, easing: E
 
 function plungeView(cy: cytoscape.Core, scene: Scene, { nodeId, module }: Plunge, rightInset: number): Viewport {
   const plate = scene.plateById.get(module)
-  if (!plate) return fitBox(cy, scene.bounds, rightInset)
+  if (!plate) return fitBox(cy, mapBounds(scene), rightInset)
   const { box } = plate
   const position = (nodeId ? scene.positions.get(nodeId) : undefined) ?? { x: (box.x1 + box.x2) / 2, y: (box.y1 + box.y2) / 2 }
   const zoom = Math.min(MAX_ZOOM, fitBox(cy, box, rightInset).zoom * PLUNGE_ZOOM)
@@ -195,7 +206,7 @@ function plungeView(cy: cytoscape.Core, scene: Scene, { nodeId, module }: Plunge
 }
 
 function moduleNodes(cy: cytoscape.Core, module: string) {
-  return cy.nodes().filter((node) => node.data('module') === module)
+  return cy.nodes().filter((node) => isInside(node.data('module'), module))
 }
 
 export interface Plunge {
@@ -228,11 +239,17 @@ export function GraphView({ graph, scene, run, rightInset, paused = false, camer
   const inset = useRef(rightInset)
   const lastView = useRef<View | null>(null)
   const lastFocus = useRef<FocusRequest | null>(null)
+  const lastWiring = useRef(false)
+  const wasRunning = useRef(false)
   const openNode = useTraceStore((state) => state.openNode)
   const clearSelection = useTraceStore((state) => state.clearSelection)
   const enterModule = useTraceStore((state) => state.enterModule)
   const selectedNode = useTraceStore((state) => state.selectedNode)
   const showWiring = useTraceStore((state) => state.showWiring)
+  const showCallLines = useTraceStore((state) => state.showCallLines)
+  const pinnedLine = useTraceStore((state) => state.pinnedLine)
+  const pinLine = useTraceStore((state) => state.pinLine)
+  const togglePinnedLine = useTraceStore((state) => state.togglePinnedLine)
   const view = useTraceStore((state) => state.view)
   const focusRequest = useTraceStore((state) => state.focusRequest)
   const nodesById = useMemo(() => new Map<string, GraphNode>(graph.nodes.map((node) => [node.id, node])), [graph])
@@ -277,7 +294,7 @@ export function GraphView({ graph, scene, run, rightInset, paused = false, camer
       autoungrabify: true,
       autounselectify: true,
     })
-    cy.viewport(fitBox(cy, scene.bounds, inset.current))
+    cy.viewport(fitBox(cy, mapBounds(scene), inset.current))
     const sky = new Sky(backCanvas.current!, frontCanvas.current!, cy, graph.nodes, scene)
     cyRef.current = cy
     skyRef.current = sky
@@ -296,8 +313,32 @@ export function GraphView({ graph, scene, run, rightInset, paused = false, camer
       window.clearTimeout(pendingTap)
       enterModule(event.target.id())
     })
+    // A hold pins the line at once, and the tap that ends the hold must not undo it.
+    let held = false
+    const lineUnder = (event: cytoscape.EventObject): PinnedLine | null =>
+      event.target === cy ? sky.lineAt(event.position) : null
+    cy.on('tapstart', () => {
+      held = false
+    })
+    cy.on('taphold', (event) => {
+      const line = lineUnder(event)
+      if (line) {
+        held = true
+        pinLine(line)
+      }
+    })
     cy.on('tap', (event) => {
-      if (event.target === cy) clearSelection()
+      if (event.target !== cy || held) return
+      const line = lineUnder(event)
+      if (line) {
+        togglePinnedLine(line)
+      } else {
+        clearSelection()
+        pinLine(null)
+      }
+    })
+    cy.on('mousemove', (event) => {
+      if (event.target === cy) container.current!.style.cursor = lineUnder(event) ? 'pointer' : ''
     })
     cy.on('mouseover', 'node', (event) => {
       event.target.addClass('hovered')
@@ -326,7 +367,7 @@ export function GraphView({ graph, scene, run, rightInset, paused = false, camer
     // The container is still settling on first paint, so the opening fit is redone until the camera has been moved.
     const resizing = new ResizeObserver(() => {
       cy.resize()
-      if (!cy.scratch('moved')) cy.viewport(fitBox(cy, scene.bounds, inset.current))
+      if (!cy.scratch('moved')) cy.viewport(fitBox(cy, mapBounds(scene), inset.current))
       sky.resize()
     })
     resizing.observe(container.current!)
@@ -341,7 +382,7 @@ export function GraphView({ graph, scene, run, rightInset, paused = false, camer
       lastView.current = null
       lastFocus.current = null
     }
-  }, [graph, scene, openNode, clearSelection, enterModule])
+  }, [graph, scene, openNode, clearSelection, enterModule, pinLine, togglePinnedLine])
 
   useEffect(() => {
     skyRef.current?.setPaused(paused)
@@ -376,11 +417,44 @@ export function GraphView({ graph, scene, run, rightInset, paused = false, camer
     const cy = cyRef.current
     if (!cy) return
     cy.edges('.wiring')[showWiring ? 'addClass' : 'removeClass']('shown')
+    skyRef.current?.setAllConnections(showWiring)
     skyRef.current?.draw()
   }, [showWiring, graph, scene])
 
+  useEffect(() => {
+    skyRef.current?.setCallLines(showCallLines)
+  }, [showCallLines, graph, scene])
+
+  useEffect(() => {
+    skyRef.current?.setPinnedLine(pinnedLine)
+  }, [pinnedLine, graph, scene])
+
+  // Outside libraries stay hidden unless asked for, or unless the answer or the selection lands on one.
+  const { phase, current, stars } = run
+  useEffect(() => {
+    const cy = cyRef.current
+    if (!cy) return
+    const kept = new Set(stars.map((star) => star.nodeId))
+    if (selectedNode) kept.add(selectedNode)
+    cy.batch(() => {
+      cy.nodes('[type = "external"]').forEach((node) => {
+        node.toggleClass('tucked', !showWiring && !kept.has(node.id()))
+      })
+    })
+  }, [stars, selectedNode, showWiring, graph, scene])
+
+  // Leaving a run, or changing what the map holds, goes back to the whole map.
+  useEffect(() => {
+    const cy = cyRef.current
+    const running = phase !== 'idle'
+    const left = wasRunning.current && !running
+    const rewired = lastWiring.current !== showWiring
+    wasRunning.current = running
+    lastWiring.current = showWiring
+    if (cy && !running && (left || rewired) && view.level === 'codebase') fly(cy, fitBox(cy, mapBounds(scene), inset.current), ZOOM_MS)
+  }, [phase, showWiring, view, scene])
+
   // The camera follows the walk, then pulls back to show the whole answer.
-  const { phase, current } = run
   useEffect(() => {
     const cy = cyRef.current
     if (!cy || phase !== 'walking' || !current) return
@@ -419,8 +493,7 @@ export function GraphView({ graph, scene, run, rightInset, paused = false, camer
       if (view.still) return
     }
 
-    const plate = view.module === null ? undefined : scene.plateById.get(view.module)
-    const box = view.module === null ? scene.bounds : (plate?.box ?? nodesBox(moduleNodes(cy, view.module)))
+    const box = view.module === null ? mapBounds(scene) : (scene.moduleBox(view.module) ?? nodesBox(moduleNodes(cy, view.module)))
     const frame = fitBox(cy, box, inset.current)
     if (focusChanged && focusRequest) {
       const position = cy.getElementById(focusRequest.nodeId).position()

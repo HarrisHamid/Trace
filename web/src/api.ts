@@ -14,11 +14,16 @@ export async function fetchSource(file: string): Promise<string> {
 }
 
 // EventSource only does GET, so the SSE stream from POST /api/ask is read by hand.
-export async function streamAsk(question: string, onEvent: (event: AgentEvent) => void): Promise<void> {
+export async function streamAsk(
+  question: string,
+  onEvent: (event: AgentEvent) => void,
+  signal: AbortSignal,
+): Promise<void> {
   const response = await fetch('/api/ask', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ question }),
+    signal,
   })
   if (!response.ok || !response.body) throw new Error(`POST /api/ask failed: ${response.status}`)
 

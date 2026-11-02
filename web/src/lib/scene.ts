@@ -1,5 +1,6 @@
 import { routeBetween, type Route } from '@/lib/belt'
 import { cssVar } from '@/lib/css'
+import { isInside } from '@/lib/filegraph'
 import type { GraphNode } from '@/lib/run'
 import type { Graph } from '@/types/contracts/graph.schema'
 
@@ -35,6 +36,8 @@ export interface Belt {
   colour: string
   route: Route
   broken: boolean
+  // Both ends sit on the same plate. Only these lines are drawn at rest.
+  local: boolean
 }
 
 export interface Reach {
@@ -46,9 +49,14 @@ export interface Scene {
   plates: Plate[]
   plateById: Map<string, Plate>
   plateIdOf: Map<string, string>
+  // The repo's own plates. fullBounds adds the plate of outside libraries, which is hidden until asked for.
   bounds: Box
+  fullBounds: Box
   positions: Map<string, Point>
   belts: Belt[]
+  neighbours: Map<string, Set<string>>
+  // The plates a module or folder covers, or null when it has nothing on the map.
+  moduleBox: (module: string) => Box | null
   routeOf: (from: string, to: string) => Route | null
   reach: Map<string, Reach>
   colourOf: (node: GraphNode) => string
@@ -58,14 +66,21 @@ export const EXTERNAL_PLATE = '__external__'
 export const PLATE_DEPTH = 10
 
 const MODULE_COLOURS = 6
-const PAD = { x: 110, top: 92, bottom: 70 }
-const TAB = { height: 30, left: 22, top: 16, base: 44, perChar: 9.2 }
+// PAD, TAB and LABEL mirror backend/trace/parser/layout.py, which leaves room for them in the positions it bakes.
+const PAD = { x: 52, right: 35, top: 100, bottom: 80 }
+const TAB = { height: 44, left: 22, top: 14, base: 64, perChar: 17 }
+const LABEL = { base: 105, perChar: 14.85 }
 const BELT_EDGES = new Set(['calls', 'routes_to', 'uncertain'])
 const REACH_EDGES = new Set(['calls', 'routes_to', 'uncertain'])
 
 // A function calling itself has no length to lay a belt along, so it stays a Cytoscape loop.
 export function isBelt(edge: Graph['edges'][number], target: GraphNode | undefined) {
   return BELT_EDGES.has(edge.type) && target?.type !== 'external' && edge.source !== edge.target
+}
+
+// Where a node's label stops, counted from the node.
+export function labelEnd(node: GraphNode) {
+  return (node.x ?? 0) + LABEL.base + LABEL.perChar * node.name.length
 }
 
 export function tabCentre(plate: Plate): Point {
@@ -85,7 +100,7 @@ function makePlate(
   const tabWidth = TAB.base + TAB.perChar * name.length
   const x1 = Math.min(...xs) - PAD.x
   const y1 = Math.min(...ys) - PAD.top
-  const x2 = Math.max(Math.max(...xs) + PAD.x, x1 + tabWidth + TAB.left * 2)
+  const x2 = Math.max(Math.max(...members.map(labelEnd)) + PAD.right, x1 + tabWidth + TAB.left * 2)
   const y2 = Math.max(...ys) + PAD.bottom
   const tab = {
     x1: x1 + TAB.left,
@@ -94,6 +109,16 @@ function makePlate(
     y2: y1 + TAB.top + TAB.height,
   }
   return { id, name, caption, colour, box: { x1, y1, x2, y2 }, tab, external, members: members.map((node) => node.id) }
+}
+
+function boundsOf(plates: Plate[]): Box {
+  const boxes = plates.map((plate) => plate.box)
+  return {
+    x1: Math.min(...boxes.map((box) => box.x1)),
+    y1: Math.min(...boxes.map((box) => box.y1)),
+    x2: Math.max(...boxes.map((box) => box.x2)),
+    y2: Math.max(...boxes.map((box) => box.y2)) + PLATE_DEPTH,
+  }
 }
 
 export function buildScene(graph: Graph): Scene {
@@ -144,6 +169,11 @@ export function buildScene(graph: Graph): Scene {
   const belts: Belt[] = []
   const laid = new Set<string>()
   const reach = new Map<string, Reach>()
+  const neighbours = new Map<string, Set<string>>()
+  const link = (from: string, to: string) => {
+    if (!neighbours.has(from)) neighbours.set(from, new Set())
+    neighbours.get(from)!.add(to)
+  }
   const count = (id: string, key: keyof Reach) => {
     const entry = reach.get(id) ?? { calls: 0, calledBy: 0 }
     entry[key] += 1
@@ -164,16 +194,25 @@ export function buildScene(graph: Graph): Scene {
     if (isBelt(edge, nodesById.get(edge.target)) && !laid.has(pair)) {
       laid.add(pair)
       const route = routeOf(edge.source, edge.target)!
-      belts.push({ from: edge.source, to: edge.target, colour: colourOf(source), route, broken: edge.type === 'uncertain' })
+      belts.push({
+        from: edge.source,
+        to: edge.target,
+        colour: colourOf(source),
+        route,
+        broken: edge.type === 'uncertain',
+        local: plateIdOf.get(edge.source) === plateIdOf.get(edge.target),
+      })
+      link(edge.source, edge.target)
+      link(edge.target, edge.source)
     }
   }
 
-  const boxes = plates.map((plate) => plate.box)
-  const bounds = {
-    x1: Math.min(...boxes.map((box) => box.x1)),
-    y1: Math.min(...boxes.map((box) => box.y1)),
-    x2: Math.max(...boxes.map((box) => box.x2)),
-    y2: Math.max(...boxes.map((box) => box.y2)) + PLATE_DEPTH,
+  const own = plates.filter((plate) => !plate.external)
+  const bounds = boundsOf(own.length > 0 ? own : plates)
+  const fullBounds = boundsOf(plates)
+  const moduleBox = (module: string) => {
+    const inside = own.filter((plate) => isInside(plate.id, module))
+    return inside.length > 0 ? boundsOf(inside) : null
   }
-  return { plates, plateById, plateIdOf, bounds, positions, belts, routeOf, reach, colourOf }
+  return { plates, plateById, plateIdOf, bounds, fullBounds, positions, belts, neighbours, moduleBox, routeOf, reach, colourOf }
 }

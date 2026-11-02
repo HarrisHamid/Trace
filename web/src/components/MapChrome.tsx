@@ -1,4 +1,4 @@
-import { ChevronRight, Search } from 'lucide-react'
+import { ArrowRight, ChevronRight, Search, X } from 'lucide-react'
 
 import { NodeGlyph } from '@/components/Glyphs'
 import { MAP_HASH } from '@/lib/route'
@@ -66,6 +66,59 @@ export function TopBar({ graph, moduleName, file }: TopBarProps) {
   )
 }
 
+interface PinnedLineChipProps {
+  from: string
+  to: string
+  rightInset: number
+  onClear: () => void
+}
+
+export function PinnedLineChip({ from, to, rightInset, onClear }: PinnedLineChipProps) {
+  return (
+    <div
+      className="pointer-events-none absolute top-16 left-7 flex justify-center transition-[right] duration-300"
+      style={{ right: rightInset }}
+    >
+      <div className="glass pointer-events-auto flex items-center gap-2 border-primary/60 py-1 pr-1 pl-3 text-xs">
+        <span>{from}</span>
+        <ArrowRight aria-hidden className="size-3.5 text-primary" />
+        <span>{to}</span>
+        <button
+          onClick={onClear}
+          className="ml-1 flex items-center gap-1.5 px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <X aria-hidden className="size-3.5" />
+          Unselect
+          <kbd className="border border-border px-1 text-[10px]">esc</kbd>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+interface ToggleProps {
+  on: boolean
+  disabled?: boolean
+  onClick: () => void
+  label: string
+}
+
+function Toggle({ on, disabled = false, onClick, label }: ToggleProps) {
+  return (
+    <button
+      aria-pressed={on}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        'glass shrink-0 px-2.5 py-1.5 transition-colors hover:text-foreground disabled:opacity-50 disabled:hover:text-muted-foreground',
+        on && 'border-primary/60 text-foreground',
+      )}
+    >
+      {on ? 'Hide' : 'Show'} {label}
+    </button>
+  )
+}
+
 function Sample({ className, label }: { className: string; label: string }) {
   return (
     <span className="flex items-center gap-1.5">
@@ -75,18 +128,33 @@ function Sample({ className, label }: { className: string; label: string }) {
   )
 }
 
-export function Legend({ graph, rightInset }: { graph: Graph; rightInset: number }) {
+interface LegendProps {
+  graph: Graph
+  rightInset: number
+  hint: boolean
+}
+
+export function Legend({ graph, rightInset, hint }: LegendProps) {
   const { stats } = graph
   const showWiring = useTraceStore((state) => state.showWiring)
   const setShowWiring = useTraceStore((state) => state.setShowWiring)
+  const showCallLines = useTraceStore((state) => state.showCallLines)
+  const setShowCallLines = useTraceStore((state) => state.setShowCallLines)
   const internalCalls = stats.calls_resolved + stats.calls_uncertain
   return (
     <footer
       className="absolute bottom-5 left-7 flex items-center gap-4 overflow-hidden text-[10px] whitespace-nowrap text-muted-foreground transition-[right] duration-300"
       style={{ right: rightInset }}
     >
+      <Toggle
+        on={showCallLines || showWiring}
+        disabled={showWiring}
+        onClick={() => setShowCallLines(!showCallLines)}
+        label="call lines"
+      />
+      <Toggle on={showWiring} onClick={() => setShowWiring(!showWiring)} label="all connections" />
       <div className="glass flex items-center gap-4 px-3 py-1.5">
-        {SHAPES.map(({ type, label }) => (
+        {SHAPES.filter(({ type }) => (stats.nodes_by_type[type] ?? 0) > 0).map(({ type, label }) => (
           <span key={type} className="flex items-center gap-1.5">
             <NodeGlyph type={type} />
             {label}
@@ -97,17 +165,8 @@ export function Legend({ graph, rightInset }: { graph: Graph; rightInset: number
         <Sample className="border-t-2 border-dashed border-gap" label="uncertain" />
         <Sample className="belt-sample" label="the answer" />
       </div>
-      <button
-        aria-pressed={showWiring}
-        onClick={() => setShowWiring(!showWiring)}
-        className={cn(
-          'glass px-2.5 py-1.5 transition-colors hover:text-foreground',
-          showWiring && 'border-primary/60 text-foreground',
-        )}
-      >
-        {showWiring ? 'Hide' : 'Show'} all connections
-      </button>
       <span className="ml-auto">
+        {hint && 'Hover a node · click a line · '}
         {stats.calls_resolved}/{internalCalls} internal calls resolved · externals by rule
       </span>
     </footer>

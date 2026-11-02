@@ -8,9 +8,9 @@ import { CommandPalette } from '@/components/CommandPalette'
 import { FileBlocks, type FileCamera } from '@/components/FileBlocks'
 import { FileBar, FileMessage } from '@/components/FileChrome'
 import { GraphView, type MapCamera } from '@/components/GraphView'
-import { Legend, TopBar } from '@/components/MapChrome'
+import { Legend, PinnedLineChip, TopBar } from '@/components/MapChrome'
 import { LOG_WIDTH, ObservationLog } from '@/components/ObservationLog'
-import { buildFileGraph, EXTERNAL_FILE } from '@/lib/filegraph'
+import { buildFileGraph, EXTERNAL_FILE, isInside } from '@/lib/filegraph'
 import { fileHash, fileRoute, MAP_HASH, readHash, subscribeToHash } from '@/lib/route'
 import { deriveRun, nextDelay, type GraphNode } from '@/lib/run'
 import { buildScene } from '@/lib/scene'
@@ -53,12 +53,14 @@ export function Workspace() {
   const view = useTraceStore((state) => state.view)
   const codePanel = useTraceStore((state) => state.codePanel)
   const paletteOpen = useTraceStore((state) => state.paletteOpen)
-  const { startRun, addEvent, finishRun, closeCode, exitModule, enterModule, openNode, focusNode, selectNode } =
+  const pinnedLine = useTraceStore((state) => state.pinnedLine)
+  const { pinLine, startRun, clearRun, addEvent, finishRun, clearSelection, exitModule, enterModule, openNode, focusNode, selectNode } =
     useTraceStore()
 
   const route = fileRoute(useSyncExternalStore(subscribeToHash, readHash))
   const mapCamera = useRef<MapCamera>(null)
   const fileCamera = useRef<FileCamera>(null)
+  const asking = useRef<AbortController | null>(null)
 
   usePlayback()
 
@@ -70,16 +72,24 @@ export function Workspace() {
   const dive = useDive({ route, ready: graph !== null, pageOf, map: mapCamera, file: fileCamera })
   const moving = dive.stage === 'dive' || dive.stage === 'back'
 
+  const exitRun = useCallback(() => {
+    asking.current?.abort()
+    clearRun()
+  }, [clearRun])
+
+  const inRun = agentRun.status !== 'idle'
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== 'Escape' || paletteOpen || moving) return
-      if (codePanel) closeCode()
+      if (codePanel) clearSelection()
       else if (route) window.location.hash = MAP_HASH
+      else if (pinnedLine) pinLine(null)
       else if (view.level === 'file') exitModule()
+      else if (inRun) exitRun()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [paletteOpen, moving, route, codePanel, view, closeCode, exitModule])
+  }, [paletteOpen, moving, route, codePanel, view, inRun, pinnedLine, pinLine, clearSelection, exitModule, exitRun])
 
   const run = useMemo(() => (graph ? deriveRun(graph, agentRun, playback) : null), [graph, agentRun, playback])
   const scene = useMemo(() => (graph ? buildScene(graph) : null), [graph])
@@ -87,11 +97,14 @@ export function Workspace() {
   const page = useMemo(() => (dive.mounted ? pageOf(dive.mounted) : null), [dive.mounted, pageOf])
 
   async function ask(question: string) {
+    const controller = new AbortController()
+    asking.current = controller
     startRun(question)
     try {
-      await streamAsk(question, addEvent)
-      finishRun('done')
+      await streamAsk(question, addEvent, controller.signal)
+      if (!controller.signal.aborted) finishRun('done')
     } catch (error) {
+      if (controller.signal.aborted) return
       addEvent({ type: 'error', message: (error as Error).message })
       finishRun('error')
     }
@@ -109,7 +122,7 @@ export function Workspace() {
       return
     }
     const inModule = nodesById.has(node.module)
-    if (view.level === 'file' && view.module !== node.module) {
+    if (view.level === 'file' && view.module !== null && !isInside(node.module, view.module)) {
       if (inModule) enterModule(node.module)
       else exitModule()
     }
@@ -174,8 +187,16 @@ export function Workspace() {
               moduleName={view.module ? (nodesById.get(view.module)?.name ?? view.module) : null}
               file={route}
             />
+            {pinnedLine && onMap && (
+              <PinnedLineChip
+                from={nodesById.get(pinnedLine.from)?.name ?? pinnedLine.from}
+                to={nodesById.get(pinnedLine.to)?.name ?? pinnedLine.to}
+                rightInset={rightInset}
+                onClear={() => pinLine(null)}
+              />
+            )}
             <div className={fadeChrome(dive.stage === 'map')} inert={dive.stage !== 'map'}>
-              <Legend graph={graph} rightInset={rightInset} />
+              <Legend graph={graph} rightInset={rightInset} hint={!logOpen && !codeNode} />
               <AskBar
                 busy={run.phase === 'walking' || run.phase === 'revealing'}
                 rightInset={rightInset}
@@ -189,7 +210,7 @@ export function Workspace() {
             )}
             {route && dive.stage === 'file' && !page?.hasCanvas && <FileMessage file={route} page={page} />}
             <AnimatePresence>
-              {logOpen && <ObservationLog key="log" run={run} scene={scene} nodesById={nodesById} />}
+              {logOpen && <ObservationLog key="log" run={run} scene={scene} nodesById={nodesById} onExit={exitRun} />}
             </AnimatePresence>
             <AnimatePresence>
               {codeNode && (
@@ -204,7 +225,7 @@ export function Workspace() {
                       ? undefined
                       : () => goToFile(codeNode.file)
                   }
-                  onClose={closeCode}
+                  onClose={clearSelection}
                 />
               )}
             </AnimatePresence>

@@ -53,6 +53,11 @@ export function fileList(graph: Graph) {
   return graph.nodes.filter((node) => node.type === 'module').map((node) => node.file)
 }
 
+// A folder is a module too, so focusing on one takes in everything below it.
+export function isInside(module: string, focus: string) {
+  return module === focus || module.startsWith(`${focus}.`)
+}
+
 export function buildFileGraph(graph: Graph, file: string): FileGraph | null {
   const module = graph.nodes.find((node) => node.type === 'module' && node.file === file)
   if (!module) return null
