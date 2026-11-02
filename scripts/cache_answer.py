@@ -11,6 +11,11 @@ from backend.trace.tools import GraphIndex
 
 async def main(question: str) -> int:
     settings = Settings()
+    path = answer_path(settings.trace_data_dir, question)
+    # Answers vary between runs, and the demo depends on the saved one, so replacing it takes deleting it first.
+    if path.exists():
+        print(f"not cached: {path} already exists", file=sys.stderr)
+        return 1
     index = GraphIndex.load(settings.trace_data_dir / "graph.json", settings.trace_source_dir)
     client = model_client(settings)
     events = [event async for event in run_agent(question, client=client, model=settings.meta_model, index=index)]
@@ -18,7 +23,6 @@ async def main(question: str) -> int:
     if failure:
         print(f"not cached: {failure.message}", file=sys.stderr)
         return 1
-    path = answer_path(settings.trace_data_dir, question)
     path.parent.mkdir(exist_ok=True)
     path.write_text("".join(event.model_dump_json(exclude_none=True) + "\n" for event in events), encoding="utf-8")
     print(f"wrote {path}")

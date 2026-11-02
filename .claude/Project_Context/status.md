@@ -99,9 +99,8 @@ settled on 2026-11-01 as recommended and are recorded in `docs/prds/02-agent-val
    several implementations). The validator can compute this. Update the description in `events.py`, then run `make schemas`.
 5. **Settled: external stubs** are one node per distinct callee and one edge per call site.
 6. **Settled: report data** lives in `report.json` next to `graph.json`.
-7. **How much should the validator trust an edge to an external node?** The call site is real, but under `<unknown>` the
-   stub's identity rests on a rule. Recommendation: a path may end at one, and the claim about what the library does stays
-   `unverified` unless a quote backs it.
+7. **Settled 2026-11-02: an edge to an external node gives a verified link claim, and nothing more.** A path may end at
+   one, and any model claim on that step stays `unverified`, even with a quote from the call site.
 
 ## Stale facts in older docs
 

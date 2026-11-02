@@ -55,14 +55,16 @@ The validator is a pure function of the model's draft, the graph and the source 
 | First step | Verified claim stating where the node is defined, so no step has an empty claim list |
 | Model claim whose quote appears in the node's own lines | `verified` |
 | Model claim with no quote, a quote under 12 characters, or a quote not found | `unverified`, and a failed quote is removed so it is never displayed |
+| Model claim on an external or unresolved step | `unverified`, with its quote removed |
 
 Whitespace is collapsed before quotes are compared. Quotes are checked against the original files.
 
 **Source location.** The tools, the validator and the Code panel all read `TRACE_SOURCE_DIR`, so a quote that passes is
 the same text the user can open.
 
-**External and unresolved nodes.** A path may end at one, but neither has source in the repo. A quote on such a step is
-checked against the previous step's source, which is the call site. With no such quote, the claim stays `unverified`.
+**External and unresolved nodes.** A path may end at one, but neither has source in the repo. The link claim records the
+call. A model claim on such a step stays `unverified` whatever it quotes, because the line that calls a library proves
+the call and says nothing of what the library does.
 
 ## What "verified" means
 
@@ -78,7 +80,8 @@ what measures whether answers are correct.
 2. `answers/<slug>.jsonl` exists for this question: replay it. This is how the demo avoids live latency.
 3. Otherwise, run the real loop.
 
-`scripts/cache_answer.py` runs the loop once and writes the cache file.
+`scripts/cache_answer.py` runs the loop once and writes the cache file. It refuses to replace a file that exists, because
+answers vary between runs and the demo depends on the saved one.
 
 ## Done when
 

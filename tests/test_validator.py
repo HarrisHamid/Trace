@@ -121,11 +121,13 @@ def test_a_claim_about_a_library_without_a_quote_stays_unverified(index):
     assert [c.status for c in steps[1].claims] == ["verified", "unverified"]
 
 
-def test_a_quote_on_an_external_step_is_checked_at_the_call_site(index):
+def test_the_call_site_proves_the_call_but_not_what_the_library_does(index):
     source = index.node_source(index.nodes[VERIFY])
     call_site = next(line.strip() for line in source.splitlines() if "bcrypt.verify" in line)
-    steps = validate_path(path(step(VERIFY), step(BCRYPT, ("It calls bcrypt.", call_site))), index)
-    assert steps[1].claims[1].status == "verified"
+    steps = validate_path(path(step(VERIFY), step(BCRYPT, ("bcrypt rejects a bad hash.", call_site))), index)
+    link, claim = steps[1].claims
+    assert (link.status, claim.status) == ("verified", "unverified")
+    assert claim.quote is None
 
 
 def test_a_quote_cannot_verify_an_external_step_with_no_step_before_it(index):

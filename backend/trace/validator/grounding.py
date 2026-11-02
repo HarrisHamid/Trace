@@ -72,10 +72,13 @@ def link_claim(previous: Node, current: Node, index: GraphIndex) -> Claim:
     return Claim(text=f"No edge in the graph joins {previous.name} to {current.name}.", status="gap")
 
 
-def check_claim(claim: DraftClaim, node: Node, previous: Node | None, index: GraphIndex) -> Claim:
-    """External and unresolved nodes have no source, so their quotes are checked at the call site."""
-    owner = previous if node.type in NO_SOURCE_TYPES else node
-    source = index.node_source(owner) if owner else None
+def check_claim(claim: DraftClaim, node: Node, index: GraphIndex) -> Claim:
+    """A quote must come from the node's own lines.
+
+    External and unresolved nodes have none in the repo. The line that calls one proves the call, which the link claim
+    already states, and says nothing of what the library does, so a claim about that stays unverified.
+    """
+    source = index.node_source(node)
     quote = _flat(claim.quote)
     if source is None or len(quote) < MIN_QUOTE_CHARS or quote not in _flat(source):
         return Claim(text=claim.text, status="unverified")
@@ -93,7 +96,7 @@ def validate_path(draft: DraftPath, index: GraphIndex) -> list[PathStep]:
         if previous is not None and node.id == previous.id:
             continue
         first_claim = link_claim(previous, node, index) if previous else _location_claim(node)
-        model_claims = [check_claim(claim, node, previous, index) for claim in step.claims]
+        model_claims = [check_claim(claim, node, index) for claim in step.claims]
         steps.append(PathStep(node_id=node.id, explanation=step.explanation, claims=[first_claim, *model_claims]))
         previous = node
     return steps

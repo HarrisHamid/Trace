@@ -1,4 +1,5 @@
 import os
+from itertools import pairwise
 
 import pytest
 
@@ -80,7 +81,7 @@ def test_a_label_stops_before_the_next_node_on_its_row(graph):
             rows.setdefault((n["module"], n["y"]), []).append(n)
     for row in rows.values():
         row.sort(key=lambda n: n["x"])
-        for left, right in zip(row, row[1:]):
+        for left, right in pairwise(row):
             assert left["x"] + label_span(left["name"]) < right["x"], f"{left['id']} runs into {right['id']}"
 
 

@@ -101,7 +101,7 @@ replaces learning mode for this submission. Learning mode's notes are kept. Spec
 - **Chat Completions, not the Responses API.** A live test passed on it, so there was no reason to change.
 - **The model's output has no `status` field,** so it cannot mark its own claims. The validator writes every link claim from the graph.
 - **Verified is narrower than true.** It means the edge or the quoted text exists. A model sentence can overstate a real quote, and only the eval can measure that.
-- **A quote on an external step is checked at the call site,** because the library's code is not in the graph. Such a quote proves the call, not what the library does.
+- **A claim on an external step stays `unverified`, whatever it quotes.** The library's code is not in the graph, so the line that calls it proves the call and nothing about what the library does. The link claim states the call. This was tightened on 2026-11-02, and neither cached answer had such a step.
 - **A class and its method have no edge,** so the model is told to go straight to the method. A hop through one is flagged as a gap, as the gap rule says.
 - **A path can revisit a node** when execution returns to it, so `ObservationLog.tsx` keys steps by position as well as id.
 - **Answers vary between runs.** The same login question gave 4 clean steps once and 7 steps with a gap another time, so the demo must replay a cached run.
