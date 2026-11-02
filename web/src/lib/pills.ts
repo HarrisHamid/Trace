@@ -1,10 +1,12 @@
 import { cssVar } from '@/lib/css'
+import { isInside } from '@/lib/filegraph'
 import type { GraphNode, StarStatus } from '@/lib/run'
 import type { Plate, Point, Scene } from '@/lib/scene'
 
-// The label cards drawn above the graph: one per node, a tab on every plate, and the plate captions. Text sizes are
-// clamped so they stay readable when the camera pulls back, and a collision pass hides the lowest-priority labels
-// instead of letting them pile up.
+// The label cards drawn above the graph: one per node, a tab on every plate, and the plate captions. A card hangs just
+// below and to the right of its node, under the node's line. Cards grow and shrink with the map so they stay on their
+// plate, within limits that keep them readable, and a collision pass hides the lowest-priority labels instead of
+// letting them pile up.
 
 const MONO = '"JetBrains Mono Variable", monospace'
 const CARD = 'rgba(10,12,19,0.93)'
@@ -12,9 +14,13 @@ const HAIRLINE = 'rgba(196,206,232,0.18)'
 const TEXT = '#dfe2ee'
 const MUTED = '#8f95ad'
 const DARK = '#0a0c12'
-const MIN_SCALE = 0.9
+const MIN_SCALE = 0.78
 const MAX_SCALE = 1.2
-const MIN_LABEL_ZOOM = 0.42
+// A card is 0.9 of its full size at zoom 0.4, the zoom LABEL in scene.ts is measured at.
+const SCALE_PER_ZOOM = 2.25
+const CARD_REACH = 520
+// Low enough that the map with every outside library still has its labels at the minimum supported width of 1280px.
+const MIN_LABEL_ZOOM = 0.18
 const MIN_CAPTION_ZOOM = 0.55
 
 const NODE_RADIUS: Record<GraphNode['type'], number> = {
@@ -56,6 +62,10 @@ export interface PillState {
   hover: string | null
   selected: string | null
   focusModule: string | null
+  near: Set<string> | null
+  // A pinned line outranks the answer, so even lit stars step back unless the line touches them.
+  pinned: boolean
+  showOutside: boolean
   plateAlpha: (plate: Plate) => number
 }
 
@@ -117,7 +127,7 @@ export class LabelPainter {
 
   drawPills(ctx: CanvasRenderingContext2D, frame: Frame, state: PillState) {
     const { zoom, pan, width, height } = frame
-    const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, zoom))
+    const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, zoom * SCALE_PER_ZOOM))
     const font = `${11 * scale}px ${MONO}`
     const small = `${9.5 * scale}px ${MONO}`
     const items: Item[] = []
@@ -126,12 +136,14 @@ export class LabelPainter {
       if (node.type === 'module') continue
       const lit = state.lit.get(node.id)
       const shown = node.id === state.hover || node.id === state.selected
-      const forced = lit !== undefined || shown
+      const near = state.near?.has(node.id) ?? false
+      const forced = lit !== undefined || shown || near
+      if (node.type === 'external' && !state.showOutside && !forced) continue
       if (zoom < MIN_LABEL_ZOOM && !forced) continue
       const centre = this.scene.positions.get(node.id)!
       const x = centre.x * zoom + pan.x
       const y = centre.y * zoom + pan.y
-      if (x < -120 || x > width + 120 || y < -60 || y > height + 60) continue
+      if (x < -CARD_REACH || x > width + 60 || y < -60 || y > height + 60) continue
 
       const mark = lit ? 15 * scale : 8 * scale
       let cardWidth = 9 * scale + mark + 7 * scale + this.measure(ctx, font, node.name) + 9 * scale
@@ -144,15 +156,16 @@ export class LabelPainter {
         cardHeight += 15 * scale
       }
       let alpha = 1
-      if (state.focusModule !== null && node.module !== state.focusModule) alpha = 0.12
-      else if (state.active && !lit) alpha = 0.35
+      const dimmed = state.near ? !near : state.active
+      if (state.focusModule !== null && !isInside(node.module, state.focusModule)) alpha = 0.12
+      else if (dimmed && (!lit || state.pinned)) alpha = 0.35
       items.push({
         node,
-        x: x - cardWidth / 2,
-        y: y + NODE_RADIUS[node.type] * zoom + 6 * scale,
+        x: x + NODE_RADIUS[node.type] * zoom + 4 * scale,
+        y: y + 3 * scale,
         width: cardWidth,
         height: cardHeight,
-        priority: forced ? 10 : PRIORITY[node.type],
+        priority: lit || shown ? 10 : near ? 5 : PRIORITY[node.type],
         alpha,
         lit,
         value,

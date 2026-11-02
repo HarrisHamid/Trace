@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, LoaderCircle, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { StatusGlyph } from '@/components/Glyphs'
@@ -171,13 +171,32 @@ function Tally({ tally }: { tally: NonNullable<RunView['tally']> }) {
   )
 }
 
+// Stays up from the question until the answer starts to draw, which covers the long wait for the final model call.
+function RunStatus({ phase }: { phase: RunView['phase'] }) {
+  if (phase === 'walking') {
+    return (
+      <p role="status" className="flex items-center gap-2 font-serif text-xl leading-none text-primary italic">
+        <LoaderCircle aria-hidden className="size-5 animate-spin motion-reduce:animate-none" />
+        Agent is cooking
+      </p>
+    )
+  }
+  return (
+    <p className="kicker flex items-center gap-2" aria-live="polite">
+      {phase === 'revealing' && <span className="size-1.5 animate-pulse rounded-full bg-primary motion-reduce:animate-none" />}
+      {phase === 'revealing' ? 'Tracing' : 'Observation log'}
+    </p>
+  )
+}
+
 interface ObservationLogProps {
   run: RunView
   scene: Scene
   nodesById: Map<string, GraphNode>
+  onExit: () => void
 }
 
-export function ObservationLog({ run, scene, nodesById }: ObservationLogProps) {
+export function ObservationLog({ run, scene, nodesById, onExit }: ObservationLogProps) {
   const list = useRef<HTMLOListElement>(null)
   const selectedNode = useTraceStore((state) => state.selectedNode)
   const running = run.phase === 'walking' || run.phase === 'revealing'
@@ -199,10 +218,17 @@ export function ObservationLog({ run, scene, nodesById }: ObservationLogProps) {
       style={{ width: LOG_WIDTH }}
     >
       <header className="px-5 pt-4 pb-3">
-        <p className="kicker flex items-center gap-2" aria-live="polite">
-          {running && <span className="size-1.5 animate-pulse rounded-full bg-primary motion-reduce:animate-none" />}
-          {running ? 'Tracing' : 'Observation log'}
-        </p>
+        <div className="flex min-h-7 items-center justify-between gap-3">
+          <RunStatus phase={run.phase} />
+          <button
+            onClick={onExit}
+            className="flex shrink-0 items-center gap-1.5 border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"
+          >
+            <X aria-hidden className="size-3.5" />
+            Exit walkthrough
+            <kbd className="border border-border px-1 text-[10px]">esc</kbd>
+          </button>
+        </div>
         <h2 className="mt-1.5 font-serif text-3xl leading-tight">{run.question}</h2>
         {run.tally && <Tally tally={run.tally} />}
         <Trace traces={run.traces} running={running} />

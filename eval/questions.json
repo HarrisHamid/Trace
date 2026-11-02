@@ -8,7 +8,7 @@
       "question": "How does login work?",
       "must_reach": ["app.api.routes.login:login_access_token", "app.crud:authenticate", "app.core.security:verify_password", "app.core.security:create_access_token"],
       "should_reach": ["app.crud:get_user_by_email"],
-      "human_checked": false
+      "human_checked": true
     },
     {
       "id": "password-recovery-email",
@@ -22,7 +22,7 @@
       "question": "What happens when a user submits a new password with a reset token?",
       "must_reach": ["app.api.routes.login:reset_password", "app.utils:verify_password_reset_token", "app.crud:update_user"],
       "should_reach": ["app.crud:get_user_by_email", "app.core.security:get_password_hash"],
-      "human_checked": false
+      "human_checked": true
     },
     {
       "id": "current-user",
@@ -43,7 +43,7 @@
       "question": "What happens when a signed-in user creates an item?",
       "must_reach": ["app.api.routes.items:create_item", "app.api.deps:get_current_user"],
       "should_reach": ["app.api.deps:get_db"],
-      "human_checked": false
+      "human_checked": true
     },
     {
       "id": "delete-user",

@@ -29,6 +29,12 @@ export interface CodePanel {
   quote: string | null
 }
 
+// One call line or one hop of the answer, picked out on the map.
+export interface PinnedLine {
+  from: string
+  to: string
+}
+
 export interface FocusRequest {
   nodeId: string
   nonce: number
@@ -43,6 +49,8 @@ interface TraceStore {
   codePanel: CodePanel | null
   focusRequest: FocusRequest | null
   showWiring: boolean
+  showCallLines: boolean
+  pinnedLine: PinnedLine | null
   learningMode: boolean
   nodeStates: Record<string, NodeState>
   openNode: (id: string, quote?: string | null) => void
@@ -54,7 +62,11 @@ interface TraceStore {
   exitModule: () => void
   setPaletteOpen: (open: boolean) => void
   setShowWiring: (on: boolean) => void
+  setShowCallLines: (on: boolean) => void
+  pinLine: (line: PinnedLine | null) => void
+  togglePinnedLine: (line: PinnedLine) => void
   startRun: (question: string) => void
+  clearRun: () => void
   addEvent: (event: AgentEvent) => void
   finishRun: (status: 'done' | 'error') => void
   advancePlayback: () => void
@@ -63,16 +75,20 @@ interface TraceStore {
 }
 
 const CODEBASE: View = { level: 'codebase', module: null }
+const NO_RUN: AgentRun = { status: 'idle', question: '', events: [] }
+const NO_PLAYBACK: Playback = { cursor: 0, pathStep: 0 }
 
 export const useTraceStore = create<TraceStore>((set) => ({
   selectedNode: null,
-  agentRun: { status: 'idle', question: '', events: [] },
-  playback: { cursor: 0, pathStep: 0 },
+  agentRun: NO_RUN,
+  playback: NO_PLAYBACK,
   view: CODEBASE,
   paletteOpen: false,
   codePanel: null,
   focusRequest: null,
   showWiring: false,
+  showCallLines: false,
+  pinnedLine: null,
   learningMode: false,
   nodeStates: {},
   openNode: (id, quote = null) => set({ selectedNode: id, codePanel: { nodeId: id, quote } }),
@@ -85,13 +101,22 @@ export const useTraceStore = create<TraceStore>((set) => ({
   exitModule: () => set({ view: CODEBASE }),
   setPaletteOpen: (open) => set({ paletteOpen: open }),
   setShowWiring: (on) => set({ showWiring: on }),
+  setShowCallLines: (on) => set({ showCallLines: on }),
+  pinLine: (line) => set({ pinnedLine: line }),
+  togglePinnedLine: (line) =>
+    set(({ pinnedLine }) => ({
+      pinnedLine: pinnedLine?.from === line.from && pinnedLine.to === line.to ? null : line,
+    })),
   startRun: (question) =>
     set({
       agentRun: { status: 'running', question, events: [] },
-      playback: { cursor: 0, pathStep: 0 },
+      playback: NO_PLAYBACK,
       view: CODEBASE,
       codePanel: null,
+      pinnedLine: null,
     }),
+  clearRun: () =>
+    set({ agentRun: NO_RUN, playback: NO_PLAYBACK, selectedNode: null, codePanel: null, pinnedLine: null }),
   addEvent: (event) =>
     set((state) => ({ agentRun: { ...state.agentRun, events: [...state.agentRun.events, event] } })),
   finishRun: (status) => set((state) => ({ agentRun: { ...state.agentRun, status } })),

@@ -105,6 +105,11 @@ export function pointAlong(route: Route, distance: number): Point {
   return { x: from.x + (to.x - from.x) * blend, y: from.y + (to.y - from.y) * blend }
 }
 
+// How far a point on the map is from a route. Routes are sampled every few units, so the nearest sample is close enough.
+export function distanceToRoute(route: Route, point: Point): number {
+  return Math.min(...route.points.map((sample) => Math.hypot(sample.x - point.x, sample.y - point.y)))
+}
+
 // The conveyor stops shrinking with the camera, so the answer stays readable on a large map.
 export function beltHalfWidth(zoom: number) {
   return Math.max(MIN_HALF_WIDTH, HALF_WIDTH * zoom)

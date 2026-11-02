@@ -2,8 +2,9 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 
+import { distanceToRoute, routeBetween } from '../src/lib/belt.ts'
 import { blockForNode, buildBlockPage, LINE_HEIGHT, type Block } from '../src/lib/fileblocks.ts'
-import { buildFileGraph, fileList, footerLine, summaryLine } from '../src/lib/filegraph.ts'
+import { buildFileGraph, fileList, footerLine, isInside, summaryLine } from '../src/lib/filegraph.ts'
 import { fileHash, fileRoute, isWorkspace } from '../src/lib/route.ts'
 import type { Graph } from '../src/types/contracts/graph.schema'
 
@@ -216,4 +217,21 @@ test('the workspace owns every route under #/app and nothing else', () => {
   assert.ok(isWorkspace(fileHash(CRUD)))
   assert.ok(!isWorkspace('#/application'))
   assert.ok(!isWorkspace(''))
+})
+
+test('a click is measured against the curve of a line, not the straight path between its ends', () => {
+  const route = routeBetween({ x: 0, y: 0 }, { x: 1000, y: 400 })
+  assert.ok(distanceToRoute(route, { x: 0, y: 0 }) < 1)
+  assert.ok(distanceToRoute(route, { x: 1000, y: 400 }) < 1)
+  const middle = route.points[Math.floor(route.points.length / 2)]
+  assert.ok(distanceToRoute(route, { x: middle.x + 3, y: middle.y }) <= 3)
+  assert.ok(distanceToRoute(route, { x: 200, y: 300 }) > 100)
+})
+
+test('a folder takes in the modules below it, and only those', () => {
+  assert.ok(isInside('app.api.routes.items', 'app.api.routes'))
+  assert.ok(isInside('app.api.routes.items', 'app'))
+  assert.ok(isInside('app.core', 'app.core'))
+  assert.ok(!isInside('app.core_extras', 'app.core'))
+  assert.ok(!isInside('app.core', 'app.core.db'))
 })

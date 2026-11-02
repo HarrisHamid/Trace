@@ -1,10 +1,12 @@
 import type { Core } from 'cytoscape'
 
-import { beltHalfWidth, drawConveyor, drawLegs, drawLine, pointAlong, sliceRoute, traceRoute, type Route } from '@/lib/belt'
+import { beltHalfWidth, distanceToRoute, drawConveyor, drawLegs, drawLine, pointAlong, sliceRoute, traceRoute } from '@/lib/belt'
 import { cssVar } from '@/lib/css'
+import { isInside } from '@/lib/filegraph'
 import { LabelPainter, type Frame, type LitStar } from '@/lib/pills'
 import { STEP_MS, type GraphNode, type Segment, type StarStatus } from '@/lib/run'
-import { PLATE_DEPTH, type Belt, type Box, type Plate, type Point, type Scene } from '@/lib/scene'
+import { labelEnd, PLATE_DEPTH, type Belt, type Box, type Plate, type Point, type Scene } from '@/lib/scene'
+import type { PinnedLine } from '@/store'
 
 // Everything Cytoscape can't draw. Two canvases sandwich it: behind, the starfield, the plates, the glows and the
 // answer's belt; in front, the label cards, the drifting packages and the parcel that rides the answer.
@@ -25,6 +27,9 @@ const DIMMED_PLATE = 0.55
 const BACKGROUND_PLATE = 0.22
 const DIMMED_BELT = 0.16
 const BACKGROUND_BELT = 0.07
+const PACKAGE_ALPHA = 0.65
+const PINNED_ASIDE = 0.12
+const LINE_REACH_PIXELS = 8
 
 export interface SkyRun {
   walked: string[]
@@ -43,10 +48,7 @@ interface Parcel {
 }
 
 interface Package {
-  from: string
-  to: string
-  colour: string
-  route: Route
+  belt: Belt
   phase: number
 }
 
@@ -110,6 +112,11 @@ export class Sky {
   private hover: string | null = null
   private selected: string | null = null
   private focusModule: string | null = null
+  private allConnections = false
+  private callLines = false
+  private pin: PinnedLine | null = null
+  private spot: string | null = null
+  private near: Set<string> | null = null
   private paused = false
   private outlines: Box[] = []
   private parcel: Parcel | null = null
@@ -142,8 +149,7 @@ export class Sky {
 
     const random = seededRandom(STAR_SEED + 1)
     for (const belt of scene.belts) {
-      if (belt.broken) continue
-      this.packages.push({ from: belt.from, to: belt.to, colour: belt.colour, route: belt.route, phase: random() })
+      if (!belt.broken) this.packages.push({ belt, phase: random() })
     }
     for (let index = 0; index < TWINKLE_COUNT; index += 1) {
       this.twinkles.push({
@@ -155,7 +161,7 @@ export class Sky {
       })
     }
 
-    this.origin = { x: scene.bounds.x1 - 360, y: scene.bounds.y2 + 520 }
+    this.origin = { x: scene.fullBounds.x1 - 360, y: scene.fullBounds.y2 + 520 }
     this.resize()
     this.schedule()
   }
@@ -193,12 +199,69 @@ export class Sky {
   setHover(id: string | null) {
     if (id === this.hover) return
     this.hover = id
-    this.schedule()
+    this.spotlight()
   }
 
   setSelected(id: string | null) {
     this.selected = id
+    this.spotlight()
+  }
+
+  setAllConnections(on: boolean) {
+    this.allConnections = on
     this.schedule()
+  }
+
+  setCallLines(on: boolean) {
+    this.callLines = on
+    this.schedule()
+  }
+
+  setPinnedLine(line: PinnedLine | null) {
+    this.pin = line
+    this.spotlight()
+  }
+
+  // The line a click on the map lands on: the answer first, because it is drawn on top, then the nearest line on show.
+  lineAt(point: Point): PinnedLine | null {
+    const reach = LINE_REACH_PIXELS / this.cy.zoom()
+    for (const [index, segment] of this.run.segments.entries()) {
+      const route = this.scene.routeOf(segment.from, segment.to)
+      if (index < this.progress && route && distanceToRoute(route, point) <= reach) {
+        return { from: segment.from, to: segment.to }
+      }
+    }
+    let nearest: PinnedLine | null = null
+    let closest = reach
+    for (const belt of this.scene.belts) {
+      if (this.beltAlpha(belt) === 0) continue
+      const distance = distanceToRoute(belt.route, point)
+      if (distance <= closest) {
+        closest = distance
+        nearest = { from: belt.from, to: belt.to }
+      }
+    }
+    return nearest
+  }
+
+  // A pinned line outranks everything. Otherwise the node under attention shows its own lines, and whatever they don't
+  // reach steps back. A node with no lines changes nothing.
+  private spotlight() {
+    const { pin } = this
+    const id = pin ? null : (this.hover ?? this.selected)
+    const neighbours = id ? this.scene.neighbours.get(id) : undefined
+    const near = pin ? new Set([pin.from, pin.to]) : id && neighbours ? new Set([id, ...neighbours]) : null
+    this.spot = !pin && near ? id : null
+    this.near = near
+    this.cy.batch(() => {
+      this.cy.nodes().removeClass('aside faded')
+      if (near) this.cy.nodes('[type != "module"]').filter((node) => !near.has(node.id())).addClass(pin ? 'faded' : 'aside')
+    })
+    this.schedule()
+  }
+
+  private isPinned(from: string, to: string) {
+    return this.pin?.from === from && this.pin.to === to
   }
 
   setFocusModule(module: string | null) {
@@ -263,10 +326,20 @@ export class Sky {
     this.drawFront(frame)
   }
 
+  private pinnedPlate(plate: Plate) {
+    return [this.pin?.from, this.pin?.to].some((id) => id !== undefined && this.scene.plateIdOf.get(id) === plate.id)
+  }
+
+  private outsideInUse(plate: Plate) {
+    return this.litPlates.has(plate.id) || (this.selected !== null && this.scene.plateIdOf.get(this.selected) === plate.id)
+  }
+
   private plateAlpha = (plate: Plate) => {
+    if (plate.external && !this.allConnections && !this.outsideInUse(plate)) return 0
     let alpha = 1
-    if (this.focusModule !== null && plate.id !== this.focusModule) alpha = BACKGROUND_PLATE
+    if (this.focusModule !== null && !isInside(plate.id, this.focusModule)) alpha = BACKGROUND_PLATE
     if (this.run.active && !this.litPlates.has(plate.id)) alpha *= DIMMED_PLATE
+    if (this.pin && !this.pinnedPlate(plate)) alpha *= DIMMED_PLATE
     return alpha
   }
 
@@ -294,6 +367,9 @@ export class Sky {
       hover: this.hover,
       selected: this.selected,
       focusModule: this.focusModule,
+      near: this.near,
+      pinned: this.pin !== null,
+      showOutside: this.allConnections,
       plateAlpha: this.plateAlpha,
     }
     this.drawPackages(frame)
@@ -364,6 +440,7 @@ export class Sky {
     const { back } = this
     for (const plate of this.scene.plates) {
       const alpha = this.plateAlpha(plate)
+      if (alpha === 0) continue
       const x = plate.box.x1 * zoom + pan.x
       const y = plate.box.y1 * zoom + pan.y
       const width = (plate.box.x2 - plate.box.x1) * zoom
@@ -430,15 +507,16 @@ export class Sky {
   }
 
   private classOutlines(module: string): Box[] {
-    const classes = this.nodes.filter((node) => node.type === 'class' && node.module === module)
-    return classes.map((owner) => {
-      const members = this.nodes.filter((node) => node.id === owner.id || node.id.startsWith(`${owner.id}.`))
+    const classes = this.nodes.filter((node) => node.type === 'class' && isInside(node.module, module))
+    const groups = classes.map((owner) => this.nodes.filter((node) => node.id === owner.id || node.id.startsWith(`${owner.id}.`)))
+    // An outline groups a class with its methods, so a class with none has nothing to group.
+    return groups.filter((members) => members.length > 1).map((members) => {
       const xs = members.map((node) => node.x ?? 0)
       const ys = members.map((node) => node.y ?? 0)
       return {
         x1: Math.min(...xs) - OUTLINE_PADDING,
         y1: Math.min(...ys) - OUTLINE_PADDING,
-        x2: Math.max(...xs) + OUTLINE_PADDING,
+        x2: Math.max(...members.map(labelEnd)) + OUTLINE_PADDING / 2,
         y2: Math.max(...ys) + OUTLINE_PADDING + 16,
       }
     })
@@ -470,11 +548,20 @@ export class Sky {
   }
 
   private inFocus(...ids: string[]) {
-    if (this.focusModule === null) return true
-    return ids.some((id) => this.nodeModule.get(id) === this.focusModule)
+    const focus = this.focusModule
+    if (focus === null) return true
+    return ids.some((id) => isInside(this.nodeModule.get(id) ?? '', focus))
   }
 
+  // Zero means the line is not drawn at all: the map at rest shows only what happens inside each module.
   private beltAlpha(belt: Belt) {
+    if (this.pin) return this.isPinned(belt.from, belt.to) ? 1 : this.restingBeltAlpha(belt) * PINNED_ASIDE
+    return this.restingBeltAlpha(belt)
+  }
+
+  private restingBeltAlpha(belt: Belt) {
+    if (this.spot) return belt.from === this.spot || belt.to === this.spot ? 1 : 0
+    if (!belt.local && !this.callLines && !this.allConnections) return 0
     if (!this.inFocus(belt.from) || !this.inFocus(belt.to)) return BACKGROUND_BELT
     return this.run.active ? DIMMED_BELT : 1
   }
@@ -489,7 +576,9 @@ export class Sky {
     const still = this.reducedMotion.matches
     back.save()
     for (const belt of this.scene.belts) {
-      back.globalAlpha = this.beltAlpha(belt)
+      const alpha = this.beltAlpha(belt)
+      if (alpha === 0) continue
+      back.globalAlpha = alpha
       drawLine(back, belt.route, frame, belt.broken ? this.ice : null, still)
     }
     back.restore()
@@ -500,7 +589,7 @@ export class Sky {
     const { back } = this
     back.save()
     back.strokeStyle = this.gold
-    back.globalAlpha = 0.3
+    back.globalAlpha = this.pin ? 0.3 * PINNED_ASIDE : 0.3
     back.lineWidth = 1.5
     back.beginPath()
     this.run.walked.forEach((id, index) => {
@@ -523,7 +612,8 @@ export class Sky {
       const route = this.scene.routeOf(segment.from, segment.to)
       if (reach <= 0 || !route) return
       const colour = segment.dashed ? this.ice : this.gold
-      back.globalAlpha = this.inFocus(segment.from, segment.to) ? 1 : 0.12
+      const aside = !this.inFocus(segment.from, segment.to) || (this.pin && !this.isPinned(segment.from, segment.to))
+      back.globalAlpha = aside ? PINNED_ASIDE : 1
 
       back.beginPath()
       const end = traceRoute(back, route, reach, frame)
@@ -556,7 +646,7 @@ export class Sky {
     back.save()
     back.globalCompositeOperation = 'lighter'
     for (const { id, status } of this.run.lit) {
-      back.globalAlpha = this.inFocus(id) ? 1 : 0.1
+      back.globalAlpha = this.inFocus(id) && (!this.pin || this.near?.has(id)) ? 1 : 0.1
       const pulsing = id === this.run.current && !this.reducedMotion.matches
       stamp(id, this.glows[status], pulsing ? 1.5 + Math.sin(now / 130) * 0.3 : 1)
     }
@@ -572,12 +662,14 @@ export class Sky {
     const { zoom, pan, now } = frame
     const size = 3.6 * Math.min(1.2, Math.max(0.8, zoom))
     front.save()
-    front.globalAlpha = this.run.active ? 0.12 : 0.65
     for (const pack of this.packages) {
-      if (!this.inFocus(pack.from) || !this.inFocus(pack.to)) continue
-      const { route } = pack
+      const { belt } = pack
+      const alpha = this.beltAlpha(belt)
+      if (alpha === 0 || (!this.spot && (!this.inFocus(belt.from) || !this.inFocus(belt.to)))) continue
+      front.globalAlpha = alpha * PACKAGE_ALPHA
+      const { route } = belt
       const point = pointAlong(route, (((now / 1000) * BELT_SPEED) / route.length + pack.phase) % 1 * route.length)
-      front.fillStyle = pack.colour
+      front.fillStyle = belt.colour
       front.beginPath()
       front.roundRect(point.x * zoom + pan.x - size / 2, point.y * zoom + pan.y - size / 2, size, size, 1)
       front.fill()

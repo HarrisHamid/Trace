@@ -3,7 +3,16 @@ import os
 import pytest
 
 from backend.trace.parser import GraphBuilder
-from backend.trace.parser.layout import PAD_BOTTOM, PAD_TOP, PAD_X, TAB_BASE, TAB_LEFT, TAB_PER_CHAR
+from backend.trace.parser.layout import (
+    PAD_BOTTOM,
+    PAD_RIGHT,
+    PAD_TOP,
+    PAD_X,
+    TAB_BASE,
+    TAB_LEFT,
+    TAB_PER_CHAR,
+    label_span,
+)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIXTURES = os.path.join(ROOT, "tests", "fixtures")
@@ -34,7 +43,8 @@ def plates(graph):
         xs, ys = [n["x"] for n in members], [n["y"] for n in members]
         tab = TAB_BASE + TAB_PER_CHAR * len(names[module]) + TAB_LEFT * 2
         x1 = min(xs) - PAD_X
-        boxes[module] = (x1, min(ys) - PAD_TOP, max(max(xs) + PAD_X, x1 + tab), max(ys) + PAD_BOTTOM)
+        right = max(n["x"] + label_span(n["name"]) for n in members) + PAD_RIGHT
+        boxes[module] = (x1, min(ys) - PAD_TOP, max(right, x1 + tab), max(ys) + PAD_BOTTOM)
     return boxes
 
 
@@ -61,6 +71,17 @@ def test_no_foreign_node_sits_on_a_plate(graph):
         for module, (x1, y1, x2, y2) in boxes.items():
             if module != home:
                 assert not (x1 <= n["x"] <= x2 and y1 <= n["y"] <= y2), f"{n['id']} is on {module}"
+
+
+def test_a_label_stops_before_the_next_node_on_its_row(graph):
+    rows: dict[tuple[str, float], list[dict]] = {}
+    for n in graph["nodes"]:
+        if n["type"] != "module":
+            rows.setdefault((n["module"], n["y"]), []).append(n)
+    for row in rows.values():
+        row.sort(key=lambda n: n["x"])
+        for left, right in zip(row, row[1:]):
+            assert left["x"] + label_span(left["name"]) < right["x"], f"{left['id']} runs into {right['id']}"
 
 
 def test_a_route_sits_beside_its_handler(graph):

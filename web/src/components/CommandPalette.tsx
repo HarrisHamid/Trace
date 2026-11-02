@@ -25,18 +25,20 @@ export function CommandPalette({ nodes, scene, onPick }: CommandPaletteProps) {
   const setOpen = useTraceStore((state) => state.setPaletteOpen)
   const [query, setQuery] = useState('')
 
+  // A module with nothing on the map has nowhere to jump to.
+  const listed = useMemo(() => nodes.filter((node) => node.type !== 'module' || scene.moduleBox(node.id)), [nodes, scene])
   const fuse = useMemo(
     () =>
-      new Fuse(nodes, {
+      new Fuse(listed, {
         keys: [{ name: 'name', weight: 3 }, 'id', 'docstring'],
         threshold: 0.35,
         ignoreLocation: true,
       }),
-    [nodes],
+    [listed],
   )
   const browse = useMemo(
-    () => [...nodes].sort((a, b) => BROWSE_ORDER.indexOf(a.type) - BROWSE_ORDER.indexOf(b.type)),
-    [nodes],
+    () => [...listed].sort((a, b) => BROWSE_ORDER.indexOf(a.type) - BROWSE_ORDER.indexOf(b.type)),
+    [listed],
   )
   const results = query ? fuse.search(query, { limit: MAX_RESULTS }).map((result) => result.item) : browse.slice(0, MAX_RESULTS)
 
