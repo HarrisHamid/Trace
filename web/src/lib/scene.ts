@@ -115,7 +115,7 @@ export function buildScene(graph: Graph): Scene {
   }
   const externals = graph.nodes.filter((node) => node.type === 'external')
   if (externals.length > 0) {
-    plates.push(makePlate(EXTERNAL_PLATE, 'outside', 'Libraries the code calls', grey, true, externals))
+    plates.push(makePlate(EXTERNAL_PLATE, 'outside', 'Outside this repo, classified by rule', grey, true, externals))
   }
 
   const plateById = new Map(plates.map((plate) => [plate.id, plate]))

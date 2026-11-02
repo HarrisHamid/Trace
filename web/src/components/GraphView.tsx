@@ -1,6 +1,6 @@
 import cytoscape from 'cytoscape'
 import { motion } from 'framer-motion'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useImperativeHandle, useMemo, useRef, type Ref } from 'react'
 
 import { cssVar } from '@/lib/css'
 import { bayer, type GraphNode, type RunView } from '@/lib/run'
@@ -19,6 +19,7 @@ const MAX_ZOOM = 2.5
 const CAMERA_MS = 380
 const REVEAL_CAMERA_MS = 520
 const ZOOM_MS = 650
+const PLUNGE_ZOOM = 1.6
 // Long enough for cytoscape to report a double tap on a module before its single tap opens the code panel.
 const DOUBLE_TAP_MS = 300
 const CAPTION_WIDTH = 280
@@ -175,15 +176,37 @@ function centredOn(cy: cytoscape.Core, position: cytoscape.Position, zoom: numbe
   }
 }
 
-function fly(cy: cytoscape.Core, viewport: Viewport, duration: number) {
+type Easing = 'ease-in-out-cubic' | 'ease-in-cubic' | 'ease-out-cubic'
+
+function fly(cy: cytoscape.Core, viewport: Viewport, duration: number, easing: Easing = 'ease-in-out-cubic') {
   cy.scratch('moved', true)
   cy.stop(true, false)
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) cy.viewport(viewport)
-  else cy.animate({ ...viewport, duration, easing: 'ease-in-out-cubic' })
+  else cy.animate({ ...viewport, duration, easing })
+}
+
+function plungeView(cy: cytoscape.Core, scene: Scene, { nodeId, module }: Plunge, rightInset: number): Viewport {
+  const plate = scene.plateById.get(module)
+  if (!plate) return fitBox(cy, scene.bounds, rightInset)
+  const { box } = plate
+  const position = (nodeId ? scene.positions.get(nodeId) : undefined) ?? { x: (box.x1 + box.x2) / 2, y: (box.y1 + box.y2) / 2 }
+  const zoom = Math.min(MAX_ZOOM, fitBox(cy, box, rightInset).zoom * PLUNGE_ZOOM)
+  return centredOn(cy, position, zoom, rightInset)
 }
 
 function moduleNodes(cy: cytoscape.Core, module: string) {
   return cy.nodes().filter((node) => node.data('module') === module)
+}
+
+export interface Plunge {
+  nodeId: string | null
+  module: string
+}
+
+export interface MapCamera {
+  jumpTo: (target: Plunge) => void
+  plungeTo: (target: Plunge, duration: number) => void
+  toPlate: (module: string, duration: number) => void
 }
 
 interface GraphViewProps {
@@ -191,9 +214,11 @@ interface GraphViewProps {
   scene: Scene
   run: RunView
   rightInset: number
+  paused?: boolean
+  camera?: Ref<MapCamera>
 }
 
-export function GraphView({ graph, scene, run, rightInset }: GraphViewProps) {
+export function GraphView({ graph, scene, run, rightInset, paused = false, camera }: GraphViewProps) {
   const container = useRef<HTMLDivElement>(null)
   const backCanvas = useRef<HTMLCanvasElement>(null)
   const frontCanvas = useRef<HTMLCanvasElement>(null)
@@ -215,6 +240,29 @@ export function GraphView({ graph, scene, run, rightInset }: GraphViewProps) {
   useEffect(() => {
     inset.current = rightInset
   }, [rightInset])
+
+  useImperativeHandle(
+    camera,
+    () => ({
+      jumpTo(target) {
+        const cy = cyRef.current
+        if (!cy) return
+        cy.stop(true, false)
+        cy.scratch('moved', true)
+        cy.viewport(plungeView(cy, scene, target, inset.current))
+      },
+      plungeTo(target, duration) {
+        const cy = cyRef.current
+        if (cy) fly(cy, plungeView(cy, scene, target, inset.current), duration, 'ease-in-cubic')
+      },
+      toPlate(module, duration) {
+        const cy = cyRef.current
+        const plate = scene.plateById.get(module)
+        if (cy && plate) fly(cy, fitBox(cy, plate.box, inset.current), duration, 'ease-out-cubic')
+      },
+    }),
+    [scene],
+  )
 
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -295,6 +343,10 @@ export function GraphView({ graph, scene, run, rightInset }: GraphViewProps) {
     }
   }, [graph, scene, openNode, clearSelection, enterModule])
 
+  useEffect(() => {
+    skyRef.current?.setPaused(paused)
+  }, [paused, graph, scene])
+
   // Lit nodes, with their Bayer letters, the dimmed rest, and the belt behind them.
   useEffect(() => {
     const cy = cyRef.current
@@ -364,6 +416,7 @@ export function GraphView({ graph, scene, run, rightInset }: GraphViewProps) {
         if (view.module !== null) cy.elements().difference(inside).difference(inside.edgesWith(inside)).addClass('out-of-focus')
       })
       sky.setFocusModule(view.module)
+      if (view.still) return
     }
 
     const plate = view.module === null ? undefined : scene.plateById.get(view.module)
@@ -386,6 +439,7 @@ export function GraphView({ graph, scene, run, rightInset }: GraphViewProps) {
     skyRef.current?.setSelected(selectedNode)
     if (!selectedNode) return
     const node = cy.getElementById(selectedNode)
+    if (node.empty()) return
     node.addClass('chosen')
     if (node.renderedPosition().x > cy.width() - rightInset - FRAME_PADDING) {
       fly(cy, centredOn(cy, node.position(), cy.zoom(), rightInset), CAMERA_MS)

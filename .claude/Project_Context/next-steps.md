@@ -20,7 +20,7 @@
 | 6 | **Done 2026-10-31: helix rewritten from scratch** in `web/src/lib/helix.ts`, and the third-party component deleted. It remains in git history (`b11c3d0`); see `NOTES.md` | Claude |
 | 7 | **Check the 10 draft eval questions in `eval/questions.json`.** Claude drafted them from the source, so they are not ground truth until you have read each row against the code and set `human_checked` to true | You |
 | 8 | **Done 2026-11-01: the demo question is "How does login work?",** replayed from `data/fastapi-template/answers/how-does-login-work.jsonl`. It shows 12 verified, 4 unverified and 1 gap, where the model jumps from `verify_password` back to the handler and skips `authenticate`. Never regenerate this file by accident: answers vary between runs | You and Claude |
-| 9 | **Build learning mode, only if step 5 works.** Write `docs/prds/04-learning-mode.md` first, briefly | Claude |
+| 9 | **Done 2026-11-01: Graphify replaced learning mode.** Built on branch `feat/graphify`, spec in `docs/prds/06-graphify.md`. Learning mode's notes are kept in `docs/prds/04-learning-mode.md` | Claude |
 
 ## Monday (Nov 2)
 
@@ -46,7 +46,7 @@
 
 ## If you fall behind
 
-Cut in this order: open-weight path, eval size, file-view detail, learning mode, then UI polish. Never cut the agent loop or
+Cut in this order: open-weight path, eval size, file-view detail, Graphify, then UI polish. Never cut the agent loop or
 the grounding validator.
 
 ## Submission check
@@ -60,5 +60,4 @@ the grounding validator.
 - [ ] Problem statement chosen: Build for Your World (Push the Frontier also fits, but pick one)
 - [ ] Video is 3 minutes and its link works
 - [ ] No `TODO` stubs left in `docs/prds/`
-- [ ] Trace is pitched as graph-walking with verified claims, never as chat with your code or basic RAG. Pitch learning mode as
-      onboarding to a codebase, because "AI for education" chatbots are on the avoid list
+- [ ] Trace is pitched as graph-walking with verified claims, never as chat with your code or basic RAG

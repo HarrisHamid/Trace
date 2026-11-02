@@ -1,4 +1,4 @@
-.PHONY: setup dev-api dev-api-real dev-web build-web test lint schemas
+.PHONY: setup dev-api dev-api-real dev-web build-web test test-web lint schemas
 
 setup:
 	uv sync
@@ -19,6 +19,9 @@ build-web:
 
 test:
 	uv run pytest
+
+test-web:
+	cd web && node --test scripts/filegraph.check.ts
 
 lint:
 	uv run ruff check .

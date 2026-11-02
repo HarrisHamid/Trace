@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { X } from 'lucide-react'
+import { Waypoints, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { fetchSource } from '@/api'
@@ -47,10 +47,12 @@ interface CodePanelProps {
   node: GraphNode
   colour: string
   quote: string | null
+  graphifyBusy: boolean
+  onGraphify?: () => void
   onClose: () => void
 }
 
-export function CodePanel({ node, colour, quote, onClose }: CodePanelProps) {
+export function CodePanel({ node, colour, quote, graphifyBusy, onGraphify, onClose }: CodePanelProps) {
   const [source, setSource] = useState<Source>({ kind: 'loading' })
   const scroller = useRef<HTMLDivElement>(null)
 
@@ -87,7 +89,20 @@ export function CodePanel({ node, colour, quote, onClose }: CodePanelProps) {
           <NodeGlyph type={node.type} colour={colour} />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="truncate font-serif text-2xl leading-tight">{node.name}</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="min-w-0 truncate font-serif text-2xl leading-tight">{node.name}</h2>
+            {onGraphify && (
+              <button
+                onClick={onGraphify}
+                disabled={graphifyBusy}
+                title={`Graph how ${node.file} connects`}
+                className="flex shrink-0 items-center gap-1.5 border border-border px-2 py-1 text-xs text-primary transition-colors hover:border-primary/60 hover:text-foreground disabled:opacity-40"
+              >
+                <Waypoints className="size-3.5" />
+                Graphify
+              </button>
+            )}
+          </div>
           <p className="truncate text-[11px] text-muted-foreground">
             {node.file}
             {lines && ` · ${lines}`}

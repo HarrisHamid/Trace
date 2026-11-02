@@ -8,23 +8,25 @@
 
 A web app that turns a Python codebase into a map of modules (plates) and the calls between them (belts). You ask a question, an AI agent answers by
 walking the real call graph node by node, and plain code checks every claim against the graph and the source.
-Claims that fail are flagged instead of shown as fact. A learning mode (fog of war) uses the same map to build
-understanding of an unfamiliar repo.
+Claims that fail are flagged instead of shown as fact. Graphify takes one file apart into blocks of its real code, with
+arrows from each calling line.
 
 It is a solo entry in the Meta Global AI Developer Hackathon. Submission closes **Wed Nov 4, 9:00 PM ET**, and every
 product model call must go to Meta models. Rules, judging and positioning are in `.claude/idea.md`.
 
 ## Where it stands
 
-**The core product works end to end on the real graph. Learning mode and the eval are not built.**
+**The core product and Graphify work end to end on the real graph. The eval is not finished, and learning mode is deferred.**
 
 - **Works on real data:** the parser, the graph API and the map. Parser v2 emits the `Graph` contract with a baked layout,
   and the UI renders the demo repo from it, with real source in the code panel.
 - **Works on the real graph:** answers, with `make dev-api-real`. `POST /api/ask` runs the agent and validator live, or replays a cached answer. Mock mode still replays `data/mock/events.jsonl`.
 - **UI built on mocks:** factory-style map (plates, label cards, belts), path animation with a parcel, file view, command
   palette, observation log and code panel. Spec in `docs/prds/03-ui.md`; the redesign is logged in `NOTES.md`.
-- **Not built:** learning mode, tap-check generator, eval.
-- **Biggest risk now:** time. Feature freeze is Mon Nov 2, and the eval questions and demo question still need a human.
+- **Works on the real graph:** Graphify, on branch `feat/graphify`. Spec and results are in `docs/prds/06-graphify.md`.
+- **Deferred:** learning mode and the tap-check generator. Notes are kept in `docs/prds/04-learning-mode.md`.
+- **Not finished:** eval. The questions are drafted and there is no scoring script.
+- **Biggest risk now:** time. Feature freeze is Mon Nov 2, and the eval questions still need a human.
 - **Demo repo decided:** `fastapi/full-stack-fastapi-template`, after a trial of three larger repos.
 
 Check details, the gap table and open design questions are in `status.md`.

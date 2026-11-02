@@ -1,6 +1,7 @@
 import { ChevronRight, Search } from 'lucide-react'
 
 import { NodeGlyph } from '@/components/Glyphs'
+import { MAP_HASH } from '@/lib/route'
 import type { GraphNode } from '@/lib/run'
 import { cn } from '@/lib/utils'
 import { useTraceStore } from '@/store'
@@ -15,7 +16,13 @@ const SHAPES: { type: GraphNode['type']; label: string }[] = [
   { type: 'unresolved', label: 'unknown target' },
 ]
 
-export function TopBar({ graph, moduleName }: { graph: Graph; moduleName: string | null }) {
+interface TopBarProps {
+  graph: Graph
+  moduleName: string | null
+  file: string | null
+}
+
+export function TopBar({ graph, moduleName, file }: TopBarProps) {
   const exitModule = useTraceStore((state) => state.exitModule)
   const setPaletteOpen = useTraceStore((state) => state.setPaletteOpen)
 
@@ -28,7 +35,16 @@ export function TopBar({ graph, moduleName }: { graph: Graph; moduleName: string
         <span className="text-xs text-muted-foreground">
           {graph.repo} @ {graph.commit_sha.slice(0, 7)}
         </span>
-        {moduleName && (
+        {file && (
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-xs">
+            <a href={MAP_HASH} className="text-muted-foreground transition-colors hover:text-foreground">
+              back to map
+            </a>
+            <ChevronRight className="size-3 text-muted-foreground" />
+            <span className="text-primary">{file}</span>
+          </nav>
+        )}
+        {moduleName && !file && (
           <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-xs">
             <button onClick={exitModule} className="text-muted-foreground transition-colors hover:text-foreground">
               all modules

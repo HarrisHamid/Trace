@@ -110,6 +110,7 @@ export class Sky {
   private hover: string | null = null
   private selected: string | null = null
   private focusModule: string | null = null
+  private paused = false
   private outlines: Box[] = []
   private parcel: Parcel | null = null
   private width = 0
@@ -206,6 +207,20 @@ export class Sky {
     this.schedule()
   }
 
+  // The map under a file's page stops drawing altogether.
+  setPaused(paused: boolean) {
+    if (paused === this.paused) return
+    this.paused = paused
+    if (paused) {
+      cancelAnimationFrame(this.frame)
+      this.frame = 0
+    } else {
+      this.lastTick = 0
+      this.draw()
+      this.schedule()
+    }
+  }
+
   destroy() {
     cancelAnimationFrame(this.frame)
   }
@@ -219,7 +234,7 @@ export class Sky {
   }
 
   private schedule() {
-    if (!this.frame) this.frame = requestAnimationFrame(this.tick)
+    if (!this.frame && !this.paused) this.frame = requestAnimationFrame(this.tick)
   }
 
   // The loop idles at about 30fps for the drifting packages and runs flat out while the answer's belt is being laid.
@@ -240,6 +255,7 @@ export class Sky {
   }
 
   draw = (now = performance.now()) => {
+    if (this.paused) return
     const zoom = this.cy.zoom()
     const pan = this.cy.pan()
     const frame: Frame = { zoom, pan, now, width: this.width, height: this.height }

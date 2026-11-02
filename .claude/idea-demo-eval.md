@@ -46,7 +46,7 @@ data, not our work.
 |---|---|
 | 0:00–0:20 | The problem and the grounded-agent framing (not "chat with your codebase") |
 | 0:20–1:50 | Ask a question; animated path; an unverified claim being flagged; click a node to the exact line |
-| 1:50–2:30 | Learning mode: fog of war, tap-check, progress bar |
+| 1:50–2:30 | Graphify on `backend/app/utils.py`: the file taken apart into blocks of code, with arrows from each calling line |
 | 2:30–3:00 | Eval numbers and what was built |
 
 Record with macOS screen recording or OBS; edit in DaVinci Resolve or CapCut. Use cached answers so the
@@ -72,7 +72,7 @@ scope discipline are.
 - **Fri night:** repo scaffold, three contracts, mock fixtures; parser v2 prompt.
 - **Sat:** parser v2; agent loop plus validator on the real graph (first test of tools + structured output
   together); UI scaffold against mocks in parallel.
-- **Sun:** UI priorities 1–3, learning mode, pre-generated checks.
+- **Sun:** UI priorities 1–3 and Graphify, which replaced learning mode and pre-generated checks.
 - **Mon Nov 2:** eval on ~10 hand-labeled questions, then **feature freeze**.
 - **Tue Nov 3:** record and **submit** (last full day for submission questions and troubleshooting).
 - **Wed Nov 4:** buffer only. Hard deadline 9:00 PM ET; plan to be done long before.

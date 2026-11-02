@@ -17,7 +17,7 @@ Trace turns a Python repo into an interactive graph, then lets an AI agent answe
 - **File view:** the functions and classes inside one file, and how they connect.
 - **Click to code:** click any node to open the exact file and line in a code panel.
 - **Ask the codebase:** ask "how does login work?" and watch an agent trace the answer node by node. Unverified claims are flagged, and edges the parser could not resolve are shown dashed.
-- **Learning mode (toggle):** unexplored nodes go dark. Open one, answer one easy tap-check, and it lights up. A progress bar shows how much of the codebase you understand.
+- **Graphify:** from the code panel, take one file apart. Its functions become blocks of real code, and arrows run from each calling line to what it calls.
 
 ## How it works
 
