@@ -1,4 +1,4 @@
-.PHONY: setup dev-api dev-api-real dev-web build-web test test-web lint schemas
+.PHONY: setup dev-api dev-api-real dev-web build-web test test-web lint schemas eval
 
 setup:
 	uv sync
@@ -29,3 +29,6 @@ lint:
 
 schemas:
 	uv run python scripts/export_schemas.py
+
+eval:
+	uv run python -m eval.run_eval

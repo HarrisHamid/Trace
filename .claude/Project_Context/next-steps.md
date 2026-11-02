@@ -26,7 +26,7 @@
 
 | # | Step | Who |
 |---|---|---|
-| 10 | **Write `docs/prds/05-eval-demo.md` and run the eval.** Report failures honestly | You and Claude |
+| 10 | **Done 2026-11-02, except the labels.** `docs/prds/05-eval-demo.md` is written and the eval has run, but 7 of 10 questions still need checking (step 7). Then run `uv run python -m eval.run_eval --score`, which needs no model calls | You and Claude |
 | 11 | **Freeze features.** Check the UI at 1280px, plus hover cards and file view on the real graph | Claude |
 | 12 | **Prepare your answer to "why an agent if it fits in context?"** The template is small, so expect the question. A draft is in `.claude/idea-architecture.md` | You |
 
