@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { test } from 'node:test'
 
 import { distanceToRoute, routeBetween } from '../src/lib/belt.ts'
+import { answerSlug, askNote, EXAMPLES, EXAMPLES_REPO, isRecorded, STRIP_COUNT } from '../src/lib/examples.ts'
 import { blockForNode, buildBlockPage, LINE_HEIGHT, type Block } from '../src/lib/fileblocks.ts'
 import { buildFileGraph, fileList, footerLine, isInside, summaryLine } from '../src/lib/filegraph.ts'
 import { fileHash, fileRoute, isWorkspace } from '../src/lib/route.ts'
@@ -234,4 +235,37 @@ test('a folder takes in the modules below it, and only those', () => {
   assert.ok(isInside('app.core', 'app.core'))
   assert.ok(!isInside('app.core_extras', 'app.core'))
   assert.ok(!isInside('app.core', 'app.core.db'))
+})
+
+test('every example has a saved answer, and every saved answer has an example', () => {
+  const saved = readdirSync(new URL('data/fastapi-template/answers/', root)).map((file) => file.replace(/\.jsonl$/, ''))
+  assert.deepEqual(EXAMPLES.map((example) => answerSlug(example.question)).sort(), saved.sort())
+})
+
+test('examples belong to the real repo and never show on the mock', () => {
+  assert.equal(real.repo, EXAMPLES_REPO)
+  assert.notEqual(mock.repo, EXAMPLES_REPO)
+})
+
+test('example labels are unique, and the weakest answers stay out of the strip', () => {
+  assert.equal(new Set(EXAMPLES.map((example) => example.label)).size, EXAMPLES.length)
+  const strip = EXAMPLES.slice(0, STRIP_COUNT).map((example) => example.label)
+  assert.equal(strip[0], 'Login')
+  assert.ok(!strip.includes('Create an item') && !strip.includes('Delete cascade'))
+})
+
+test('a typed question matches an answer the way the API does, ignoring case and punctuation', () => {
+  assert.equal(answerSlug('  How does LOGIN work?! '), 'how-does-login-work')
+  assert.ok(isRecorded('how does login work'))
+  assert.ok(!isRecorded('How does logout work?'))
+  assert.ok(!isRecorded('How are items deleted when a superuser deletes a user?'))
+})
+
+test('the strip says what a run is, and offers questions only when nothing is running or typed', () => {
+  assert.equal(askNote(false, '', ''), null)
+  assert.equal(askNote(false, 'How does login work?', '   '), null)
+  assert.equal(askNote(true, 'How does login work?', '')?.kicker, 'Recorded')
+  assert.equal(askNote(true, 'Why is the sky blue?', '')?.kicker, 'Live')
+  assert.equal(askNote(false, '', 'how does login work')?.kicker, 'Recorded')
+  assert.equal(askNote(false, '', 'Why is the sky blue?')?.kicker, 'Live')
 })
