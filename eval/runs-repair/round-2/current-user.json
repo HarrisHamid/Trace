@@ -1,0 +1,357 @@
+{
+ "question": "How does the API work out who the current user is from a request?",
+ "model": "muse-spark-1.3",
+ "seconds": 59.5,
+ "calls": [
+  {
+   "kind": "tools",
+   "seconds": 1.7,
+   "input_tokens": 1180,
+   "output_tokens": 175
+  },
+  {
+   "kind": "tools",
+   "seconds": 2.4,
+   "input_tokens": 2105,
+   "output_tokens": 283
+  },
+  {
+   "kind": "tools",
+   "seconds": 3.3,
+   "input_tokens": 3804,
+   "output_tokens": 408
+  },
+  {
+   "kind": "final_path",
+   "seconds": 43.1,
+   "input_tokens": 3484,
+   "output_tokens": 5560
+  },
+  {
+   "kind": "path_repair",
+   "seconds": 9.0,
+   "input_tokens": 4824,
+   "output_tokens": 1182,
+   "reply": "{\"claims\": [], \"gaps\": []}"
+  }
+ ],
+ "events": [
+  {
+   "type": "run_started"
+  },
+  {
+   "type": "tool_call",
+   "name": "find_routes",
+   "args": {
+    "query": ""
+   },
+   "call_index": 0
+  },
+  {
+   "type": "tool_result",
+   "call_index": 0,
+   "summary": "23 routes found."
+  },
+  {
+   "type": "tool_call",
+   "name": "search_nodes",
+   "args": {
+    "query": "get_current_user"
+   },
+   "call_index": 1
+  },
+  {
+   "type": "tool_result",
+   "call_index": 1,
+   "summary": "1 match: get_current_user."
+  },
+  {
+   "type": "tool_call",
+   "name": "read_source",
+   "args": {
+    "node_id": "app.api.deps:get_current_user"
+   },
+   "call_index": 2
+  },
+  {
+   "type": "tool_result",
+   "call_index": 2,
+   "summary": "Read 17 lines of get_current_user."
+  },
+  {
+   "type": "node_visited",
+   "node_id": "app.api.deps:get_current_user",
+   "reason": "The agent read this source."
+  },
+  {
+   "type": "tool_call",
+   "name": "follow_injections",
+   "args": {
+    "node_id": "app.api.deps:get_current_user"
+   },
+   "call_index": 3
+  },
+  {
+   "type": "tool_result",
+   "call_index": 3,
+   "summary": "2 injections reached from get_current_user."
+  },
+  {
+   "type": "tool_call",
+   "name": "get_neighbors",
+   "args": {
+    "direction": "both",
+    "node_id": "app.api.deps:get_current_user"
+   },
+   "call_index": 4
+  },
+  {
+   "type": "tool_result",
+   "call_index": 4,
+   "summary": "21 edges from get_current_user, 16 inside the repo."
+  },
+  {
+   "type": "tool_call",
+   "name": "read_source",
+   "args": {
+    "node_id": "app.api.deps:reusable_oauth2"
+   },
+   "call_index": 5
+  },
+  {
+   "type": "tool_result",
+   "call_index": 5,
+   "summary": "Read 3 lines of reusable_oauth2."
+  },
+  {
+   "type": "node_visited",
+   "node_id": "app.api.deps:reusable_oauth2",
+   "reason": "The agent read this source."
+  },
+  {
+   "type": "tool_call",
+   "name": "read_source",
+   "args": {
+    "node_id": "app.api.deps:get_db"
+   },
+   "call_index": 6
+  },
+  {
+   "type": "tool_result",
+   "call_index": 6,
+   "summary": "Read 3 lines of get_db."
+  },
+  {
+   "type": "node_visited",
+   "node_id": "app.api.deps:get_db",
+   "reason": "The agent read this source."
+  },
+  {
+   "type": "tool_call",
+   "name": "read_source",
+   "args": {
+    "node_id": "app.models:TokenPayload"
+   },
+   "call_index": 7
+  },
+  {
+   "type": "tool_result",
+   "call_index": 7,
+   "summary": "Read 2 lines of TokenPayload."
+  },
+  {
+   "type": "node_visited",
+   "node_id": "app.models:TokenPayload",
+   "reason": "The agent read this source."
+  },
+  {
+   "type": "final_path",
+   "steps": [
+    {
+     "node_id": "app.api.routes.users:read_user_me",
+     "explanation": "A protected route declares CurrentUser, so a request cannot be served until get_current_user resolves.",
+     "claims": [
+      {
+       "text": "read_user_me is defined in backend/app/api/routes/users.py at line 124.",
+       "status": "verified"
+      },
+      {
+       "text": "The GET /api/v1/users/me handler requires the CurrentUser dependency, which resolves to get_current_user.",
+       "status": "unverified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.api.deps:get_current_user",
+     "explanation": "Execution enters the get_current_user dependency with a session and a token to resolve.",
+     "claims": [
+      {
+       "text": "read_user_me injects get_current_user at line 125.",
+       "quote": "def read_user_me(current_user: CurrentUser) -> Any:",
+       "status": "verified"
+      },
+      {
+       "text": "get_current_user takes a DB session and a bearer token as its two injected inputs.",
+       "quote": "def get_current_user(session: SessionDep, token: TokenDep) -> User:",
+       "status": "verified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.api.deps:reusable_oauth2",
+     "explanation": "The TokenDep input is supplied by reusable_oauth2, which pulls the Authorization Bearer token from the request.",
+     "claims": [
+      {
+       "text": "get_current_user injects reusable_oauth2 at line 30.",
+       "quote": "def get_current_user(session: SessionDep, token: TokenDep) -> User:",
+       "status": "verified"
+      },
+      {
+       "text": "reusable_oauth2 is an OAuth2PasswordBearer scheme that extracts the Bearer token from the request.",
+       "quote": "reusable_oauth2 = OAuth2PasswordBearer(",
+       "status": "verified"
+      },
+      {
+       "text": "The scheme advertises the login/access-token URL as where that token is issued.",
+       "quote": "tokenUrl=f\"{settings.API_V1_STR}/login/access-token\"",
+       "status": "verified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.api.deps:get_current_user",
+     "explanation": "With the token in hand, execution resumes in get_current_user to verify and decode the JWT.",
+     "claims": [
+      {
+       "text": "get_current_user injects reusable_oauth2 at line 30.",
+       "quote": "def get_current_user(session: SessionDep, token: TokenDep) -> User:",
+       "status": "verified"
+      },
+      {
+       "text": "get_current_user decodes the extracted token as a JWT.",
+       "quote": "payload = jwt.decode(",
+       "status": "verified"
+      },
+      {
+       "text": "Decoding is verified with SECRET_KEY and the configured ALGORITHM.",
+       "quote": "token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]",
+       "status": "verified"
+      }
+     ]
+    },
+    {
+     "node_id": "jwt:decode",
+     "explanation": "The JWT library verifies the signature and returns the claims payload.",
+     "claims": [
+      {
+       "text": "get_current_user calls decode at line 32.",
+       "quote": "payload = jwt.decode(",
+       "status": "verified"
+      },
+      {
+       "text": "jwt.decode verifies the token signature and returns its payload.",
+       "status": "unverified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.api.deps:get_current_user",
+     "explanation": "Execution returns to get_current_user, which parses the payload and rejects invalid credentials.",
+     "claims": [
+      {
+       "text": "get_current_user calls decode at line 32.",
+       "quote": "payload = jwt.decode(",
+       "status": "verified"
+      },
+      {
+       "text": "The decoded payload dict is parsed into a TokenPayload.",
+       "quote": "token_data = TokenPayload(**payload)",
+       "status": "verified"
+      },
+      {
+       "text": "Invalid tokens or bad payloads raise a 403 Could not validate credentials error.",
+       "quote": "detail=\"Could not validate credentials\",",
+       "status": "verified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.models:TokenPayload",
+     "explanation": "TokenPayload defines the expected shape of the token, holding the user id in sub.",
+     "claims": [
+      {
+       "text": "get_current_user calls TokenPayload at line 35.",
+       "quote": "token_data = TokenPayload(**payload)",
+       "status": "verified"
+      },
+      {
+       "text": "TokenPayload is the model used to validate the token contents.",
+       "quote": "class TokenPayload(SQLModel):",
+       "status": "verified"
+      },
+      {
+       "text": "The identity carried by the token is the sub field, the user id.",
+       "quote": "sub: str | None = None",
+       "status": "verified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.api.deps:get_current_user",
+     "explanation": "With sub parsed, get_current_user loads that user and enforces found and active checks.",
+     "claims": [
+      {
+       "text": "get_current_user calls TokenPayload at line 35.",
+       "quote": "token_data = TokenPayload(**payload)",
+       "status": "verified"
+      },
+      {
+       "text": "The user id from sub is used to load the User row from the database.",
+       "quote": "user = session.get(User, token_data.sub)",
+       "status": "verified"
+      },
+      {
+       "text": "Inactive users are rejected and only an active found user is returned as the current user.",
+       "quote": "if not user.is_active:",
+       "status": "verified"
+      }
+     ]
+    },
+    {
+     "node_id": "<unknown>:session.get",
+     "explanation": "The database lookup returns the User instance that becomes the current user for the request.",
+     "claims": [
+      {
+       "text": "get_current_user calls session.get at line 41.",
+       "quote": "user = session.get(User, token_data.sub)",
+       "status": "verified"
+      },
+      {
+       "text": "session.get fetches the User by primary key identified by the token sub.",
+       "status": "unverified"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "repair_started",
+   "issues": [
+    {
+     "kind": "claim",
+     "node_id": "app.api.routes.users:read_user_me",
+     "text": "The GET /api/v1/users/me handler requires the CurrentUser dependency, which resolves to get_current_user."
+    }
+   ],
+   "left_alone": 2
+  },
+  {
+   "type": "repair_finished",
+   "outcome": "no_improvement",
+   "steps": []
+  },
+  {
+   "type": "done"
+  }
+ ]
+}

@@ -5,7 +5,8 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
-export type AgentEvent = RunStarted | ToolCall | ToolResult | NodeVisited | FinalPath | ErrorEvent | Done;
+export type AgentEvent =
+  RunStarted | ToolCall | ToolResult | NodeVisited | FinalPath | RepairStarted | RepairFinished | ErrorEvent | Done;
 export type Type = "run_started";
 export type Type1 = "tool_call";
 export type Name = string;
@@ -36,9 +37,33 @@ export type Quote = string | null;
 export type Status = "verified" | "unverified" | "gap";
 export type Claims = Claim[];
 export type Steps = PathStep[];
-export type Type5 = "error";
+export type Type5 = "repair_started";
+export type Kind = "claim" | "gap";
+/**
+ * The step the issue is on. A gap belongs to the step after the missing link.
+ */
+export type NodeId2 = string;
+/**
+ * The flagged claim, or the validator's sentence about the gap.
+ */
+export type Text1 = string;
+/**
+ * What was sent back to the model for its one repair round.
+ */
+export type Issues = RepairIssue[];
+/**
+ * Flagged items not sent back, because no fix is possible: external steps, gaps with no bridge.
+ */
+export type LeftAlone = number;
+export type Type6 = "repair_finished";
+export type Outcome = "accepted" | "no_improvement" | "failed";
+/**
+ * The repaired path, set by the validator. Empty unless accepted.
+ */
+export type Steps1 = PathStep[];
+export type Type7 = "error";
 export type Message = string;
-export type Type6 = "done";
+export type Type8 = "done";
 
 export interface RunStarted {
   type: Type;
@@ -62,6 +87,9 @@ export interface NodeVisited {
   node_id: NodeId;
   reason: Reason;
 }
+/**
+ * The first validated answer. A later `repair_finished` may replace it, and it stays in the run either way.
+ */
 export interface FinalPath {
   type: Type4;
   steps: Steps;
@@ -76,10 +104,25 @@ export interface Claim {
   quote?: Quote;
   status: Status;
 }
-export interface ErrorEvent {
+export interface RepairStarted {
   type: Type5;
+  issues: Issues;
+  left_alone: LeftAlone;
+}
+export interface RepairIssue {
+  kind: Kind;
+  node_id: NodeId2;
+  text: Text1;
+}
+export interface RepairFinished {
+  type: Type6;
+  outcome: Outcome;
+  steps: Steps1;
+}
+export interface ErrorEvent {
+  type: Type7;
   message: Message;
 }
 export interface Done {
-  type: Type6;
+  type: Type8;
 }

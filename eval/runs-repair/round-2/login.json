@@ -1,0 +1,411 @@
+{
+ "question": "How does login work?",
+ "model": "muse-spark-1.3",
+ "seconds": 42.2,
+ "calls": [
+  {
+   "kind": "tools",
+   "seconds": 2.1,
+   "input_tokens": 1170,
+   "output_tokens": 193
+  },
+  {
+   "kind": "tools",
+   "seconds": 2.7,
+   "input_tokens": 1853,
+   "output_tokens": 250
+  },
+  {
+   "kind": "tools",
+   "seconds": 1.9,
+   "input_tokens": 2675,
+   "output_tokens": 208
+  },
+  {
+   "kind": "tools",
+   "seconds": 3.2,
+   "input_tokens": 3130,
+   "output_tokens": 294
+  },
+  {
+   "kind": "final_path",
+   "seconds": 25.9,
+   "input_tokens": 2729,
+   "output_tokens": 3460
+  },
+  {
+   "kind": "path_repair",
+   "seconds": 6.3,
+   "input_tokens": 3628,
+   "output_tokens": 703,
+   "reply": "{\"claims\": [{\"at_previous_step\": false, \"claim_id\": \"c0.0\", \"quote\": \"@router.post(\\\"/login/access-token\\\")\"}], \"gaps\": []}"
+  }
+ ],
+ "events": [
+  {
+   "type": "run_started"
+  },
+  {
+   "type": "tool_call",
+   "name": "find_routes",
+   "args": {
+    "query": "login"
+   },
+   "call_index": 0
+  },
+  {
+   "type": "tool_result",
+   "call_index": 0,
+   "summary": "2 routes found."
+  },
+  {
+   "type": "tool_call",
+   "name": "search_nodes",
+   "args": {
+    "query": "login"
+   },
+   "call_index": 1
+  },
+  {
+   "type": "tool_result",
+   "call_index": 1,
+   "summary": "11 matches: login, POST /api/v1/login/access-token, POST /api/v1/login/test-token."
+  },
+  {
+   "type": "tool_call",
+   "name": "read_source",
+   "args": {
+    "node_id": "app.api.routes.login:login_access_token"
+   },
+   "call_index": 2
+  },
+  {
+   "type": "tool_result",
+   "call_index": 2,
+   "summary": "Read 20 lines of login_access_token."
+  },
+  {
+   "type": "node_visited",
+   "node_id": "app.api.routes.login:login_access_token",
+   "reason": "The agent read this source."
+  },
+  {
+   "type": "tool_call",
+   "name": "get_neighbors",
+   "args": {
+    "direction": "callees",
+    "node_id": "app.api.routes.login:login_access_token"
+   },
+   "call_index": 3
+  },
+  {
+   "type": "tool_result",
+   "call_index": 3,
+   "summary": "8 edges from login_access_token, 4 inside the repo."
+  },
+  {
+   "type": "tool_call",
+   "name": "read_source",
+   "args": {
+    "node_id": "app.crud:authenticate"
+   },
+   "call_index": 4
+  },
+  {
+   "type": "tool_result",
+   "call_index": 4,
+   "summary": "Read 16 lines of authenticate."
+  },
+  {
+   "type": "node_visited",
+   "node_id": "app.crud:authenticate",
+   "reason": "The agent read this source."
+  },
+  {
+   "type": "tool_call",
+   "name": "read_source",
+   "args": {
+    "node_id": "app.core.security:create_access_token"
+   },
+   "call_index": 5
+  },
+  {
+   "type": "tool_result",
+   "call_index": 5,
+   "summary": "Read 5 lines of create_access_token."
+  },
+  {
+   "type": "node_visited",
+   "node_id": "app.core.security:create_access_token",
+   "reason": "The agent read this source."
+  },
+  {
+   "type": "tool_call",
+   "name": "read_source",
+   "args": {
+    "node_id": "app.crud:get_user_by_email"
+   },
+   "call_index": 6
+  },
+  {
+   "type": "tool_result",
+   "call_index": 6,
+   "summary": "Read 4 lines of get_user_by_email."
+  },
+  {
+   "type": "node_visited",
+   "node_id": "app.crud:get_user_by_email",
+   "reason": "The agent read this source."
+  },
+  {
+   "type": "tool_call",
+   "name": "read_source",
+   "args": {
+    "node_id": "app.core.security:verify_password"
+   },
+   "call_index": 7
+  },
+  {
+   "type": "tool_result",
+   "call_index": 7,
+   "summary": "Read 4 lines of verify_password."
+  },
+  {
+   "type": "node_visited",
+   "node_id": "app.core.security:verify_password",
+   "reason": "The agent read this source."
+  },
+  {
+   "type": "final_path",
+   "steps": [
+    {
+     "node_id": "app.api.routes.login:POST /api/v1/login/access-token",
+     "explanation": "This route is the entry point for OAuth2 password-flow login.",
+     "claims": [
+      {
+       "text": "POST /api/v1/login/access-token is defined in backend/app/api/routes/login.py at line 23.",
+       "status": "verified"
+      },
+      {
+       "text": "POST /api/v1/login/access-token is handled by login_access_token.",
+       "status": "unverified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.api.routes.login:login_access_token",
+     "explanation": "The login handler takes the submitted form and authenticates the user by email and password.",
+     "claims": [
+      {
+       "text": "POST /api/v1/login/access-token routes to login_access_token at line 23.",
+       "quote": "@router.post(\"/login/access-token\")",
+       "status": "verified"
+      },
+      {
+       "text": "The handler receives OAuth2 form data with username and password.",
+       "quote": "form_data: Annotated[OAuth2PasswordRequestForm, Depends()]",
+       "status": "verified"
+      },
+      {
+       "text": "It passes the form username as email plus password to crud.authenticate.",
+       "quote": "user = crud.authenticate(",
+       "status": "verified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.crud:authenticate",
+     "explanation": "Authenticate loads the user row and checks the password hash; deeper lookup and hash helpers were read but not followed as separate graph steps.",
+     "claims": [
+      {
+       "text": "login_access_token calls authenticate at line 30.",
+       "quote": "user = crud.authenticate(",
+       "status": "verified"
+      },
+      {
+       "text": "Authenticate looks up the user by email.",
+       "quote": "db_user = get_user_by_email(session=session, email=email)",
+       "status": "verified"
+      },
+      {
+       "text": "It verifies the plain password against the stored hashed_password and returns the user only if verified.",
+       "quote": "verified, updated_password_hash = verify_password(password, db_user.hashed_password)",
+       "status": "verified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.api.routes.login:login_access_token",
+     "explanation": "After authentication returns, the handler enforces active status and issues a timed token.",
+     "claims": [
+      {
+       "text": "login_access_token calls authenticate at line 30.",
+       "quote": "user = crud.authenticate(",
+       "status": "verified"
+      },
+      {
+       "text": "If authenticate returns no user, login raises Incorrect email or password.",
+       "quote": "raise HTTPException(status_code=400, detail=\"Incorrect email or password\")",
+       "status": "verified"
+      },
+      {
+       "text": "If the user is inactive, login rejects with Inactive user.",
+       "quote": "elif not user.is_active:",
+       "status": "verified"
+      },
+      {
+       "text": "On success it builds an expiry time from settings and calls security.create_access_token with user.id.",
+       "quote": "access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)",
+       "status": "verified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.core.security:create_access_token",
+     "explanation": "This creates the signed JWT access token returned to the client for future requests.",
+     "claims": [
+      {
+       "text": "login_access_token calls create_access_token at line 39.",
+       "quote": "access_token=security.create_access_token(",
+       "status": "verified"
+      },
+      {
+       "text": "The token payload contains expiry exp and subject sub from the user id.",
+       "quote": "to_encode = {\"exp\": expire, \"sub\": str(subject)}",
+       "status": "verified"
+      },
+      {
+       "text": "It JWT-encodes the payload with SECRET_KEY and returns the token string.",
+       "quote": "encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)",
+       "status": "verified"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "repair_started",
+   "issues": [
+    {
+     "kind": "claim",
+     "node_id": "app.api.routes.login:POST /api/v1/login/access-token",
+     "text": "POST /api/v1/login/access-token is handled by login_access_token."
+    }
+   ],
+   "left_alone": 0
+  },
+  {
+   "type": "repair_finished",
+   "outcome": "accepted",
+   "steps": [
+    {
+     "node_id": "app.api.routes.login:POST /api/v1/login/access-token",
+     "explanation": "This route is the entry point for OAuth2 password-flow login.",
+     "claims": [
+      {
+       "text": "POST /api/v1/login/access-token is defined in backend/app/api/routes/login.py at line 23.",
+       "status": "verified"
+      },
+      {
+       "text": "POST /api/v1/login/access-token is handled by login_access_token.",
+       "quote": "@router.post(\"/login/access-token\")",
+       "status": "verified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.api.routes.login:login_access_token",
+     "explanation": "The login handler takes the submitted form and authenticates the user by email and password.",
+     "claims": [
+      {
+       "text": "POST /api/v1/login/access-token routes to login_access_token at line 23.",
+       "quote": "@router.post(\"/login/access-token\")",
+       "status": "verified"
+      },
+      {
+       "text": "The handler receives OAuth2 form data with username and password.",
+       "quote": "form_data: Annotated[OAuth2PasswordRequestForm, Depends()]",
+       "status": "verified"
+      },
+      {
+       "text": "It passes the form username as email plus password to crud.authenticate.",
+       "quote": "user = crud.authenticate(",
+       "status": "verified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.crud:authenticate",
+     "explanation": "Authenticate loads the user row and checks the password hash; deeper lookup and hash helpers were read but not followed as separate graph steps.",
+     "claims": [
+      {
+       "text": "login_access_token calls authenticate at line 30.",
+       "quote": "user = crud.authenticate(",
+       "status": "verified"
+      },
+      {
+       "text": "Authenticate looks up the user by email.",
+       "quote": "db_user = get_user_by_email(session=session, email=email)",
+       "status": "verified"
+      },
+      {
+       "text": "It verifies the plain password against the stored hashed_password and returns the user only if verified.",
+       "quote": "verified, updated_password_hash = verify_password(password, db_user.hashed_password)",
+       "status": "verified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.api.routes.login:login_access_token",
+     "explanation": "After authentication returns, the handler enforces active status and issues a timed token.",
+     "claims": [
+      {
+       "text": "login_access_token calls authenticate at line 30.",
+       "quote": "user = crud.authenticate(",
+       "status": "verified"
+      },
+      {
+       "text": "If authenticate returns no user, login raises Incorrect email or password.",
+       "quote": "raise HTTPException(status_code=400, detail=\"Incorrect email or password\")",
+       "status": "verified"
+      },
+      {
+       "text": "If the user is inactive, login rejects with Inactive user.",
+       "quote": "elif not user.is_active:",
+       "status": "verified"
+      },
+      {
+       "text": "On success it builds an expiry time from settings and calls security.create_access_token with user.id.",
+       "quote": "access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)",
+       "status": "verified"
+      }
+     ]
+    },
+    {
+     "node_id": "app.core.security:create_access_token",
+     "explanation": "This creates the signed JWT access token returned to the client for future requests.",
+     "claims": [
+      {
+       "text": "login_access_token calls create_access_token at line 39.",
+       "quote": "access_token=security.create_access_token(",
+       "status": "verified"
+      },
+      {
+       "text": "The token payload contains expiry exp and subject sub from the user id.",
+       "quote": "to_encode = {\"exp\": expire, \"sub\": str(subject)}",
+       "status": "verified"
+      },
+      {
+       "text": "It JWT-encodes the payload with SECRET_KEY and returns the token string.",
+       "quote": "encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)",
+       "status": "verified"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "done"
+  }
+ ]
+}
