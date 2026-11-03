@@ -187,6 +187,9 @@ class CountingClient:
         if response.usage:
             call["input_tokens"] = response.usage.prompt_tokens
             call["output_tokens"] = response.usage.completion_tokens
+        # The raw patch is the only way to tell a model that declined from a fix that failed its check.
+        if kind == "path_repair":
+            call["reply"] = response.choices[0].message.content
         return response
 
 
@@ -465,8 +468,31 @@ def audit_cell(text: str) -> str:
     return re.sub(r"\s+", " ", text).replace("|", "\\|")
 
 
+def audit_rows(flips: list[Flip], start: int) -> list[str]:
+    rows = []
+    for number, flip in enumerate(flips, start=start):
+        moved = f"`{flip.moved_from}`" if flip.moved_from else ""
+        rows.append(
+            f"| {number} | {flip.question} ({flip.round}) | `{flip.node}` | {audit_cell(flip.sentence)} "
+            f"| `{audit_cell(flip.quote)}` | {moved} |  |"
+        )
+    return rows
+
+
+def demo_flips() -> list[Flip]:
+    """Claims the demo video shows. They are not eval results, but they say "fixed" on screen."""
+    flips = []
+    for path in sorted((REPAIR_DIR / "demo").glob("stitched-*.json")):
+        saved = json.loads(path.read_text(encoding="utf-8"))
+        events = [event_adapter.validate_python(event) for event in saved["events"]]
+        flips += find_flips(saved["question"], "stitched demo take", first_steps(events), final_steps(events))
+    return flips
+
+
 def repair_audit(pairs: list[Paired]) -> str:
     flips = [flip for pair in pairs for flip in pair.flips]
+    demo = demo_flips()
+    header = ["| # | Question | Step | Sentence | Quote | Moved from | Proves it? |", "|---|---|---|---|---|---|---|"]
     lines = [
         "# Repair audit",
         "",
@@ -481,16 +507,19 @@ def repair_audit(pairs: list[Paired]) -> str:
         "",
         "When you are done, change the status line above and tell whoever owns the eval how many were yes.",
         "",
-        "| # | Question | Step | Sentence | Quote | Moved from | Proves it? |",
-        "|---|---|---|---|---|---|---|",
+        "## The eval",
+        "",
+        *header,
+        *audit_rows(flips, 1),
+        "",
+        "## The demo take",
+        "",
+        "These are not eval results, but the video shows them as fixed, so they need the same read.",
+        "",
+        *header,
+        *audit_rows(demo, len(flips) + 1),
+        "",
     ]
-    for number, flip in enumerate(flips, start=1):
-        moved = f"`{flip.moved_from}`" if flip.moved_from else ""
-        lines.append(
-            f"| {number} | {flip.question} ({flip.round}) | `{flip.node}` | {audit_cell(flip.sentence)} "
-            f"| `{audit_cell(flip.quote)}` | {moved} |  |"
-        )
-    lines.append("")
     return "\n".join(lines)
 
 

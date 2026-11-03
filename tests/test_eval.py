@@ -150,7 +150,9 @@ class FakeModel:
         return self
 
     async def create(self, **request):
-        return SimpleNamespace(usage=SimpleNamespace(prompt_tokens=10, completion_tokens=2))
+        message = SimpleNamespace(content="the patch")
+        usage = SimpleNamespace(prompt_tokens=10, completion_tokens=2)
+        return SimpleNamespace(usage=usage, choices=[SimpleNamespace(message=message)])
 
 
 @pytest.fixture
@@ -168,6 +170,8 @@ async def test_counting_survives_with_options_so_the_repair_call_is_counted():
         ("tools", 10, 2),
         ("path_repair", 10, 2),
     ]
+    assert calls[1]["reply"] == "the patch"
+    assert "reply" not in calls[0]
 
 
 @pytest.mark.anyio
