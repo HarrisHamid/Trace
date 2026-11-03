@@ -19,6 +19,9 @@ from backend.trace.tools.index import NO_SOURCE_TYPES, GraphIndex
 from .grounding import MIN_QUOTE_CHARS, DraftClaim, DraftPath, DraftStep, check_claim
 
 MAX_BRIDGES = 3
+# A pasted function would "prove" nearly any sentence about it. First drafts keep the validator's rule, so they stay
+# comparable with the baseline.
+MAX_FIX_QUOTE_CHARS = 200
 UNHELPFUL_NEIGHBOURS = NO_SOURCE_TYPES | {"module"}
 
 
@@ -182,7 +185,8 @@ def apply_repair(draft: DraftPath, flagged: Flagged, repair: DraftRepair, index:
         moved = fix.at_previous_step and issue.step > 0
         target = issue.step - 1 if moved else issue.step
         mended = draft.steps[issue.step].claims[issue.position].model_copy(update={"quote": fix.quote})
-        if check_claim(mended, index.nodes[draft.steps[target].node_id], index).status != "verified":
+        passes = check_claim(mended, index.nodes[draft.steps[target].node_id], index).status == "verified"
+        if not passes or len(" ".join(fix.quote.split())) > MAX_FIX_QUOTE_CHARS:
             continue
         if moved:
             claims[issue.step][issue.position] = None

@@ -21,7 +21,7 @@ test:
 	uv run pytest
 
 test-web:
-	cd web && node --test scripts/filegraph.check.ts
+	cd web && node --test scripts/filegraph.check.ts scripts/run.check.ts
 
 lint:
 	uv run ruff check .

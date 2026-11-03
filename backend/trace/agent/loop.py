@@ -57,9 +57,9 @@ ANSWER_PROMPT = """Write the final path through the graph that answers the quest
 REPAIR_PROMPT = """The validator checked your path and flagged the items in the data below. Fix what you can, using only
 the sources given.
 
-- claims: find source text that proves the sentence exactly as written. Give its claim_id and the quote, copied exactly and
-  at least 12 characters long. Set at_previous_step to true if the text is in the previous step's source, such as the line
-  that calls this step, and to false if it is in the claim's own step.
+- claims: find the one line or short passage that proves the sentence exactly as written. Give its claim_id and the quote,
+  copied exactly, from 12 to 200 characters long. Set at_previous_step to true if the text is in the previous step's
+  source, such as the line that calls this step, and to false if it is in the claim's own step.
 - gaps: pick the bridge that execution really passes through between the two steps. Give its gap_id, its node_id and a one
   or two sentence explanation for a developer reading the code.
 - Leave out anything you cannot prove. It stays flagged, and that is the right result. Do not attach a line that only

@@ -20,7 +20,7 @@ from backend.trace.validator import (
     repair_issues,
     validate_path,
 )
-from backend.trace.validator.repair import ClaimFix, GapFix, bridges
+from backend.trace.validator.repair import MAX_FIX_QUOTE_CHARS, ClaimFix, GapFix, bridges
 
 ROOT = Path(__file__).resolve().parents[1]
 MOCK = ROOT / "data" / "mock"
@@ -148,6 +148,13 @@ def test_game_a_patch_has_no_way_to_delete():
     assert set(DraftRepair.model_fields) == {"claims", "gaps"}
     assert set(ClaimFix.model_fields) == {"claim_id", "quote", "at_previous_step"}
     assert set(GapFix.model_fields) == {"gap_id", "node_id", "explanation"}
+
+
+def test_game_a_pasted_function_cannot_prove_a_sentence(index):
+    draft, _, flagged = checked(index, step(LOGIN, ("Checks the password.", "")))
+    source = index.node_source(index.nodes[LOGIN])
+    assert len(source) > MAX_FIX_QUOTE_CHARS
+    assert apply_repair(draft, flagged, patch([fix("c0.0", quote=source)]), index) == draft
 
 
 def test_game_a_fix_cannot_touch_a_claim_that_was_not_flagged(index):
