@@ -74,6 +74,12 @@ def test_rate_is_null_without_internal_calls():
         {"type": "tool_result", "call_index": 0, "summary": "s"},
         {"type": "node_visited", "node_id": "m:f", "reason": "r"},
         {"type": "final_path", "steps": [{"node_id": "m:f", "explanation": "e", "claims": []}]},
+        {
+            "type": "repair_started",
+            "issues": [{"kind": "gap", "node_id": "m:f", "text": "No edge."}],
+            "left_alone": 1,
+        },
+        {"type": "repair_finished", "outcome": "no_improvement", "steps": []},
         {"type": "error", "message": "m"},
         {"type": "done"},
     ],

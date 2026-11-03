@@ -76,6 +76,7 @@
     },
     "FinalPath": {
       "additionalProperties": false,
+      "description": "The first validated answer. A later `repair_finished` may replace it, and it stays in the run either way.",
       "properties": {
         "type": {
           "const": "final_path",
@@ -147,6 +148,101 @@
         "claims"
       ],
       "title": "PathStep",
+      "type": "object"
+    },
+    "RepairFinished": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "repair_finished",
+          "title": "Type",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "accepted",
+            "no_improvement",
+            "failed"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "steps": {
+          "description": "The repaired path, set by the validator. Empty unless accepted.",
+          "items": {
+            "$ref": "#/$defs/PathStep"
+          },
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "outcome",
+        "steps"
+      ],
+      "title": "RepairFinished",
+      "type": "object"
+    },
+    "RepairIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "claim",
+            "gap"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "node_id": {
+          "description": "The step the issue is on. A gap belongs to the step after the missing link.",
+          "title": "Node Id",
+          "type": "string"
+        },
+        "text": {
+          "description": "The flagged claim, or the validator's sentence about the gap.",
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "node_id",
+        "text"
+      ],
+      "title": "RepairIssue",
+      "type": "object"
+    },
+    "RepairStarted": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "repair_started",
+          "title": "Type",
+          "type": "string"
+        },
+        "issues": {
+          "description": "What was sent back to the model for its one repair round.",
+          "items": {
+            "$ref": "#/$defs/RepairIssue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "left_alone": {
+          "description": "Flagged items not sent back, because no fix is possible: external steps, gaps with no bridge.",
+          "minimum": 0,
+          "title": "Left Alone",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "type",
+        "issues",
+        "left_alone"
+      ],
+      "title": "RepairStarted",
       "type": "object"
     },
     "RunStarted": {
@@ -231,6 +327,8 @@
       "error": "#/$defs/ErrorEvent",
       "final_path": "#/$defs/FinalPath",
       "node_visited": "#/$defs/NodeVisited",
+      "repair_finished": "#/$defs/RepairFinished",
+      "repair_started": "#/$defs/RepairStarted",
       "run_started": "#/$defs/RunStarted",
       "tool_call": "#/$defs/ToolCall",
       "tool_result": "#/$defs/ToolResult"
@@ -252,6 +350,12 @@
     },
     {
       "$ref": "#/$defs/FinalPath"
+    },
+    {
+      "$ref": "#/$defs/RepairStarted"
+    },
+    {
+      "$ref": "#/$defs/RepairFinished"
     },
     {
       "$ref": "#/$defs/ErrorEvent"

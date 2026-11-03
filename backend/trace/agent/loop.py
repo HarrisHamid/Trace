@@ -1,5 +1,6 @@
-"""The agent run: investigate with tools, make one structured-output call, then validate."""
+"""The agent run: investigate with tools, make one structured-output call, validate, then one bounded repair."""
 
+import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
@@ -8,19 +9,31 @@ from typing import Any
 from openai import APIError, AsyncOpenAI
 from pydantic import ValidationError
 
-from backend.trace.schemas import MAX_TOOL_CALLS
+from backend.trace.schemas import MAX_TOOL_CALLS, PathStep
 from backend.trace.schemas.events import (
     Done,
     ErrorEvent,
     Event,
     FinalPath,
     NodeVisited,
+    RepairFinished,
+    RepairStarted,
     RunStarted,
     ToolCall,
     ToolResult,
 )
 from backend.trace.tools import GraphIndex, run_tool, tool_schemas
-from backend.trace.validator import DraftPath, validate_path
+from backend.trace.validator import (
+    DraftPath,
+    DraftRepair,
+    apply_repair,
+    clean_draft,
+    find_flagged,
+    is_better,
+    repair_brief,
+    repair_issues,
+    validate_path,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,13 +54,29 @@ ANSWER_PROMPT = """Write the final path through the graph that answers the quest
 - If you could not trace a link, say so plainly rather than guessing.
 - Your claims are checked against the graph and the source."""
 
+REPAIR_PROMPT = """The validator checked your path and flagged the items in the data below. Fix what you can, using only
+the sources given.
+
+- claims: find source text that proves the sentence exactly as written. Give its claim_id and the quote, copied exactly and
+  at least 12 characters long. Set at_previous_step to true if the text is in the previous step's source, such as the line
+  that calls this step, and to false if it is in the claim's own step.
+- gaps: pick the bridge that execution really passes through between the two steps. Give its gap_id, its node_id and a one
+  or two sentence explanation for a developer reading the code.
+- Leave out anything you cannot prove. It stays flagged, and that is the right result. Do not attach a line that only
+  mentions the same words.
+- You cannot change a sentence, delete a step or delete a claim. Your fixes are checked the same way as before.
+
+"""
+
 NOT_RUN = '{"error": "Not run: the tool call limit was reached."}'
 
+REPAIR_TIMEOUT_SECONDS = 45
 
-def _answer_format() -> dict[str, Any]:
+
+def _output_format(name: str, schema: type[DraftPath | DraftRepair]) -> dict[str, Any]:
     return {
         "type": "json_schema",
-        "json_schema": {"name": "final_path", "strict": True, "schema": DraftPath.model_json_schema()},
+        "json_schema": {"name": name, "strict": True, "schema": schema.model_json_schema()},
     }
 
 
@@ -89,14 +118,48 @@ def _shown_args(raw_args: str) -> dict[str, Any]:
     return parsed if isinstance(parsed, dict) else {"raw": raw_args}
 
 
-async def _answer(messages: list[dict[str, Any]], client: AsyncOpenAI, model: str, index: GraphIndex) -> Event:
+async def _answer(messages: list[dict[str, Any]], client: AsyncOpenAI, model: str) -> DraftPath:
     messages.append({"role": "user", "content": ANSWER_PROMPT})
-    response = await client.chat.completions.create(model=model, messages=messages, response_format=_answer_format())
-    draft = DraftPath.model_validate_json(response.choices[0].message.content or "")
-    steps = validate_path(draft, index)
-    if not steps:
-        return ErrorEvent(type="error", message="No step in the model's answer names a node in the graph.")
-    return FinalPath(type="final_path", steps=steps)
+    response_format = _output_format("final_path", DraftPath)
+    response = await client.chat.completions.create(model=model, messages=messages, response_format=response_format)
+    content = response.choices[0].message.content or ""
+    draft = DraftPath.model_validate_json(content)
+    messages.append({"role": "assistant", "content": content})
+    return draft
+
+
+async def _repair(
+    messages: list[dict[str, Any]],
+    draft: DraftPath,
+    first: list[PathStep],
+    client: AsyncOpenAI,
+    model: str,
+    index: GraphIndex,
+) -> AsyncIterator[Event]:
+    """One extra model call with no tools. The first answer is already on screen, so nothing here may end the run."""
+    try:
+        flagged = find_flagged(draft, first, index)
+        if not flagged.claims and not flagged.gaps:
+            return
+        issues = repair_issues(draft, flagged)
+        yield RepairStarted(type="repair_started", issues=issues, left_alone=flagged.left_alone)
+        content = REPAIR_PROMPT + json.dumps(repair_brief(draft, flagged, index), ensure_ascii=False)
+        messages.append({"role": "user", "content": content})
+        one_try = client.with_options(timeout=REPAIR_TIMEOUT_SECONDS, max_retries=0)
+        async with asyncio.timeout(REPAIR_TIMEOUT_SECONDS):
+            response = await one_try.chat.completions.create(
+                model=model, messages=messages, response_format=_output_format("path_repair", DraftRepair)
+            )
+        repair = DraftRepair.model_validate_json(response.choices[0].message.content or "")
+        repaired = validate_path(apply_repair(draft, flagged, repair, index), index)
+    except Exception:
+        logger.exception("Repair failed, so the first answer stands")
+        yield RepairFinished(type="repair_finished", outcome="failed", steps=[])
+        return
+    if is_better(first, repaired):
+        yield RepairFinished(type="repair_finished", outcome="accepted", steps=repaired)
+    else:
+        yield RepairFinished(type="repair_finished", outcome="no_improvement", steps=[])
 
 
 async def run_agent(question: str, *, client: AsyncOpenAI, model: str, index: GraphIndex) -> AsyncIterator[Event]:
@@ -108,7 +171,14 @@ async def run_agent(question: str, *, client: AsyncOpenAI, model: str, index: Gr
     try:
         async for event in _investigate(messages, client, model, index):
             yield event
-        yield await _answer(messages, client, model, index)
+        draft = clean_draft(await _answer(messages, client, model), index)
+        steps = validate_path(draft, index)
+        if steps:
+            yield FinalPath(type="final_path", steps=steps)
+            async for event in _repair(messages, draft, steps, client, model, index):
+                yield event
+        else:
+            yield ErrorEvent(type="error", message="No step in the model's answer names a node in the graph.")
     except APIError as error:
         logger.exception("Model call failed")
         yield ErrorEvent(type="error", message=f"The model call failed: {type(error).__name__}.")

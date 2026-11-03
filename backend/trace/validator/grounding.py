@@ -85,16 +85,22 @@ def check_claim(claim: DraftClaim, node: Node, index: GraphIndex) -> Claim:
     return Claim(text=claim.text, quote=claim.quote.strip(), status="verified")
 
 
+def clean_draft(draft: DraftPath, index: GraphIndex) -> DraftPath:
+    """Drop steps naming no node and steps repeating the one before, so steps line up with validate_path's."""
+    kept: list[DraftStep] = []
+    for step in draft.steps:
+        if step.node_id not in index.nodes:
+            logger.warning("Dropped a step naming a node not in the graph: %s", step.node_id)
+        elif not kept or step.node_id != kept[-1].node_id:
+            kept.append(step)
+    return DraftPath(steps=kept)
+
+
 def validate_path(draft: DraftPath, index: GraphIndex) -> list[PathStep]:
     steps: list[PathStep] = []
     previous: Node | None = None
-    for step in draft.steps:
-        node = index.nodes.get(step.node_id)
-        if node is None:
-            logger.warning("Dropped a step naming a node not in the graph: %s", step.node_id)
-            continue
-        if previous is not None and node.id == previous.id:
-            continue
+    for step in clean_draft(draft, index).steps:
+        node = index.nodes[step.node_id]
         first_claim = link_claim(previous, node, index) if previous else _location_claim(node)
         model_claims = [check_claim(claim, node, index) for claim in step.claims]
         steps.append(PathStep(node_id=node.id, explanation=step.explanation, claims=[first_claim, *model_claims]))
