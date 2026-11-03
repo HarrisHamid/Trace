@@ -25,6 +25,8 @@ uv run python -m eval.run_eval --score-repair # score the saved repair rounds ag
 uv run python -m eval.run_eval --score        # score the baseline in eval/runs/ again, with no model calls
 ```
 
+`make eval` runs both scoring commands, so it never spends credits. Run it after changing labels.
+
 Every question runs live and never from the cached demo answers. Every run counts: nothing is retried or picked. A label
 that names no node stops the eval, because it would otherwise read as an agent failure. A saved run is never overwritten,
 and a cut-off round picks up where it stopped. The runner stops at 26 live runs or $5, the owner's limits for this work.
@@ -77,12 +79,12 @@ Results from 20 live runs, 2 rounds of 10 questions. Quote the "Checked by hand"
 
 ## Cached answers
 
-`data/fastapi-template/answers/` holds 11 answers. `/api/ask` replays one when the question matches, ignoring case and
+`data/fastapi-template/answers/` holds 10 answers, the owner's limit. `/api/ask` replays one when the question matches, ignoring case and
 punctuation.
 
-- `how-does-login-work.jsonl` is the recording for the video. It shows 12 verified, 4 unverified and 1 gap.
+- `how-does-login-work.jsonl` is the first-draft recording, the "before" shot. It shows 12 verified, 4 unverified and 1 gap.
 - The delete answer predates the eval, so its wording differs from the eval's delete question.
-- The other 8 are the eval's own runs, copied unchanged.
+- The other 7 are the eval's own runs, copied unchanged. `create-item` was removed to stay at 10, as the weakest answer.
 - `how-does-a-user-log-in.jsonl` is the repair take, and it is **stitched**. See below.
 
 The login recording is not the eval's login run. The recording reaches all 4 required nodes, and the eval's fresh run

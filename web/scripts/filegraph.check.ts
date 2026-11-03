@@ -251,7 +251,7 @@ test('example labels are unique, and the weakest answers stay out of the strip',
   assert.equal(new Set(EXAMPLES.map((example) => example.label)).size, EXAMPLES.length)
   const strip = EXAMPLES.slice(0, STRIP_COUNT).map((example) => example.label)
   assert.equal(strip[0], 'Login')
-  assert.ok(!strip.includes('Create an item') && !strip.includes('Delete cascade'))
+  assert.ok(!strip.includes('Login, no repair') && !strip.includes('Delete cascade'))
 })
 
 test('a typed question matches an answer the way the API does, ignoring case and punctuation', () => {

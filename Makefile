@@ -31,4 +31,5 @@ schemas:
 	uv run python scripts/export_schemas.py
 
 eval:
-	uv run python -m eval.run_eval
+	uv run python -m eval.run_eval --score
+	uv run python -m eval.run_eval --score-repair

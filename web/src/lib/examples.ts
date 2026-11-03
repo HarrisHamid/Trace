@@ -16,7 +16,7 @@ export const EXAMPLES_REPO = 'fastapi/full-stack-fastapi-template'
 export const STRIP_COUNT = 5
 
 export const EXAMPLES: Example[] = [
-  { label: 'Login', question: 'How does login work?' },
+  { label: 'Login', question: 'How does a user log in?' },
   { label: 'Sign-up', question: 'How does a new user sign up?' },
   { label: 'Password reset', question: 'What happens when a user submits a new password with a reset token?' },
   { label: 'Recovery email', question: 'How does a password recovery request end up sending an email?' },
@@ -24,8 +24,8 @@ export const EXAMPLES: Example[] = [
   { label: 'Admin adds user', question: 'When an admin creates a user, how does the new account email get sent?' },
   { label: 'Superuser check', question: 'How is an endpoint restricted to superusers?' },
   { label: 'First superuser', question: 'How is the first superuser created when the app is set up?' },
+  { label: 'Login, no repair', question: 'How does login work?' },
   { label: 'Delete cascade', question: 'How are items deleted when a user account is deleted?' },
-  { label: 'Create an item', question: 'What happens when a signed-in user creates an item?' },
 ]
 
 // The same rule as answer_path in backend/trace/api/app.py.

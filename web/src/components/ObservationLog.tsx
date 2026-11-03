@@ -3,6 +3,7 @@ import { ChevronDown, LoaderCircle, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { StatusGlyph } from '@/components/Glyphs'
+import { isRecorded } from '@/lib/examples'
 import { bayer, type GraphNode, type RepairView, type RunView, type Star, type Tally as TallyCounts, type TraceLine } from '@/lib/run'
 import type { Scene } from '@/lib/scene'
 import { cn } from '@/lib/utils'
@@ -235,19 +236,19 @@ function RepairPanel({ repair, onFocus }: { repair: RepairView; onFocus: (nodeId
 }
 
 // Stays up from the question until the answer starts to draw, which covers the long wait for the final model call.
-function RunStatus({ phase }: { phase: RunView['phase'] }) {
+function RunStatus({ phase, recorded }: { phase: RunView['phase']; recorded: boolean }) {
   if (phase === 'walking') {
     return (
       <p role="status" className="flex items-center gap-2 font-serif text-xl leading-none text-primary italic">
         <LoaderCircle aria-hidden className="size-5 animate-spin motion-reduce:animate-none" />
-        Agent is cooking
+        {recorded ? 'Replaying a saved run' : 'Agent is cooking'}
       </p>
     )
   }
   return (
     <p className="kicker flex items-center gap-2" aria-live="polite">
       {phase === 'revealing' && <span className="size-1.5 animate-pulse rounded-full bg-primary motion-reduce:animate-none" />}
-      {phase === 'revealing' ? 'Tracing' : 'Observation log'}
+      {phase === 'revealing' ? 'Tracing' : recorded ? 'Recorded run' : 'Observation log'}
     </p>
   )
 }
@@ -283,7 +284,7 @@ export function ObservationLog({ run, scene, nodesById, onExit }: ObservationLog
     >
       <header className="px-5 pt-4 pb-3">
         <div className="flex min-h-7 items-center justify-between gap-3">
-          <RunStatus phase={run.phase} />
+          <RunStatus phase={run.phase} recorded={isRecorded(run.question)} />
           <button
             onClick={onExit}
             className="flex shrink-0 items-center gap-1.5 border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"

@@ -64,7 +64,7 @@ function ExampleList({ onAsk }: { onAsk: (question: string) => void }) {
       className="glass absolute inset-x-0 bottom-full mb-1.5 bg-[rgb(12_14_21/97%)]"
     >
       <p className="border-b border-border px-4 py-2 text-[11px] text-muted-foreground">
-        Saved runs replay in about 10 seconds. Typed questions run live, about a minute.
+        Saved runs replay in under 20 seconds. Typed questions run live, about a minute.
       </p>
       <ul className="py-1">
         {EXAMPLES.map((example, index) => (
