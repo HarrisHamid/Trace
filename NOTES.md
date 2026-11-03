@@ -108,6 +108,16 @@ replaces learning mode for this submission. Learning mode's notes are kept. Spec
 - **`tenacity` removed.** The OpenAI SDK already retries 429s and server errors.
 - **The map footer no longer says "100%".** It reads "59/59 internal calls resolved · externals by rule".
 
+## Self-correction (2026-11-02)
+- **AI-written (Claude Opus 5.5, via Claude Code):** `backend/trace/validator/repair.py`, `scripts/repair_recording.py`, `web/scripts/run.check.ts`, `tests/test_repair.py`, and the repair changes in `backend/trace/agent/loop.py`, `backend/trace/validator/grounding.py`, `backend/trace/schemas/events.py`, `eval/run_eval.py`, `web/src/lib/run.ts` and `web/src/components/ObservationLog.tsx`. The model at runtime is still Meta's `muse-spark-1.3`.
+- **Decisions confirmed by the owner:** the demo takes up to 4 whole runs of a new question and otherwise one real repair on the old recording, disclosed as stitched; 26 live runs and $5 are hard limits; the owner reads the repair audit.
+- **The model returns a patch, not a new path.** A rewrite would have needed a gate to catch deleted hard claims. A patch has no way to delete one, so the gate is a second check rather than the only one.
+- **No tools in the repair.** Most failed claims sit on nodes the model never read, and the code already knows which, so it attaches that source. `MAX_TOOL_CALLS` stays 8.
+- **A claim may move to the step before.** In the login recording, 3 of 4 failed claims had their proof in the caller.
+- **A quote in a repair stops at 200 characters.** A smoke run pasted a whole function, which would prove nearly any sentence about it. First drafts keep the old rule, so they stay comparable with the baseline.
+- **Repair is slower than planned.** The estimate was 5 to 20 seconds. The eval's median was 8, but one call took 34 of the 45 allowed, because the model thinks at length before writing a small patch.
+- **A first draft can break the schema.** It happened in 1 of 25 whole runs, before repair, and the run counts as failed. The baseline happened not to hit it.
+
 ## Space factory map (2026-10-31)
 - **Plates, labels and belts.** `web/src/lib/scene.ts` builds one plate per module and the belts from the graph. `web/src/lib/pills.ts` draws the label cards on a second canvas above Cytoscape. `web/src/lib/sky.ts` draws the background, plates and the answer. All of it is AI-written.
 - **Colour means module.** Six `--module-*` tokens replace the per-type colours. Shape still carries the node type.

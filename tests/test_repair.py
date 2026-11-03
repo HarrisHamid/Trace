@@ -282,9 +282,11 @@ def test_the_login_recording_flags_its_four_claims_and_the_skipped_authenticate(
     assert flagged.left_alone == 0
 
 
-def test_the_create_item_recording_sends_only_what_can_be_fixed():
+def test_the_create_item_baseline_sends_only_what_can_be_fixed():
     index = GraphIndex.load(ROOT / "data" / "fastapi-template" / "graph.json", Path("/nonexistent"))
-    steps = recording("what-happens-when-a-signed-in-user-creates-an-item.jsonl")
+    saved = json.loads((ROOT / "eval" / "runs" / "create-item.json").read_text(encoding="utf-8"))
+    events = [event_adapter.validate_python(event) for event in saved["events"]]
+    steps = next(event for event in events if event.type == "final_path").steps
     flagged = find_flagged(as_draft(steps), steps, index)
     assert (len(flagged.claims), len(flagged.gaps), flagged.left_alone) == (1, 3, 5)
     assert all(g.bridges == ("app.api.routes.items:create_item",) for g in flagged.gaps)

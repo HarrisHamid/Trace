@@ -407,6 +407,11 @@ def repair_report(pairs: list[Paired], baseline: list[Score]) -> str:
         f"Claims sent back: {claims_sent}. Fixed: {len(flips)}. Gaps sent back: {gaps_sent}. Closed: {gaps_closed}.",
         f"Left alone, because no fix is possible: {sum(pair.left_alone for pair in pairs)}.",
         "",
+        *(
+            ["**No draft in these runs had a gap with a bridge, so this eval says nothing about repairing gaps.**", ""]
+            if gaps_sent == 0
+            else []
+        ),
         "## Before and after, on the same drafts",
         "",
         "| Questions | Runs | Must reach | Should reach | Model claims verified | Gaps | Mean path steps |",
