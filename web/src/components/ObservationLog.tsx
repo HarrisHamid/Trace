@@ -117,7 +117,8 @@ function StepEntry({ star, colour, index, name, type, isLast, dashedBelow, previ
             <ClaimRow
               key={claim.text}
               claim={claim}
-              fixed={fixedClaims?.has(claim.text) ?? false}
+              // A moved claim still shows at its old step until the redraw gets there, and that copy is not fixed.
+              fixed={claim.status === 'verified' && (fixedClaims?.has(claim.text) ?? false)}
               // A gap is about the link into this step, so its quote is at the call site in the step before.
               sourceNodeId={claim.status === 'gap' && previousNodeId ? previousNodeId : star.nodeId}
             />

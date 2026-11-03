@@ -104,10 +104,10 @@ def test_the_brief_never_offers_library_source(index):
     assert BCRYPT not in repair_brief(draft, flagged, index)["sources"]
 
 
-def test_issues_read_as_the_user_will_see_them_in_path_order(index):
-    draft, _, flagged = checked(index, step(ROUTE), step(AUTHENTICATE, ("A claim.", "")))
+def test_a_gap_leads_the_issues_even_when_a_claim_comes_earlier_on_the_path(index):
+    draft, _, flagged = checked(index, step(ROUTE, ("A claim.", "")), step(AUTHENTICATE))
     issues = repair_issues(draft, flagged)
-    assert [(i.kind, i.node_id) for i in issues] == [("gap", AUTHENTICATE), ("claim", AUTHENTICATE)]
+    assert [(i.kind, i.node_id) for i in issues] == [("gap", AUTHENTICATE), ("claim", ROUTE)]
     assert "No edge" in issues[0].text
 
 

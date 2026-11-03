@@ -118,21 +118,17 @@ def find_flagged(draft: DraftPath, steps: list[PathStep], index: GraphIndex) -> 
 
 
 def repair_issues(draft: DraftPath, flagged: Flagged) -> list[RepairIssue]:
-    """The flagged items as the UI shows them, in path order."""
-    issues = [
-        (issue.step, RepairIssue(kind="gap", node_id=draft.steps[issue.step].node_id, text=issue.text))
-        for issue in flagged.gaps
+    """The flagged items as the UI shows them. Gaps come first: a broken path matters more than one claim."""
+    gaps = [
+        RepairIssue(kind="gap", node_id=draft.steps[issue.step].node_id, text=issue.text) for issue in flagged.gaps
     ]
-    issues += [
-        (
-            issue.step,
-            RepairIssue(
-                kind="claim", node_id=draft.steps[issue.step].node_id, text=draft.steps[issue.step].claims[issue.position].text
-            ),
+    claims = [
+        RepairIssue(
+            kind="claim", node_id=draft.steps[issue.step].node_id, text=draft.steps[issue.step].claims[issue.position].text
         )
         for issue in flagged.claims
     ]
-    return [issue for _, issue in sorted(issues, key=lambda pair: pair[0])]
+    return gaps + claims
 
 
 def _capped_source(node_id: str, index: GraphIndex) -> str | None:

@@ -504,8 +504,10 @@ async def main(args: argparse.Namespace) -> int:
         print(text)
     elif args.round is not None:
         folder = REPAIR_DIR / f"round-{args.round}"
+        # A round that was cut off picks up where it stopped. A saved run is never run again.
         for question in questions:
-            await run_question(question, settings, index, folder)
+            if not run_path(question, folder).exists():
+                await run_question(question, settings, index, folder)
         write_repair_results(questions)
     elif args.smoke:
         question = next(question for question in questions if question["id"] == args.smoke)
