@@ -38,6 +38,7 @@ AUDIT_PATH = EVAL_DIR / "repair-audit.md"
 
 INPUT_DOLLARS_PER_TOKEN = 1.25 / 1_000_000
 OUTPUT_DOLLARS_PER_TOKEN = 4.25 / 1_000_000
+NO_ANSWER = "no answer, run failed"
 # The owner's limits for the repair work. Past either one, stop and ask.
 MAX_LIVE_RUNS = 26
 MAX_DOLLARS = 5.0
@@ -300,20 +301,26 @@ def added_nodes(first: list[PathStep], final: list[PathStep]) -> list[str]:
     return added
 
 
+def run_outcome(events: list[Event]) -> str:
+    """A run that failed before it had an answer never reached repair, and must not read as having nothing to fix."""
+    if any(event.type == "error" for event in events):
+        return NO_ANSWER
+    return next((event.outcome for event in events if event.type == "repair_finished"), "nothing to repair")
+
+
 def pair_run(question: dict, round_name: str, folder: Path) -> Paired:
     events, seconds = load_run(question, folder)
     saved = json.loads(run_path(question, folder).read_text(encoding="utf-8"))
     first, final = first_steps(events), final_steps(events)
     check_nothing_lost(question["id"], first, final)
     started = next((e for e in events if e.type == "repair_started"), None)
-    finished = next((e for e in events if e.type == "repair_finished"), None)
     issues = started.issues if started else []
     repair_call = next((call for call in saved["calls"] if call["kind"] == "path_repair"), None)
     return Paired(
         round=round_name,
         first=score_steps(question, first, events, seconds),
         final=score_steps(question, final, events, seconds),
-        outcome=finished.outcome if finished else "nothing to repair",
+        outcome=run_outcome(events),
         claims_sent=sum(issue.kind == "claim" for issue in issues),
         gaps_sent=sum(issue.kind == "gap" for issue in issues),
         left_alone=started.left_alone if started else 0,
@@ -365,7 +372,7 @@ def repair_report(pairs: list[Paired], baseline: list[Score]) -> str:
     checked = [pair for pair in pairs if pair.first.checked]
     outcomes = Counter(pair.outcome for pair in pairs)
     flips = [flip for pair in pairs for flip in pair.flips]
-    repaired_runs = [pair for pair in pairs if pair.outcome != "nothing to repair"]
+    repaired_runs = [pair for pair in pairs if pair.repair_seconds is not None]
     claims_sent = sum(pair.claims_sent for pair in pairs)
     gaps_sent = sum(pair.gaps_sent for pair in pairs)
     gaps_closed = sum(p.first.gaps - p.final.gaps for p in pairs)
@@ -386,7 +393,13 @@ def repair_report(pairs: list[Paired], baseline: list[Score]) -> str:
         "",
         "| Outcome | Runs |",
         "|---|---|",
-        *(f"| {name} | {outcomes[name]} |" for name in ["nothing to repair", "accepted", "no_improvement", "failed"]),
+        *(
+            f"| {name} | {outcomes[name]} |"
+            for name in ["nothing to repair", "accepted", "no_improvement", "failed", NO_ANSWER]
+        ),
+        "",
+        "`failed` means the repair failed and the first answer stood. A run with no answer failed before repair could start.",
+        "It counts as zero in the tables below, because every run counts.",
         "",
         f"Claims sent back: {claims_sent}. Fixed: {len(flips)}. Gaps sent back: {gaps_sent}. Closed: {gaps_closed}.",
         f"Left alone, because no fix is possible: {sum(pair.left_alone for pair in pairs)}.",
@@ -439,8 +452,9 @@ def repair_report(pairs: list[Paired], baseline: list[Score]) -> str:
         claims = f"{p.first.claims_verified} to {p.final.claims_verified} of {p.first.claims_total}"
         added = ", ".join(f"`{node}`" for node in p.added) or "none"
         took = f"{p.repair_seconds:.0f}s" if p.repair_seconds is not None else "none"
+        outcome = f"{p.outcome}: {p.first.error}" if p.first.error else p.outcome
         lines.append(
-            f"| {p.round} | {p.first.id} | {'yes' if p.first.checked else 'no'} | {p.outcome} | {must} | {claims} "
+            f"| {p.round} | {p.first.id} | {'yes' if p.first.checked else 'no'} | {outcome} | {must} | {claims} "
             f"| {p.first.gaps} to {p.final.gaps} | {p.steps_first} to {p.steps_final} | {added} | {took} |"
         )
     lines.append("")

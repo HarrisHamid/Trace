@@ -13,6 +13,7 @@ plain code before the user sees it. The walk is the product. The validator is wh
 
 ```
 question -> investigate (tools, at most 8 calls) -> one structured-output call -> validator -> final_path
+         -> if the model could fix something: one repair call -> validator -> gate -> repair_finished
 ```
 
 Tools and structured output never share a request. A live test on 2026-11-01 confirmed that both work on Chat Completions
@@ -72,6 +73,58 @@ Verified means the edge exists, or the quoted text exists in the cited node. It 
 about that text is true, and the UI and the pitch must not imply otherwise. The hand-labelled eval in `05-eval-demo.md` is
 what measures whether answers are correct.
 
+## Repair
+
+When the validator flags something the model could fix, the failures go back to the model for one round, and the same
+validator checks the result. The model catches its mistake only because plain code showed it where.
+
+```
+final_path -> repair_started { issues, left_alone } -> repair_finished { outcome, steps } -> done
+```
+
+`final_path` is sent first and keeps its name, so a repair that fails can never lose the answer. With nothing to fix, the
+stream is the same as it was before repair existed. Old cached answers hold none of these events and replay unchanged.
+
+**What is sent back.** Only what could be fixed:
+
+| Flagged | Sent back? |
+|---|---|
+| Unverified claim on a repo step | Yes, with why it failed, plus the source of its step and the step before |
+| Gap with a bridge: a repo node with a firm edge to both ends, by call, route or injection | Yes, with the bridges to pick from. A node already on the path is offered alone |
+| Claim on an external or unresolved step | No. It can never verify, so it counts as `left_alone` and the UI says so |
+| Gap with no bridge | No, for the same reason |
+
+**The call.** One extra structured-output call on the same conversation, with no tools, so `MAX_TOOL_CALLS` stays 8. It has
+one try and a limit of 45 seconds. Nothing sent back gets a second round.
+
+**The model returns a patch, not a new path.** This is what keeps the numbers honest. A patch can only:
+
+- add a quote to a flagged claim, at its own step or the step before, where the call site usually is
+- add one node from the offered bridges to a flagged gap, with an explanation and no claims
+
+It cannot delete a step, delete a claim or change a sentence. A bridge carries no model claims, so the share of model
+claims verified keeps the same denominator. A quote over 200 characters is ignored, because a pasted function would prove
+nearly any sentence about it. A fix whose quote fails the check changes nothing, and that also stops a claim on an external
+step being moved onto its caller to get around the rule above. Repair has no `status` field, and the patched draft goes
+back through `validate_path`, so the validator is still the only thing that sets status.
+
+**When a repair is accepted.** `is_better` in `backend/trace/validator/repair.py` is plain code. Every sentence and every
+node must still be there, gaps must not rise, verified must not fall, and at least one of those must really improve.
+
+| `outcome` | Meaning | `steps` |
+|---|---|---|
+| `accepted` | The repaired path replaces the first one | The repaired path |
+| `no_improvement` | The model fixed nothing that passed, so the first answer stands | Empty |
+| `failed` | The call failed, timed out or broke the schema, so the first answer stands. This is not an `error` | Empty |
+
+**What repair cannot do.** It only sees what the validator flags. A node the model left out entirely, with a clean path
+around it, is not flagged, so repair will not find it and recall should not be expected to rise. A real quote that does not
+prove its sentence still passes, as it always has, so the eval lists every claim repair turned verified for a person to read.
+
+**On screen.** The first path stays up with what was sent back listed in the log. An accepted repair redraws from the first
+step it changed, new steps are marked as added and fixed claims as fixed, and the first draft's tally stays beside the
+final one for good. `phase` stays `revealing` throughout.
+
 ## Serving
 
 `POST /api/ask` picks the first of these that applies:
@@ -88,3 +141,4 @@ answers vary between runs and the demo depends on the saved one.
 - A question on the real graph streams real tool calls and a validated path into the unchanged UI.
 - Every status on screen was set by the validator.
 - Tests cover every row of the rules table without calling the model.
+- A failed repair never loses the first answer, and tests cover each way a repair could raise a score without earning it.

@@ -7,6 +7,7 @@ import pytest
 from backend.trace.schemas import Claim, PathStep
 from backend.trace.schemas.events import Done, ErrorEvent, FinalPath, RepairFinished, RunStarted, ToolCall
 from eval.run_eval import (
+    NO_ANSWER,
     CountingClient,
     added_nodes,
     audit_cell,
@@ -18,6 +19,7 @@ from eval.run_eval import (
     find_flips,
     first_steps,
     report,
+    run_outcome,
     run_question,
     score_run,
 )
@@ -91,6 +93,13 @@ def test_the_final_answer_is_the_repair_only_when_it_was_accepted():
 def test_the_score_of_a_repaired_run_is_the_final_answer():
     score = score_run(question(["a"]), repaired_run([step("a", "unverified")], [step("a", "verified")]), 1.0)
     assert (score.claims_verified, score.claims_total) == (1, 1)
+
+
+def test_a_run_that_failed_is_never_reported_as_having_nothing_to_repair():
+    failed = [RunStarted(type="run_started"), ErrorEvent(type="error", message="boom"), Done(type="done")]
+    assert run_outcome(failed) == NO_ANSWER
+    assert run_outcome(run(step("a"))) == "nothing to repair"
+    assert run_outcome(repaired_run([step("a", "unverified")], [], "failed")) == "failed"
 
 
 def test_a_flip_is_found_wherever_the_claim_ended_up():
