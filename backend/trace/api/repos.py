@@ -107,6 +107,9 @@ def detect_root(source: Path) -> str:
     for folder in sorted(source.iterdir()):
         if not folder.is_dir() or folder.name.startswith(".") or folder.name.lower() in NOT_A_ROOT:
             continue
+        # A package is imported by its name, so imports start in the folder that holds it, not inside it.
+        if (folder / "__init__.py").is_file():
+            continue
         if (folder_score := score(folder)) > best_score:
             best, best_score = folder.name, folder_score
     return best
