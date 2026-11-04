@@ -182,6 +182,14 @@ def test_the_import_root_is_the_folder_with_the_most_packages(tmp_path):
     assert detect_root(tmp_path) == "backend"
 
 
+def test_a_package_at_the_top_is_imported_from_the_repo_itself(tmp_path):
+    # Like app/ in a FastAPI service: app holds subpackages, but imports say "from app.api import ...".
+    for part in ("app", "app/api", "app/core", "app/db"):
+        (tmp_path / part).mkdir()
+        (tmp_path / part / "__init__.py").write_text("")
+    assert detect_root(tmp_path) == "."
+
+
 def test_a_flat_repo_is_its_own_import_root(tmp_path):
     (tmp_path / "pkg").mkdir()
     (tmp_path / "pkg" / "__init__.py").write_text("")
