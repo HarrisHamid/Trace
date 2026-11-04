@@ -135,11 +135,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=400, detail=str(error)) from None
 
     @app.delete("/api/repos/{repo_id}", status_code=204)
-    def dismiss_repo(repo_id: str) -> Response:
+    def remove_repo(repo_id: str) -> Response:
         try:
-            repos.dismiss(repo_id)
+            repos.remove(repo_id)
+        except IngestError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from None
         except KeyError:
-            raise HTTPException(status_code=404, detail="Only a failed attempt can be dismissed") from None
+            raise HTTPException(status_code=404, detail="No such repo, or it is still being added") from None
+        # A repo added again under the same id must not be answered from the deleted one's graph.
+        index_for.cache_clear()
         return Response(status_code=204)
 
     @app.get("/api/graph")

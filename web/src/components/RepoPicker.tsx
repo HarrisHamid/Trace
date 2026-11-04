@@ -1,7 +1,7 @@
-import { ArrowRight, Check, ChevronRight, CircleX, ExternalLink, FolderGit2, LoaderCircle, Plus, RotateCcw, X } from 'lucide-react'
+import { ArrowRight, Check, ChevronRight, CircleX, ExternalLink, FolderGit2, LoaderCircle, Plus, RotateCcw, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useState, type FormEvent, type KeyboardEvent } from 'react'
 
-import { addRepo, dismissRepo, fetchRepos, type RepoSummary } from '@/api'
+import { addRepo, fetchRepos, removeRepo, type RepoSummary } from '@/api'
 import { Mark } from '@/components/MapChrome'
 import { MAP_HASH } from '@/lib/route'
 import { cn } from '@/lib/utils'
@@ -72,11 +72,71 @@ interface RowProps {
   onOpen: () => void
   onRetry: () => void
   onDismiss: () => void
+  // Resolves once the repo is gone; rejects with the reason it could not be deleted.
+  onDelete: () => Promise<void>
 }
 
-function RepoRow({ repo, current, since, onOpen, onRetry, onDismiss }: RowProps) {
+// Asks before deleting, in the row itself: what goes, and that it can be added again.
+function ConfirmDelete({ repo, onCancel, onDelete }: { repo: RepoSummary; onCancel: () => void; onDelete: () => Promise<void> }) {
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function confirm() {
+    setDeleting(true)
+    setError(null)
+    try {
+      await onDelete()
+    } catch (failure) {
+      setError((failure as Error).message)
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <li
+      role="alertdialog"
+      aria-label={`Delete ${repo.repo}?`}
+      onKeyDown={(event) => event.key === 'Escape' && onCancel()}
+      className="grid grid-cols-[2rem_1fr_auto] items-center gap-x-3.5 bg-destructive/[0.07] px-4 py-3.5"
+    >
+      <span className="grid size-8 place-items-center rounded border border-destructive/50 text-destructive">
+        <Trash2 aria-hidden className="size-4" />
+      </span>
+      <div className="min-w-0 space-y-1">
+        <p className="truncate text-[13px]">
+          Delete <span className="font-mono font-semibold">{repo.repo}</span>?
+        </p>
+        <p className={cn('text-[11px]', error ? 'text-destructive' : 'text-muted-foreground')}>
+          {error ?? 'Its graph and clone are removed from this machine. You can add it again from GitHub.'}
+        </p>
+      </div>
+      {/* Cancel sits where the trash button was, so a second click on the same spot does not delete. */}
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => void confirm()}
+          disabled={deleting}
+          className="flex items-center gap-1.5 rounded bg-destructive px-2.5 py-1 text-xs font-medium text-white transition-opacity disabled:opacity-50"
+        >
+          {deleting ? <LoaderCircle aria-hidden className="size-3.5 animate-spin" /> : <Trash2 aria-hidden className="size-3.5" />}
+          Delete
+        </button>
+        <button
+          autoFocus
+          onClick={onCancel}
+          className="rounded px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Cancel
+        </button>
+      </div>
+    </li>
+  )
+}
+
+function RepoRow({ repo, current, since, onOpen, onRetry, onDismiss, onDelete }: RowProps) {
+  const [confirming, setConfirming] = useState(false)
   const ready = repo.step === 'ready'
   const failed = repo.step === 'failed'
+  if (confirming) return <ConfirmDelete repo={repo} onCancel={() => setConfirming(false)} onDelete={onDelete} />
   return (
     <li
       className={cn(
@@ -137,6 +197,18 @@ function RepoRow({ repo, current, since, onOpen, onRetry, onDismiss }: RowProps)
           >
             Open
             <ArrowRight aria-hidden className="size-3.5" />
+          </button>
+        )}
+        {ready && !repo.builtin && (
+          <button
+            onClick={(event) => {
+              event.stopPropagation()
+              setConfirming(true)
+            }}
+            title={`Delete ${repo.repo}`}
+            className="rounded p-1 text-muted-foreground opacity-0 transition-[opacity,color] group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100"
+          >
+            <Trash2 aria-label={`Delete ${repo.repo}`} className="size-4" />
           </button>
         )}
         {failed && (
@@ -291,7 +363,7 @@ export function RepoPicker() {
   }
 
   async function retry(repo: RepoSummary) {
-    await dismissRepo(repo.id).catch(() => undefined)
+    await removeRepo(repo.id).catch(() => undefined)
     try {
       await add(repo.url ?? '', repo.root)
     } catch (error) {
@@ -300,7 +372,14 @@ export function RepoPicker() {
   }
 
   async function dismiss(repo: RepoSummary) {
-    await dismissRepo(repo.id).catch(() => undefined)
+    await removeRepo(repo.id).catch(() => undefined)
+    await load()
+  }
+
+  async function remove(repo: RepoSummary) {
+    await removeRepo(repo.id)
+    // The map would otherwise try to open a repo that is gone.
+    if (current === repo.id) setRepo(null)
     await load()
   }
 
@@ -364,6 +443,7 @@ export function RepoPicker() {
                     onOpen={() => open(repo)}
                     onRetry={() => void retry(repo)}
                     onDismiss={() => void dismiss(repo)}
+                    onDelete={() => remove(repo)}
                   />
                 ))}
               </ul>
