@@ -135,13 +135,13 @@ function BlockCard({ block, order, stage, colour, tokens, glyph, dimmed, chosen,
         zIndex: dimmed ? LAYER.faded : LAYER.lit,
         pointerEvents: foreign && stage !== 'wired' ? 'none' : undefined,
         border: `1px ${block.kind === 'unknown' ? 'dashed' : 'solid'} ${boxed ? (chosen ? 'var(--foreground)' : lit ? 'var(--muted-foreground)' : 'var(--border)') : 'transparent'}`,
-        background: boxed ? 'var(--card)' : 'transparent',
-        boxShadow: boxed && spread ? '0 8px 20px rgb(0 0 0 / 30%)' : 'none',
+        // Only boxes in focus are solid. Faded ones are see-through, so the selection stands out.
+        background: boxed && !dimmed ? 'var(--card)' : 'transparent',
+        boxShadow: boxed && spread && !dimmed ? '0 8px 20px rgb(0 0 0 / 30%)' : 'none',
         transition: 'border-color 240ms, background 320ms, box-shadow 320ms',
         transitionDelay: stage === 'boxed' ? `${order * BOX_STAGGER_MS}ms` : '0ms',
       }}
     >
-      {/* Fading the contents, not the card, keeps the card's background solid. */}
       <motion.div initial={false} animate={{ opacity: dimmed ? FADED : 1 }} transition={{ duration: 0.3 }}>
         <header
           className="flex items-center gap-2.5 border-b px-3.5"
@@ -189,7 +189,12 @@ function BlockCard({ block, order, stage, colour, tokens, glyph, dimmed, chosen,
               <CodeLine key={line} tokens={tokens?.[line - 1]} marked={!foreign && markedLines.has(line)} />
             ))}
             {block.clipped > 0 && (
-              <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-card to-transparent px-3.5 pt-5 pb-1.5 text-[10px] text-muted-foreground">
+              <p
+                className={cn(
+                  'absolute inset-x-0 bottom-0 px-3.5 pt-5 pb-1.5 text-[10px] text-muted-foreground',
+                  !dimmed && 'bg-gradient-to-t from-card to-transparent',
+                )}
+              >
                 {block.clipped} more lines
               </p>
             )}
@@ -219,7 +224,8 @@ function CallersCard({ card, shown, dimmed, chosen, onChoose, onOpen }: { card: 
         zIndex: dimmed ? LAYER.faded : LAYER.lit,
         pointerEvents: shown ? undefined : 'none',
         border: `1px solid ${chosen ? 'var(--foreground)' : 'var(--border)'}`,
-        background: 'var(--card)',
+        background: dimmed ? 'transparent' : 'var(--card)',
+        transition: 'background 320ms',
       }}
     >
       <motion.div initial={false} animate={{ opacity: dimmed ? FADED : 1 }} transition={{ duration: 0.3 }}>
