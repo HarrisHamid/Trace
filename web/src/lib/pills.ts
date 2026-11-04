@@ -9,11 +9,11 @@ import type { Plate, Point, Scene } from '@/lib/scene'
 // letting them pile up.
 
 const MONO = '"JetBrains Mono Variable", monospace'
-const CARD = 'rgba(10,12,19,0.93)'
-const HAIRLINE = 'rgba(196,206,232,0.18)'
-const TEXT = '#dfe2ee'
-const MUTED = '#8f95ad'
-const DARK = '#0a0c12'
+const CARD = 'rgba(24,27,33,0.96)'
+const HAIRLINE = '#2e333b'
+const TEXT = '#e6e8eb'
+const MUTED = '#8a9099'
+const DARK = '#0d0f12'
 const MIN_SCALE = 0.78
 const MAX_SCALE = 1.2
 // A card is 0.9 of its full size at zoom 0.4, the zoom LABEL in scene.ts is measured at.
@@ -100,10 +100,10 @@ export class LabelPainter {
   constructor(nodes: GraphNode[], scene: Scene) {
     this.nodes = nodes
     this.scene = scene
-    const gold = cssVar('--status-verified')
+    const path = cssVar('--path')
     this.status = {
-      visited: gold,
-      verified: gold,
+      visited: path,
+      verified: cssVar('--status-verified'),
       unverified: cssVar('--status-unverified'),
       gap: cssVar('--status-gap'),
     }
@@ -190,7 +190,7 @@ export class LabelPainter {
     const row = 22 * scale
     ctx.globalAlpha = item.alpha
     ctx.beginPath()
-    ctx.roundRect(x, y, width, height, 6 * scale)
+    ctx.roundRect(x, y, width, height, 4 * scale)
     ctx.fillStyle = CARD
     ctx.fill()
     ctx.lineWidth = lit ? 1.5 : 1
@@ -202,7 +202,7 @@ export class LabelPainter {
     if (lit) {
       const chip = 15 * scale
       ctx.beginPath()
-      ctx.roundRect(x + 8 * scale, y + (row - chip) / 2, chip, chip, 3 * scale)
+      ctx.roundRect(x + 8 * scale, y + (row - chip) / 2, chip, chip, chip / 2)
       ctx.fillStyle = this.status[lit.status]
       ctx.fill()
       ctx.fillStyle = DARK
@@ -228,7 +228,7 @@ export class LabelPainter {
     }
   }
 
-  // Each plate's coloured tab and its one-line caption, like the nameplate on the front of a machine base.
+  // Each module box's name tab and its one-line caption.
   drawPlateLabels(ctx: CanvasRenderingContext2D, frame: Frame, state: PillState) {
     const { zoom, pan } = frame
     ctx.save()
@@ -242,7 +242,7 @@ export class LabelPainter {
       ctx.globalAlpha = state.plateAlpha(plate)
 
       ctx.beginPath()
-      ctx.roundRect(x, y, tabWidth, tabHeight, 7 * zoom)
+      ctx.roundRect(x, y, tabWidth, tabHeight, 4 * zoom)
       ctx.fillStyle = CARD
       ctx.fill()
       ctx.strokeStyle = HAIRLINE
@@ -255,12 +255,10 @@ export class LabelPainter {
       ctx.fillStyle = plate.colour
       ctx.fill()
 
-      ctx.font = `700 ${Math.max(8.5, 12 * zoom)}px ${MONO}`
-      ctx.letterSpacing = `${1.4 * zoom}px`
+      ctx.font = `600 ${Math.max(8.5, 12 * zoom)}px ${MONO}`
       ctx.fillStyle = TEXT
       ctx.textAlign = 'left'
-      ctx.fillText(plate.name.toUpperCase(), x + 30 * zoom, y + tabHeight / 2 + 0.5)
-      ctx.letterSpacing = '0px'
+      ctx.fillText(plate.name, x + 30 * zoom, y + tabHeight / 2 + 0.5)
 
       if (plate.caption && zoom >= MIN_CAPTION_ZOOM) {
         ctx.font = `${Math.max(8.5, 10 * Math.min(zoom, 1.1))}px ${MONO}`

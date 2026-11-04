@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
 @import "@fontsource/instrument-serif/400.css";
 @import "@fontsource/instrument-serif/400-italic.css";
 @import "@fontsource-variable/jetbrains-mono";
@@ -8,14 +11,16 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: 'Instrument Serif', Georgia, serif;
+    --font-heading: 'IBM Plex Sans', system-ui, sans-serif;
+    /* Only the landing page's wordmark still uses the serif. */
     --font-serif: 'Instrument Serif', Georgia, serif;
-    --font-sans: 'JetBrains Mono Variable', monospace;
+    --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono Variable', monospace;
     --color-verified: var(--status-verified);
     --color-unverified: var(--status-unverified);
     --color-gap: var(--status-gap);
     --color-belt: var(--belt);
+    --color-path: var(--path);
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
@@ -44,42 +49,42 @@
 }
 
 :root {
-    --background: #090a0f;
-    --foreground: #ece8dc;
-    --card: #10121a;
-    --card-foreground: #ece8dc;
-    --popover: #10121a;
-    --popover-foreground: #ece8dc;
-    --primary: #f2c46d;
-    --primary-foreground: #17120a;
-    --secondary: #191c27;
-    --secondary-foreground: #ece8dc;
-    --muted: #161924;
-    --muted-foreground: #9196ab;
-    --accent: #1d2130;
-    --accent-foreground: #ece8dc;
-    --destructive: #ff7a5c;
-    --border: rgb(196 206 232 / 13%);
-    --input: rgb(196 206 232 / 18%);
-    --ring: #f2c46d;
-    --radius: 0.125rem;
+    --background: #0d0f12;
+    --foreground: #e6e8eb;
+    --card: #15181d;
+    --card-foreground: #e6e8eb;
+    --popover: #181b21;
+    --popover-foreground: #e6e8eb;
+    --primary: #4c8dff;
+    --primary-foreground: #ffffff;
+    --secondary: #1b1f25;
+    --secondary-foreground: #e6e8eb;
+    --muted: #171a1f;
+    --muted-foreground: #8a9099;
+    --accent: #20242b;
+    --accent-foreground: #e6e8eb;
+    --destructive: #f85149;
+    --border: #262a31;
+    --input: #2e333b;
+    --ring: #4c8dff;
+    --radius: 0.375rem;
 
-    /* A module is a colour. Its plate trim, its tab and the square on every one of its labels share it. */
-    --module-1: #4f8cff;
-    --module-2: #22c3a6;
-    --module-3: #b57bff;
-    --module-4: #ff6f91;
-    --module-5: #8ed16f;
-    --module-6: #5fd0ff;
-    --star-external: #7a8099;
-    --belt: #7d88a8;
-    --parcel: #ff9f43;
+    /* A module is a colour: its box trim and the square on each of its labels share it. */
+    --module-1: #5b8def;
+    --module-2: #2fb59c;
+    --module-3: #9d7ae8;
+    --module-4: #e0698a;
+    --module-5: #7fbf66;
+    --module-6: #4fb6e0;
+    --star-external: #6e7681;
+    --belt: #5b6270;
 
-    /* Gold is the thread: it means the chart backs this. */
-    --status-verified: #f2c46d;
-    --status-unverified: #ff7a5c;
-    --status-gap: #8fd3ff;
-
+    /* The answer's path. Status colours say what the validator found. */
+    --path: #4c8dff;
+    --parcel: #4c8dff;
+    --status-verified: #3fb950;
+    --status-unverified: #d29922;
+    --status-gap: #a371f7;
 }
 
 @layer base {
@@ -91,55 +96,35 @@
     }
   html {
     @apply font-sans;
+    color-scheme: dark;
     }
 }
 
 @layer components {
-  /* The plate: a hairline frame with atlas tick marks. */
-  .plate-frame {
-    --tick: var(--border);
-    pointer-events: none;
-    position: absolute;
-    inset: 10px;
-    border: 1px solid var(--border);
-    background:
-      repeating-linear-gradient(90deg, var(--tick) 0 1px, transparent 1px 48px) top / 100% 5px no-repeat,
-      repeating-linear-gradient(90deg, var(--tick) 0 1px, transparent 1px 48px) bottom / 100% 5px no-repeat,
-      repeating-linear-gradient(0deg, var(--tick) 0 1px, transparent 1px 48px) left / 5px 100% no-repeat,
-      repeating-linear-gradient(0deg, var(--tick) 0 1px, transparent 1px 48px) right / 5px 100% no-repeat;
-  }
-
-  .plate-vignette {
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at 45% 45%, transparent 55%, rgb(4 5 9 / 72%) 100%);
-  }
-
-  /* The legend's small line and conveyor. The map's own are drawn in lib/belt.ts. */
+  /* The legend's samples. The map's own lines are drawn in lib/belt.ts and lib/sky.ts. */
   .line-sample {
-    border-top: 1.5px solid #eef2ff;
-    box-shadow: 0 0 5px rgb(148 178 255 / 75%);
+    border-top: 1.5px solid var(--belt);
   }
 
   .belt-sample {
-    height: 8px;
-    border-block: 1.5px solid var(--status-verified);
-    background: repeating-linear-gradient(90deg, rgb(214 220 232 / 50%) 0 1px, #2a2f3c 1px 4px);
+    border-top: 3px solid var(--path);
   }
 
   .kicker {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
-    letter-spacing: 0.2em;
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--muted-foreground);
   }
 
+  /* A floating panel over the map. */
   .glass {
     border: 1px solid var(--border);
-    background: rgb(12 14 21 / 88%);
-    backdrop-filter: blur(14px);
+    border-radius: var(--radius);
+    background: var(--card);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
   }
 
   .code-plate pre {
@@ -161,7 +146,7 @@
     display: block;
     min-height: 1.7em;
     padding-right: 1.5rem;
-    opacity: 0.45;
+    opacity: 0.5;
     border-left: 2px solid transparent;
   }
 
@@ -181,7 +166,7 @@
 
   .code-plate .line.quoted {
     opacity: 1;
-    border-left-color: var(--status-verified);
-    background: rgb(242 196 109 / 12%);
+    border-left-color: var(--path);
+    background: rgb(76 141 255 / 13%);
   }
 }

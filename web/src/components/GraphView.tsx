@@ -4,15 +4,14 @@ import { useEffect, useImperativeHandle, useMemo, useRef, type Ref } from 'react
 
 import { cssVar } from '@/lib/css'
 import { isInside } from '@/lib/filegraph'
-import { bayer, type GraphNode, type RunView } from '@/lib/run'
+import { stepLabel, type GraphNode, type RunView } from '@/lib/run'
 import { isBelt, tabCentre, type Box, type Scene } from '@/lib/scene'
 import { Sky } from '@/lib/sky'
 import { useTraceStore, type FocusRequest, type PinnedLine, type View } from '@/store'
 import type { Graph } from '@/types/contracts/graph.schema'
 
-const SERIF = '"Instrument Serif", Georgia, serif'
 const MONO = '"JetBrains Mono Variable", monospace'
-const INSETS = { top: 64, left: 44, bottom: 112 }
+const INSETS = { top: 56, left: 32, bottom: 32 }
 const FOCUS_ZOOM = 1.15
 const MAX_FRAME_ZOOM = 1.5
 const MIN_ZOOM = 0.2
@@ -62,7 +61,7 @@ function toElements(graph: Graph, scene: Scene): cytoscape.ElementDefinition[] {
 
 // Labels are drawn by the sky, so these styles are only the shapes. Fills take the colour of their module.
 function stylesheet(reducedMotion: boolean): cytoscape.StylesheetJson {
-  const gold = cssVar('--status-verified')
+  const path = cssVar('--path')
   const vermilion = cssVar('--status-unverified')
   const ice = cssVar('--status-gap')
   const belt = cssVar('--belt')
@@ -84,7 +83,11 @@ function stylesheet(reducedMotion: boolean): cytoscape.StylesheetJson {
         'transition-duration': fade,
       },
     },
-    { selector: 'node[type = "route"]', style: { shape: 'star', width: 34, height: 34 } },
+    // An entry point is a play mark: requests start here.
+    {
+      selector: 'node[type = "route"]',
+      style: { shape: 'polygon', 'shape-polygon-points': '-0.75 -1 1 0 -0.75 1', width: 26, height: 26 },
+    },
     { selector: 'node[type = "class"]', style: { shape: 'hexagon', width: 26, height: 26 } },
     { selector: 'node[type = "dependency"]', style: { shape: 'diamond', width: 24, height: 24 } },
     {
@@ -133,7 +136,7 @@ function stylesheet(reducedMotion: boolean): cytoscape.StylesheetJson {
     { selector: 'node.tucked', style: { display: 'none' } },
     { selector: 'node.hovered', style: { 'border-color': foreground } },
     { selector: 'node.aside', style: { opacity: 0.3 } },
-    { selector: 'node.lit', style: { opacity: 1, 'border-width': 3.5, 'border-color': gold } },
+    { selector: 'node.lit', style: { opacity: 1, 'border-width': 3.5, 'border-color': path } },
     { selector: 'node.current', style: { 'border-width': 5 } },
     { selector: 'node.unverified', style: { 'border-color': vermilion } },
     { selector: 'node.gap', style: { 'border-style': 'dashed', 'border-color': ice } },
@@ -358,16 +361,21 @@ export function GraphView({ graph, scene, run, rightInset, paused = false, camer
     cy.on('render', () => sky.draw())
 
     // Canvas text can't reflow, so labels are measured again once the web fonts arrive.
-    Promise.all([document.fonts.load(`700 12px ${MONO}`), document.fonts.load(`11px ${MONO}`), document.fonts.load(`italic 26px ${SERIF}`)]).then(
+    Promise.all([document.fonts.load(`700 12px ${MONO}`), document.fonts.load(`11px ${MONO}`)]).then(
       () => {
         if (!cy.destroyed()) sky.fontsReady()
       },
     )
 
     // The container is still settling on first paint, so the opening fit is redone until the camera has been moved.
+    // After that, a resize keeps the centre of the view where it was, so a panel opening or closing doesn't shove it.
+    let size = { width: cy.width(), height: cy.height() }
     const resizing = new ResizeObserver(() => {
       cy.resize()
+      const next = { width: cy.width(), height: cy.height() }
       if (!cy.scratch('moved')) cy.viewport(fitBox(cy, mapBounds(scene), inset.current))
+      else cy.panBy({ x: (next.width - size.width) / 2, y: (next.height - size.height) / 2 })
+      size = next
       sky.resize()
     })
     resizing.observe(container.current!)
@@ -407,7 +415,7 @@ export function GraphView({ graph, scene, run, rightInset, paused = false, camer
       walked: run.walked,
       segments: run.segments,
       revealed: run.revealed,
-      lit: run.stars.map((star, index) => ({ id: star.nodeId, status: star.status, letter: bayer(index) })),
+      lit: run.stars.map((star, index) => ({ id: star.nodeId, status: star.status, letter: stepLabel(index) })),
       current: run.current,
       active,
     })
@@ -562,10 +570,10 @@ export function GraphView({ graph, scene, run, rightInset, paused = false, camer
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18 }}
-            className="-translate-y-full bg-background/80 px-2.5 py-1.5"
+            className="glass -translate-y-full px-3 py-2"
           >
-            <p className="kicker text-primary">{captionName}</p>
-            <p className="mt-0.5 font-serif text-lg leading-snug text-foreground italic">{run.caption}</p>
+            <p className="font-mono text-[11px] font-semibold text-primary">{captionName}</p>
+            <p className="mt-1 text-[13px] leading-snug text-foreground">{run.caption}</p>
           </motion.div>
         )}
       </div>

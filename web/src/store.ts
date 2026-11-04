@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
-import { isRevealing } from '@/lib/run'
+import { isRevealing, nextDelay } from '@/lib/run'
+import type { Timing } from '@/lib/trace'
 import type { AgentEvent } from '@/types/contracts/events.schema'
 
 export type NodeState = 'unexplored' | 'visited' | 'understood'
@@ -15,6 +16,35 @@ export interface AgentRun {
 export interface Playback {
   cursor: number
   pathStep: number
+}
+
+// Auto plays the answer by itself. Manual waits for the reader to press Next step.
+export type StepMode = 'auto' | 'manual'
+
+const STEP_MODE_KEY = 'trace.stepMode'
+const SIDEBAR_KEY = 'trace.sidebar'
+
+// Remembered preferences only. Private windows and blocked storage fall back to the default.
+function recall(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function remember(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value)
+  } catch {
+    // Nothing to do: the choice still applies for this visit.
+  }
+}
+
+function advanced(events: AgentEvent[], playback: Playback): Playback {
+  return isRevealing(events, playback)
+    ? { ...playback, pathStep: playback.pathStep + 1 }
+    : { ...playback, cursor: playback.cursor + 1 }
 }
 
 export interface View {
@@ -44,6 +74,10 @@ interface TraceStore {
   selectedNode: string | null
   agentRun: AgentRun
   playback: Playback
+  // When each event arrived. Only live runs are timed: a replay's pace says nothing about the real run.
+  timing: Timing | null
+  stepMode: StepMode
+  sidebarOpen: boolean
   view: View
   paletteOpen: boolean
   codePanel: CodePanel | null
@@ -65,11 +99,15 @@ interface TraceStore {
   setShowCallLines: (on: boolean) => void
   pinLine: (line: PinnedLine | null) => void
   togglePinnedLine: (line: PinnedLine) => void
-  startRun: (question: string) => void
+  startRun: (question: string, timed: boolean) => void
   clearRun: () => void
   addEvent: (event: AgentEvent) => void
   finishRun: (status: 'done' | 'error') => void
   advancePlayback: () => void
+  // Shows everything that has arrived so far, for a reader in manual mode who wants the rest at once.
+  skipPlayback: () => void
+  setStepMode: (mode: StepMode) => void
+  setSidebarOpen: (open: boolean) => void
   setLearningMode: (on: boolean) => void
   setNodeState: (id: string, state: NodeState) => void
 }
@@ -82,6 +120,9 @@ export const useTraceStore = create<TraceStore>((set) => ({
   selectedNode: null,
   agentRun: NO_RUN,
   playback: NO_PLAYBACK,
+  timing: null,
+  stepMode: recall(STEP_MODE_KEY) === 'manual' ? 'manual' : 'auto',
+  sidebarOpen: recall(SIDEBAR_KEY) !== 'collapsed',
   view: CODEBASE,
   paletteOpen: false,
   codePanel: null,
@@ -107,25 +148,40 @@ export const useTraceStore = create<TraceStore>((set) => ({
     set(({ pinnedLine }) => ({
       pinnedLine: pinnedLine?.from === line.from && pinnedLine.to === line.to ? null : line,
     })),
-  startRun: (question) =>
+  startRun: (question, timed) =>
     set({
       agentRun: { status: 'running', question, events: [] },
       playback: NO_PLAYBACK,
+      timing: timed ? { startedAt: Date.now(), received: [] } : null,
       view: CODEBASE,
       codePanel: null,
       pinnedLine: null,
     }),
   clearRun: () =>
-    set({ agentRun: NO_RUN, playback: NO_PLAYBACK, selectedNode: null, codePanel: null, pinnedLine: null }),
+    set({ agentRun: NO_RUN, playback: NO_PLAYBACK, timing: null, selectedNode: null, codePanel: null, pinnedLine: null }),
   addEvent: (event) =>
-    set((state) => ({ agentRun: { ...state.agentRun, events: [...state.agentRun.events, event] } })),
-  finishRun: (status) => set((state) => ({ agentRun: { ...state.agentRun, status } })),
-  advancePlayback: () =>
-    set(({ agentRun, playback }) => ({
-      playback: isRevealing(agentRun.events, playback)
-        ? { ...playback, pathStep: playback.pathStep + 1 }
-        : { ...playback, cursor: playback.cursor + 1 },
+    set((state) => ({
+      agentRun: { ...state.agentRun, events: [...state.agentRun.events, event] },
+      timing: state.timing && { ...state.timing, received: [...state.timing.received, Date.now()] },
     })),
+  finishRun: (status) => set((state) => ({ agentRun: { ...state.agentRun, status } })),
+  advancePlayback: () => set(({ agentRun, playback }) => ({ playback: advanced(agentRun.events, playback) })),
+  skipPlayback: () =>
+    set(({ agentRun, playback }) => {
+      let next = playback
+      for (let guard = 0; guard < 5000 && nextDelay(agentRun.events, next) !== null; guard += 1) {
+        next = advanced(agentRun.events, next)
+      }
+      return { playback: next }
+    }),
+  setStepMode: (mode) => {
+    remember(STEP_MODE_KEY, mode)
+    set({ stepMode: mode })
+  },
+  setSidebarOpen: (open) => {
+    remember(SIDEBAR_KEY, open ? 'open' : 'collapsed')
+    set({ sidebarOpen: open })
+  },
   setLearningMode: (on) => set({ learningMode: on }),
   setNodeState: (id, nodeState) =>
     set((state) => ({ nodeStates: { ...state.nodeStates, [id]: nodeState } })),

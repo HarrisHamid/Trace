@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { test } from 'node:test'
 
-import { deriveRun, isRevealing, nextDelay, type RunView } from '../src/lib/run.ts'
+import { awaitsStep, deriveRun, isRevealing, nextDelay, type RunView } from '../src/lib/run.ts'
 import type { AgentRun, Playback } from '../src/store.ts'
 import type { AgentEvent, PathStep } from '../src/types/contracts/events.schema'
 import type { Graph } from '../src/types/contracts/graph.schema'
@@ -181,4 +181,18 @@ test('every cached answer replays to the end, and shows a repair only if it hold
     assert.equal(end.phase, 'settled', name)
     assert.equal(end.repair !== null, events.some((event) => event.type === 'repair_started'), name)
   }
+})
+
+test('manual mode shows the first step by itself and waits before every later one', () => {
+  const events = [{ type: 'run_started' }, { type: 'final_path', steps: firstDraft }, { type: 'done' }] as AgentEvent[]
+  const atFinalPath = { cursor: 2, pathStep: 0 }
+  assert.equal(awaitsStep(events, atFinalPath), false)
+  for (let step = 1; step < firstDraft.length; step += 1) assert.equal(awaitsStep(events, { cursor: 2, pathStep: step }), true)
+  assert.equal(awaitsStep(events, { cursor: 2, pathStep: firstDraft.length }), false)
+})
+
+test('manual mode waits after a repair is sent back, and never during the investigation', () => {
+  const events = repairRun('accepted')
+  assert.equal(awaitsStep(events, { cursor: 4, pathStep: firstDraft.length }), true)
+  assert.equal(awaitsStep(events, { cursor: 1, pathStep: 0 }), false)
 })

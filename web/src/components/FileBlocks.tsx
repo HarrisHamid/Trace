@@ -112,7 +112,7 @@ function BlockCard({ block, order, stage, colour, tokens, glyph, dimmed, chosen,
   const boxed = stage !== 'page'
   const lineCount = block.end - block.start + 1
   const lines = Array.from({ length: Math.max(0, lineCount) }, (_, index) => block.start + index)
-  const opacity = foreign && stage !== 'wired' ? 0 : dimmed ? 0.28 : 1
+  const opacity = foreign && stage !== 'wired' ? 0 : 1
 
   return (
     <motion.article
@@ -130,66 +130,71 @@ function BlockCard({ block, order, stage, colour, tokens, glyph, dimmed, chosen,
       style={{
         width: block.width,
         height: block.height,
+        // Lit boxes sit above the arrows, so no line crosses them. Faded ones sit below.
+        zIndex: dimmed ? LAYER.faded : LAYER.lit,
         pointerEvents: foreign && stage !== 'wired' ? 'none' : undefined,
-        border: `1px ${block.kind === 'unknown' ? 'dashed' : 'solid'} ${boxed ? (chosen ? 'var(--foreground)' : lit ? 'rgb(196 206 232 / 55%)' : 'rgb(196 206 232 / 18%)') : 'transparent'}`,
-        background: boxed ? 'linear-gradient(180deg, rgb(27 31 44 / 96%), rgb(15 17 26 / 96%))' : 'transparent',
-        boxShadow: boxed && spread ? '0 10px 24px rgb(0 0 0 / 40%)' : 'none',
+        border: `1px ${block.kind === 'unknown' ? 'dashed' : 'solid'} ${boxed ? (chosen ? 'var(--foreground)' : lit ? 'var(--muted-foreground)' : 'var(--border)') : 'transparent'}`,
+        background: boxed ? 'var(--card)' : 'transparent',
+        boxShadow: boxed && spread ? '0 8px 20px rgb(0 0 0 / 30%)' : 'none',
         transition: 'border-color 240ms, background 320ms, box-shadow 320ms',
         transitionDelay: stage === 'boxed' ? `${order * BOX_STAGGER_MS}ms` : '0ms',
       }}
     >
-      <header
-        className="flex items-center gap-2.5 border-b px-3.5"
-        style={{
-          height: HEADER_HEIGHT,
-          borderColor: boxed ? 'rgb(196 206 232 / 12%)' : 'transparent',
-          boxShadow: boxed ? `inset 0 2px 0 ${colour}` : 'none',
-          opacity: boxed ? 1 : 0,
-          transition: 'opacity 280ms',
-          transitionDelay: stage === 'boxed' ? `${order * BOX_STAGGER_MS}ms` : '0ms',
-        }}
-      >
-        {glyph && <NodeGlyph type={glyph} colour={colour} />}
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate font-serif text-xl leading-tight text-foreground">{block.title}</h3>
-          <p className="truncate text-[10px] text-muted-foreground">
-            {block.kicker}
-            {block.kind !== 'unknown' && lineCount > 0 && ` · lines ${block.start}–${block.end + block.clipped}`}
-          </p>
-        </div>
-        {block.outside.length > 0 && (
-          <p
-            title={`Calls outside this repo: ${block.outside.join(', ')}`}
-            className="max-w-[45%] truncate text-right text-[10px] text-muted-foreground"
-          >
-            uses {block.outside.slice(0, 2).join(', ')}
-            {block.outside.length > 2 && ` +${block.outside.length - 2}`}
-          </p>
-        )}
-        {block.kind === 'foreign' && (
-          <button
-            onClick={(event) => {
-              event.stopPropagation()
-              onOpenFile()
-            }}
-            className="shrink-0 border border-border px-1.5 py-0.5 text-[10px] text-primary transition-colors hover:border-primary/60 hover:text-foreground"
-          >
-            Graphify
-          </button>
-        )}
-      </header>
-      {lines.length > 0 && (
-        <div className="relative overflow-hidden font-mono text-xs" style={{ padding: `${CODE_PADDING}px 14px` }}>
-          {lines.map((line) => (
-            <CodeLine key={line} tokens={tokens?.[line - 1]} marked={!foreign && markedLines.has(line)} />
-          ))}
-          {block.clipped > 0 && (
-            <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0f111a] to-transparent px-3.5 pt-5 pb-1.5 text-[10px] text-muted-foreground">
-              {block.clipped} more lines
+      {/* Fading the contents, not the card, keeps the card's background solid. */}
+      <motion.div initial={false} animate={{ opacity: dimmed ? FADED : 1 }} transition={{ duration: 0.3 }}>
+        <header
+          className="flex items-center gap-2.5 border-b px-3.5"
+          style={{
+            height: HEADER_HEIGHT,
+            borderColor: boxed ? 'var(--border)' : 'transparent',
+            boxShadow: boxed ? `inset 0 2px 0 ${colour}` : 'none',
+            opacity: boxed ? 1 : 0,
+            transition: 'opacity 280ms',
+            transitionDelay: stage === 'boxed' ? `${order * BOX_STAGGER_MS}ms` : '0ms',
+          }}
+        >
+          {glyph && <NodeGlyph type={glyph} colour={colour} />}
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate font-mono text-sm font-semibold text-foreground">{block.title}</h3>
+            <p className="truncate text-[10px] text-muted-foreground">
+              {block.kicker}
+              {block.kind !== 'unknown' && lineCount > 0 && ` · lines ${block.start}–${block.end + block.clipped}`}
+            </p>
+          </div>
+          {block.outside.length > 0 && (
+            <p
+              title={`Calls outside this repo: ${block.outside.join(', ')}`}
+              className="max-w-[45%] truncate text-right text-[10px] text-muted-foreground"
+            >
+              uses {block.outside.slice(0, 2).join(', ')}
+              {block.outside.length > 2 && ` +${block.outside.length - 2}`}
             </p>
           )}
-        </div>
-      )}
+          {block.kind === 'foreign' && (
+            <button
+              onClick={(event) => {
+                event.stopPropagation()
+                onOpenFile()
+              }}
+              className="shrink-0 border border-border px-1.5 py-0.5 text-[10px] text-primary transition-colors hover:border-primary/60 hover:text-foreground"
+            >
+              Graphify
+            </button>
+          )}
+        </header>
+        {lines.length > 0 && (
+          <div className="relative overflow-hidden font-mono text-xs" style={{ padding: `${CODE_PADDING}px 14px` }}>
+            {lines.map((line) => (
+              <CodeLine key={line} tokens={tokens?.[line - 1]} marked={!foreign && markedLines.has(line)} />
+            ))}
+            {block.clipped > 0 && (
+              <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-card to-transparent px-3.5 pt-5 pb-1.5 text-[10px] text-muted-foreground">
+                {block.clipped} more lines
+              </p>
+            )}
+          </div>
+        )}
+      </motion.div>
     </motion.article>
   )
 }
@@ -198,7 +203,7 @@ function CallersCard({ card, shown, dimmed, chosen, onChoose, onOpen }: { card: 
   return (
     <motion.section
       initial={false}
-      animate={{ opacity: shown ? (dimmed ? 0.28 : 1) : 0 }}
+      animate={{ opacity: shown ? 1 : 0 }}
       transition={{ duration: 0.35 }}
       onClick={(event) => {
         event.stopPropagation()
@@ -210,30 +215,33 @@ function CallersCard({ card, shown, dimmed, chosen, onChoose, onOpen }: { card: 
         top: card.y,
         width: card.width,
         height: card.height,
+        zIndex: dimmed ? LAYER.faded : LAYER.lit,
         pointerEvents: shown ? undefined : 'none',
-        border: `1px solid ${chosen ? 'var(--foreground)' : 'rgb(196 206 232 / 18%)'}`,
-        background: 'rgb(15 17 26 / 92%)',
+        border: `1px solid ${chosen ? 'var(--foreground)' : 'var(--border)'}`,
+        background: 'var(--card)',
       }}
     >
-      <header className="flex items-center px-3.5" style={{ height: CARD_HEADER }}>
-        <div className="min-w-0">
-          <p className="kicker">Called from</p>
-          <p className="truncate text-[11px] text-foreground">{card.file}</p>
-        </div>
-      </header>
-      {card.rows.map((row) => (
-        <button
-          key={`${row.nodeId}>${row.target}`}
-          onClick={(event) => {
-            event.stopPropagation()
-            onOpen(row.nodeId)
-          }}
-          className="block w-full truncate px-3.5 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
-          style={{ height: CARD_ROW, lineHeight: `${CARD_ROW}px` }}
-        >
-          {row.name}
-        </button>
-      ))}
+      <motion.div initial={false} animate={{ opacity: dimmed ? FADED : 1 }} transition={{ duration: 0.3 }}>
+        <header className="flex items-center px-3.5" style={{ height: CARD_HEADER }}>
+          <div className="min-w-0">
+            <p className="kicker">Called from</p>
+            <p className="truncate text-[11px] text-foreground">{card.file}</p>
+          </div>
+        </header>
+        {card.rows.map((row) => (
+          <button
+            key={`${row.nodeId}>${row.target}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              onOpen(row.nodeId)
+            }}
+            className="block w-full truncate px-3.5 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
+            style={{ height: CARD_ROW, lineHeight: `${CARD_ROW}px` }}
+          >
+            {row.name}
+          </button>
+        ))}
+      </motion.div>
     </motion.section>
   )
 }
@@ -450,7 +458,7 @@ export function FileBlocks({ page, colourOf, animated, camera, onOpenFile }: Fil
       }}
       className="absolute inset-0 cursor-grab overflow-hidden bg-background select-none active:cursor-grabbing"
       style={{
-        backgroundImage: 'radial-gradient(rgb(196 206 232 / 9%) 1px, transparent 1px)',
+        backgroundImage: 'radial-gradient(rgb(230 232 235 / 6%) 1px, transparent 1px)',
         backgroundSize: '26px 26px',
       }}
     >
@@ -463,7 +471,7 @@ export function FileBlocks({ page, colourOf, animated, camera, onOpenFile }: Fil
               initial={false}
               animate={{ opacity: stage === 'wired' ? 1 : 0 }}
               className="absolute rounded-xl border border-dashed"
-              style={{ left: box.x, top: box.y, width: box.width, height: box.height, borderColor: 'rgb(241 223 174 / 28%)' }}
+              style={{ left: box.x, top: box.y, width: box.width, height: box.height, borderColor: 'rgb(230 232 235 / 20%)' }}
             />
           ))}
           {built.cards.map((card) => (
@@ -498,7 +506,7 @@ export function FileBlocks({ page, colourOf, animated, camera, onOpenFile }: Fil
               />
             )
           })}
-          <svg className="pointer-events-none absolute top-0 left-0 overflow-visible" width="1" height="1" aria-hidden>
+          <svg className="pointer-events-none absolute top-0 left-0 overflow-visible" style={{ zIndex: LAYER.arrows }} width="1" height="1" aria-hidden>
             <defs>
               <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                 <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--foreground)" />
@@ -526,6 +534,10 @@ export function FileBlocks({ page, colourOf, animated, camera, onOpenFile }: Fil
 }
 
 const NO_LINES = new Set<number>()
+// How far a box's contents fade when another box is picked. The card behind them stays solid.
+const FADED = 0.3
+// Stacking: faded boxes, then the arrows, then the boxes in play.
+const LAYER = { faded: 0, arrows: 1, lit: 2 } as const
 
 function useMemoTouching(built: BlockPage | undefined, active: string | null) {
   return useMemo(() => {

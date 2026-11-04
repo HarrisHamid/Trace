@@ -81,7 +81,7 @@ export function CodePanel({ node, colour, quote, graphifyBusy, onGraphify, onClo
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 32, opacity: 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="glass absolute inset-y-5 right-5 z-10 flex flex-col bg-[rgb(11_13_19/96%)]"
+      className="absolute inset-y-0 right-0 z-10 flex flex-col border-l border-border bg-card shadow-[-12px_0_24px_rgb(0_0_0/25%)]"
       style={{ width: CODE_WIDTH }}
     >
       <header className="flex items-start gap-3 border-b border-border px-5 py-3">
@@ -90,13 +90,13 @@ export function CodePanel({ node, colour, quote, graphifyBusy, onGraphify, onClo
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
-            <h2 className="min-w-0 truncate font-serif text-2xl leading-tight">{node.name}</h2>
+            <h2 className="min-w-0 truncate font-mono text-base font-semibold">{node.name}</h2>
             {onGraphify && (
               <button
                 onClick={onGraphify}
                 disabled={graphifyBusy}
                 title={`Graph how ${node.file} connects`}
-                className="flex shrink-0 items-center gap-1.5 border border-border px-2 py-1 text-xs text-primary transition-colors hover:border-primary/60 hover:text-foreground disabled:opacity-40"
+                className="flex shrink-0 items-center gap-1.5 rounded border border-border px-2 py-1 text-xs text-primary transition-colors hover:border-primary/60 hover:text-foreground disabled:opacity-40"
               >
                 <Waypoints className="size-3.5" />
                 Graphify
@@ -107,7 +107,7 @@ export function CodePanel({ node, colour, quote, graphifyBusy, onGraphify, onClo
             {node.file}
             {lines && ` · ${lines}`}
           </p>
-          {node.docstring && <p className="mt-1 font-serif text-base text-foreground/80 italic">{node.docstring}</p>}
+          {node.docstring && <p className="mt-1 text-[13px] text-foreground/80">{node.docstring}</p>}
         </div>
         <button aria-label="Close code panel" onClick={onClose} className="text-muted-foreground hover:text-foreground">
           <X className="size-4" />

@@ -2,33 +2,38 @@ import { AnimatePresence, MotionConfig } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
 import { fetchGraph, streamAsk } from '@/api'
-import { AskBar } from '@/components/AskBar'
 import { CODE_WIDTH, CodePanel } from '@/components/CodePanel'
 import { CommandPalette } from '@/components/CommandPalette'
 import { FileBlocks, type FileCamera } from '@/components/FileBlocks'
 import { FileBar, FileMessage } from '@/components/FileChrome'
 import { GraphView, type MapCamera } from '@/components/GraphView'
-import { Legend, PinnedLineChip, TopBar } from '@/components/MapChrome'
+import { MapToolbar, PinnedLineChip, StatusBar, TitleBar } from '@/components/MapChrome'
 import { LOG_WIDTH, ObservationLog } from '@/components/ObservationLog'
+
+import { Sidebar } from '@/components/Sidebar'
+import { EXAMPLES_REPO, isRecorded } from '@/lib/examples'
 import { buildFileGraph, EXTERNAL_FILE, isInside } from '@/lib/filegraph'
 import { fileHash, fileRoute, MAP_HASH, readHash, subscribeToHash } from '@/lib/route'
 import { deriveRun, nextDelay, type GraphNode } from '@/lib/run'
 import { buildScene } from '@/lib/scene'
 import { useDive } from '@/lib/useDive'
 import { cn } from '@/lib/utils'
+import { useWaitingForStep } from '@/lib/useWaitingForStep'
 import { useTraceStore } from '@/store'
 import type { Graph } from '@/types/contracts/graph.schema'
 
-const PANEL_MARGIN = 44
-const EDGE_MARGIN = 28
+const PANEL_MARGIN = 24
+const EDGE_MARGIN = 16
 
 function usePlayback() {
   const events = useTraceStore((state) => state.agentRun.events)
   const playback = useTraceStore((state) => state.playback)
   const advancePlayback = useTraceStore((state) => state.advancePlayback)
+  const waiting = useWaitingForStep()
 
   // Keyed on the delay, not the events: a new event must not restart the hold that is already running.
-  const delay = nextDelay(events, playback)
+  // In manual mode there is no timer at all while the answer waits for Next step.
+  const delay = waiting ? null : nextDelay(events, playback)
 
   useEffect(() => {
     if (delay === null) return
@@ -91,15 +96,55 @@ export function Workspace() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [paletteOpen, moving, route, codePanel, view, inRun, pinnedLine, pinLine, clearSelection, exitModule, exitRun])
 
+  // ⌘B or Ctrl+B shows and hides the sidebar, as in most editors.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key.toLowerCase() !== 'b' || !(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return
+      event.preventDefault()
+      const { sidebarOpen, setSidebarOpen } = useTraceStore.getState()
+      setSidebarOpen(!sidebarOpen)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   const run = useMemo(() => (graph ? deriveRun(graph, agentRun, playback) : null), [graph, agentRun, playback])
   const scene = useMemo(() => (graph ? buildScene(graph) : null), [graph])
   const nodesById = useMemo(() => new Map<string, GraphNode>(graph?.nodes.map((node) => [node.id, node])), [graph])
   const page = useMemo(() => (dive.mounted ? pageOf(dive.mounted) : null), [dive.mounted, pageOf])
 
-  async function ask(question: string) {
+  // An action asked for on a file's page waits until the way back to the map has finished, because that return sets the
+  // map's focus itself and would otherwise undo it.
+  const afterMap = useRef<(() => void) | null>(null)
+  function fromMap(action: () => void) {
+    if (!route) {
+      action()
+      return
+    }
+    afterMap.current = action
+    window.location.hash = MAP_HASH
+  }
+  useEffect(() => {
+    if (route || dive.stage !== 'map' || !afterMap.current) return
+    const action = afterMap.current
+    afterMap.current = null
+    action()
+  }, [route, dive.stage])
+
+  function ask(question: string) {
+    fromMap(() => void runQuestion(question))
+  }
+
+  function focusModule(module: string | null) {
+    fromMap(() => (module ? enterModule(module) : exitModule()))
+  }
+
+  async function runQuestion(question: string) {
+    asking.current?.abort()
     const controller = new AbortController()
     asking.current = controller
-    startRun(question)
+    // Recorded answers, and the mock data that replays one run for any question, are not timed.
+    startRun(question, graph?.repo === EXAMPLES_REPO && !isRecorded(question))
     try {
       await streamAsk(question, addEvent, controller.signal)
       if (!controller.signal.aborted) finishRun('done')
@@ -137,102 +182,118 @@ export function Workspace() {
   if (logOpen) rightInset = LOG_WIDTH + PANEL_MARGIN
   if (codeNode) rightInset = CODE_WIDTH + PANEL_MARGIN
 
+  const busy = run !== null && (run.phase === 'walking' || run.phase === 'revealing')
+
   return (
     <MotionConfig reducedMotion="user">
-      <div className="relative h-dvh min-w-[1280px] overflow-hidden bg-background text-foreground">
-        {graph && scene && run && (
-          <div
-            className="absolute inset-0"
-            style={{ visibility: dive.mapShown ? 'visible' : 'hidden', pointerEvents: dive.stage === 'map' ? undefined : 'none' }}
-          >
-            <GraphView
-              graph={graph}
+      {/* Clip, not hidden: a hidden overflow can still be scrolled by scrollIntoView, which slid the whole map sideways. */}
+      <div className="flex h-dvh min-w-[1280px] flex-col overflow-clip bg-background text-foreground">
+        {graph && run ? (
+          <TitleBar
+            graph={graph}
+            moduleName={view.module ? (nodesById.get(view.module)?.name ?? view.module) : null}
+            file={route}
+            run={run}
+            recorded={isRecorded(run.question)}
+          />
+        ) : (
+          <div className="h-10 shrink-0 border-b border-border bg-card" />
+        )}
+        <div className="flex min-h-0 flex-1">
+          {graph && scene && (
+            <Sidebar
+              repo={graph.repo}
+              busy={busy}
               scene={scene}
-              run={run}
-              rightInset={rightInset}
-              paused={!dive.mapShown}
-              camera={mapCamera}
+              nodes={graph.nodes}
+              onAsk={ask}
+              onFocusModule={focusModule}
             />
-          </div>
-        )}
-        {page?.hasCanvas && scene && (
-          <div
-            key={page.file}
-            className="absolute inset-0 transition-opacity duration-200 motion-reduce:transition-none"
-            style={{ opacity: dive.fileShown ? 1 : 0, pointerEvents: dive.mapShown ? 'none' : undefined }}
-          >
-            <FileBlocks
-              page={page}
-              colourOf={scene.colourOf}
-              animated={dive.animated}
-              camera={fileCamera}
-              onOpenFile={(file, nodeId) => {
-                selectNode(nodeId)
-                if (file !== route) goToFile(file)
-              }}
-            />
-          </div>
-        )}
-        <div className="plate-vignette" />
-        <div className="plate-frame" />
-        {!graph && (
-          <p className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">
-            {loadError ?? 'Plotting the chart…'}
-          </p>
-        )}
-        {graph && scene && run && (
-          <>
-            <TopBar
-              graph={graph}
-              moduleName={view.module ? (nodesById.get(view.module)?.name ?? view.module) : null}
-              file={route}
-            />
-            {pinnedLine && onMap && (
-              <PinnedLineChip
-                from={nodesById.get(pinnedLine.from)?.name ?? pinnedLine.from}
-                to={nodesById.get(pinnedLine.to)?.name ?? pinnedLine.to}
-                rightInset={rightInset}
-                onClear={() => pinLine(null)}
-              />
-            )}
-            <div className={fadeChrome(dive.stage === 'map')} inert={dive.stage !== 'map'}>
-              <Legend graph={graph} rightInset={rightInset} hint={!logOpen && !codeNode} />
-              <AskBar
-                busy={run.phase === 'walking' || run.phase === 'revealing'}
-                repo={graph.repo}
-                rightInset={rightInset}
-                onAsk={ask}
-              />
-            </div>
-            {page?.hasCanvas && (
-              <div className={fadeChrome(dive.stage === 'file')}>
-                <FileBar page={page} onReplay={() => fileCamera.current?.replay()} />
+          )}
+          <main className="relative min-w-0 flex-1 overflow-clip">
+            {graph && scene && run && (
+              <div
+                className="absolute inset-0"
+                style={{ visibility: dive.mapShown ? 'visible' : 'hidden', pointerEvents: dive.stage === 'map' ? undefined : 'none' }}
+              >
+                <GraphView
+                  graph={graph}
+                  scene={scene}
+                  run={run}
+                  rightInset={rightInset}
+                  paused={!dive.mapShown}
+                  camera={mapCamera}
+                />
               </div>
             )}
-            {route && dive.stage === 'file' && !page?.hasCanvas && <FileMessage file={route} page={page} />}
-            <AnimatePresence>
-              {logOpen && <ObservationLog key="log" run={run} scene={scene} nodesById={nodesById} onExit={exitRun} />}
-            </AnimatePresence>
-            <AnimatePresence>
-              {codeNode && (
-                <CodePanel
-                  key="code"
-                  node={codeNode}
-                  colour={scene.colourOf(codeNode)}
-                  quote={codePanel?.quote ?? null}
-                  graphifyBusy={run.phase === 'walking' || run.phase === 'revealing'}
-                  onGraphify={
-                    codeNode.type === 'external' || codeNode.file === dive.mounted
-                      ? undefined
-                      : () => goToFile(codeNode.file)
-                  }
-                  onClose={clearSelection}
+            {page?.hasCanvas && scene && (
+              <div
+                key={page.file}
+                className="absolute inset-0 transition-opacity duration-200 motion-reduce:transition-none"
+                style={{ opacity: dive.fileShown ? 1 : 0, pointerEvents: dive.mapShown ? 'none' : undefined }}
+              >
+                <FileBlocks
+                  page={page}
+                  colourOf={scene.colourOf}
+                  animated={dive.animated}
+                  camera={fileCamera}
+                  onOpenFile={(file, nodeId) => {
+                    selectNode(nodeId)
+                    if (file !== route) goToFile(file)
+                  }}
                 />
-              )}
-            </AnimatePresence>
-            <CommandPalette nodes={graph.nodes} scene={scene} onPick={pick} />
-          </>
-        )}
+              </div>
+            )}
+            {!graph && (
+              <p className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">
+                {loadError ?? 'Loading the code graph…'}
+              </p>
+            )}
+            {graph && scene && run && (
+              <>
+                {pinnedLine && onMap && (
+                  <PinnedLineChip
+                    from={nodesById.get(pinnedLine.from)?.name ?? pinnedLine.from}
+                    to={nodesById.get(pinnedLine.to)?.name ?? pinnedLine.to}
+                    rightInset={rightInset}
+                    onClear={() => pinLine(null)}
+                  />
+                )}
+                <div className={fadeChrome(dive.stage === 'map')} inert={dive.stage !== 'map'}>
+                  <MapToolbar hint={!logOpen && !codeNode} />
+                </div>
+                {page?.hasCanvas && (
+                  <div className={fadeChrome(dive.stage === 'file')}>
+                    <FileBar page={page} onReplay={() => fileCamera.current?.replay()} />
+                  </div>
+                )}
+                {route && dive.stage === 'file' && !page?.hasCanvas && <FileMessage file={route} page={page} />}
+                <AnimatePresence>
+                  {logOpen && <ObservationLog key={run.question} run={run} scene={scene} nodesById={nodesById} onExit={exitRun} />}
+                </AnimatePresence>
+                <AnimatePresence>
+                  {codeNode && (
+                    <CodePanel
+                      key="code"
+                      node={codeNode}
+                      colour={scene.colourOf(codeNode)}
+                      quote={codePanel?.quote ?? null}
+                      graphifyBusy={busy}
+                      onGraphify={
+                        codeNode.type === 'external' || codeNode.file === dive.mounted
+                          ? undefined
+                          : () => goToFile(codeNode.file)
+                      }
+                      onClose={clearSelection}
+                    />
+                  )}
+                </AnimatePresence>
+              </>
+            )}
+          </main>
+        </div>
+        {graph && <StatusBar graph={graph} />}
+        {graph && scene && <CommandPalette nodes={graph.nodes} scene={scene} onPick={pick} />}
       </div>
     </MotionConfig>
   )

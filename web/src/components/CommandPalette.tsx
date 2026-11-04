@@ -65,7 +65,7 @@ export function CommandPalette({ nodes, scene, onPick }: CommandPaletteProps) {
       label="Jump to a node"
       shouldFilter={false}
       overlayClassName="fixed inset-0 z-40 bg-black/50"
-      contentClassName="glass fixed top-[18%] left-1/2 z-50 w-[560px] -translate-x-1/2 bg-[rgb(12_14_21/97%)]"
+      contentClassName="glass fixed top-[18%] left-1/2 z-50 w-[560px] -translate-x-1/2 bg-popover"
     >
       <Command.Input
         value={query}
