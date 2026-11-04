@@ -119,10 +119,8 @@ function Questions({ busy, onAsk }: { busy: boolean; onAsk: (question: string) =
   )
 }
 
-function Modules({ scene, nodes, onShowMap }: { scene: Scene; nodes: GraphNode[]; onShowMap: () => void }) {
+function Modules({ scene, nodes, onFocusModule }: { scene: Scene; nodes: GraphNode[]; onFocusModule: (module: string | null) => void }) {
   const view = useTraceStore((state) => state.view)
-  const enterModule = useTraceStore((state) => state.enterModule)
-  const exitModule = useTraceStore((state) => state.exitModule)
 
   const rows = useMemo(() => {
     const byId = new Map(nodes.map((node) => [node.id, node]))
@@ -143,11 +141,7 @@ function Modules({ scene, nodes, onShowMap }: { scene: Scene; nodes: GraphNode[]
         return (
           <li key={plate.id} className={cn('group flex items-center border-l-2', current ? 'border-primary bg-accent' : 'border-transparent hover:bg-accent/60')}>
             <button
-              onClick={() => {
-                onShowMap()
-                if (current) exitModule()
-                else enterModule(plate.id)
-              }}
+              onClick={() => onFocusModule(current ? null : plate.id)}
               aria-pressed={current}
               title={file ?? plate.id}
               className="flex min-w-0 flex-1 items-center gap-2 py-1 pl-3 text-left"
@@ -179,10 +173,10 @@ interface SidebarProps {
   scene: Scene
   nodes: GraphNode[]
   onAsk: (question: string) => void
-  onShowMap: () => void
+  onFocusModule: (module: string | null) => void
 }
 
-export function Sidebar({ repo, busy, scene, nodes, onAsk, onShowMap }: SidebarProps) {
+export function Sidebar({ repo, busy, scene, nodes, onAsk, onFocusModule }: SidebarProps) {
   // The recorded answers are for one repo. Mock data replays one run whatever is asked, so it offers just that one.
   const hasExamples = repo === EXAMPLES_REPO
 
@@ -208,7 +202,7 @@ export function Sidebar({ repo, busy, scene, nodes, onAsk, onShowMap }: SidebarP
           </Section>
         )}
         <Section title="Modules" className="border-b-0" aside={<span className="text-[10px] text-muted-foreground">click to focus</span>}>
-          <Modules scene={scene} nodes={nodes} onShowMap={onShowMap} />
+          <Modules scene={scene} nodes={nodes} onFocusModule={onFocusModule} />
         </Section>
       </div>
     </aside>

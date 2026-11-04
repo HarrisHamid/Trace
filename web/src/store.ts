@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 import { isRevealing, nextDelay } from '@/lib/run'
+import type { Timing } from '@/lib/trace'
 import type { AgentEvent } from '@/types/contracts/events.schema'
 
 export type NodeState = 'unexplored' | 'visited' | 'understood'
@@ -72,6 +73,8 @@ interface TraceStore {
   selectedNode: string | null
   agentRun: AgentRun
   playback: Playback
+  // When each event arrived. Only live runs are timed: a replay's pace says nothing about the real run.
+  timing: Timing | null
   stepMode: StepMode
   view: View
   paletteOpen: boolean
@@ -94,7 +97,7 @@ interface TraceStore {
   setShowCallLines: (on: boolean) => void
   pinLine: (line: PinnedLine | null) => void
   togglePinnedLine: (line: PinnedLine) => void
-  startRun: (question: string) => void
+  startRun: (question: string, timed: boolean) => void
   clearRun: () => void
   addEvent: (event: AgentEvent) => void
   finishRun: (status: 'done' | 'error') => void
@@ -114,6 +117,7 @@ export const useTraceStore = create<TraceStore>((set) => ({
   selectedNode: null,
   agentRun: NO_RUN,
   playback: NO_PLAYBACK,
+  timing: null,
   stepMode: savedStepMode(),
   view: CODEBASE,
   paletteOpen: false,
@@ -140,18 +144,22 @@ export const useTraceStore = create<TraceStore>((set) => ({
     set(({ pinnedLine }) => ({
       pinnedLine: pinnedLine?.from === line.from && pinnedLine.to === line.to ? null : line,
     })),
-  startRun: (question) =>
+  startRun: (question, timed) =>
     set({
       agentRun: { status: 'running', question, events: [] },
       playback: NO_PLAYBACK,
+      timing: timed ? { startedAt: Date.now(), received: [] } : null,
       view: CODEBASE,
       codePanel: null,
       pinnedLine: null,
     }),
   clearRun: () =>
-    set({ agentRun: NO_RUN, playback: NO_PLAYBACK, selectedNode: null, codePanel: null, pinnedLine: null }),
+    set({ agentRun: NO_RUN, playback: NO_PLAYBACK, timing: null, selectedNode: null, codePanel: null, pinnedLine: null }),
   addEvent: (event) =>
-    set((state) => ({ agentRun: { ...state.agentRun, events: [...state.agentRun.events, event] } })),
+    set((state) => ({
+      agentRun: { ...state.agentRun, events: [...state.agentRun.events, event] },
+      timing: state.timing && { ...state.timing, received: [...state.timing.received, Date.now()] },
+    })),
   finishRun: (status) => set((state) => ({ agentRun: { ...state.agentRun, status } })),
   advancePlayback: () => set(({ agentRun, playback }) => ({ playback: advanced(agentRun.events, playback) })),
   skipPlayback: () =>

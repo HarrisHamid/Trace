@@ -11,7 +11,7 @@ import { MapToolbar, PinnedLineChip, StatusBar, TitleBar } from '@/components/Ma
 import { LOG_WIDTH, ObservationLog } from '@/components/ObservationLog'
 
 import { Sidebar } from '@/components/Sidebar'
-import { isRecorded } from '@/lib/examples'
+import { EXAMPLES_REPO, isRecorded } from '@/lib/examples'
 import { buildFileGraph, EXTERNAL_FILE, isInside } from '@/lib/filegraph'
 import { fileHash, fileRoute, MAP_HASH, readHash, subscribeToHash } from '@/lib/route'
 import { deriveRun, nextDelay, type GraphNode } from '@/lib/run'
@@ -101,16 +101,38 @@ export function Workspace() {
   const nodesById = useMemo(() => new Map<string, GraphNode>(graph?.nodes.map((node) => [node.id, node])), [graph])
   const page = useMemo(() => (dive.mounted ? pageOf(dive.mounted) : null), [dive.mounted, pageOf])
 
-  function showMap() {
-    if (route) window.location.hash = MAP_HASH
+  // An action asked for on a file's page waits until the way back to the map has finished, because that return sets the
+  // map's focus itself and would otherwise undo it.
+  const afterMap = useRef<(() => void) | null>(null)
+  function fromMap(action: () => void) {
+    if (!route) {
+      action()
+      return
+    }
+    afterMap.current = action
+    window.location.hash = MAP_HASH
+  }
+  useEffect(() => {
+    if (route || dive.stage !== 'map' || !afterMap.current) return
+    const action = afterMap.current
+    afterMap.current = null
+    action()
+  }, [route, dive.stage])
+
+  function ask(question: string) {
+    fromMap(() => void runQuestion(question))
   }
 
-  async function ask(question: string) {
+  function focusModule(module: string | null) {
+    fromMap(() => (module ? enterModule(module) : exitModule()))
+  }
+
+  async function runQuestion(question: string) {
     asking.current?.abort()
-    showMap()
     const controller = new AbortController()
     asking.current = controller
-    startRun(question)
+    // Recorded answers, and the mock data that replays one run for any question, are not timed.
+    startRun(question, graph?.repo === EXAMPLES_REPO && !isRecorded(question))
     try {
       await streamAsk(question, addEvent, controller.signal)
       if (!controller.signal.aborted) finishRun('done')
@@ -152,7 +174,8 @@ export function Workspace() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="flex h-dvh min-w-[1280px] flex-col overflow-hidden bg-background text-foreground">
+      {/* Clip, not hidden: a hidden overflow can still be scrolled by scrollIntoView, which slid the whole map sideways. */}
+      <div className="flex h-dvh min-w-[1280px] flex-col overflow-clip bg-background text-foreground">
         {graph && run ? (
           <TitleBar
             graph={graph}
@@ -172,10 +195,10 @@ export function Workspace() {
               scene={scene}
               nodes={graph.nodes}
               onAsk={ask}
-              onShowMap={showMap}
+              onFocusModule={focusModule}
             />
           )}
-          <main className="relative min-w-0 flex-1 overflow-hidden">
+          <main className="relative min-w-0 flex-1 overflow-clip">
             {graph && scene && run && (
               <div
                 className="absolute inset-0"
@@ -234,7 +257,7 @@ export function Workspace() {
                 )}
                 {route && dive.stage === 'file' && !page?.hasCanvas && <FileMessage file={route} page={page} />}
                 <AnimatePresence>
-                  {logOpen && <ObservationLog key="log" run={run} scene={scene} nodesById={nodesById} onExit={exitRun} />}
+                  {logOpen && <ObservationLog key={run.question} run={run} scene={scene} nodesById={nodesById} onExit={exitRun} />}
                 </AnimatePresence>
                 <AnimatePresence>
                   {codeNode && (

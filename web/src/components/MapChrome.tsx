@@ -75,15 +75,21 @@ export function TitleBar({ graph, moduleName, file, run, recorded }: TitleBarPro
         <a
           href={MAP_HASH}
           onClick={() => !file && exitModule()}
-          className={cn('truncate transition-colors hover:text-foreground', place ? 'text-muted-foreground' : 'text-foreground')}
+          title={`${graph.repo} @ ${graph.commit_sha.slice(0, 7)}`}
+          className={cn(
+            'min-w-8 shrink-[4] truncate transition-colors hover:text-foreground',
+            place ? 'text-muted-foreground' : 'text-foreground',
+          )}
         >
           {graph.repo}
-          <span className="text-muted-foreground"> @ {graph.commit_sha.slice(0, 7)}</span>
+          {!place && <span className="text-muted-foreground"> @ {graph.commit_sha.slice(0, 7)}</span>}
         </a>
         {place && (
           <>
             <ChevronRight aria-hidden className="size-3 shrink-0 text-muted-foreground" />
-            <span className="truncate text-foreground">{place}</span>
+            <span title={place} className="min-w-0 truncate text-foreground">
+              {place}
+            </span>
           </>
         )}
       </nav>
