@@ -9,6 +9,8 @@ export type NodeState = 'unexplored' | 'visited' | 'understood'
 export interface AgentRun {
   status: 'idle' | 'running' | 'done' | 'error'
   question: string
+  // The file the question was asked from, or null for a question about the whole repo.
+  file: string | null
   events: AgentEvent[]
 }
 
@@ -99,7 +101,7 @@ interface TraceStore {
   setShowCallLines: (on: boolean) => void
   pinLine: (line: PinnedLine | null) => void
   togglePinnedLine: (line: PinnedLine) => void
-  startRun: (question: string, timed: boolean) => void
+  startRun: (question: string, timed: boolean, file: string | null) => void
   clearRun: () => void
   addEvent: (event: AgentEvent) => void
   finishRun: (status: 'done' | 'error') => void
@@ -113,7 +115,7 @@ interface TraceStore {
 }
 
 const CODEBASE: View = { level: 'codebase', module: null }
-const NO_RUN: AgentRun = { status: 'idle', question: '', events: [] }
+const NO_RUN: AgentRun = { status: 'idle', question: '', file: null, events: [] }
 const NO_PLAYBACK: Playback = { cursor: 0, pathStep: 0 }
 
 export const useTraceStore = create<TraceStore>((set) => ({
@@ -148,9 +150,9 @@ export const useTraceStore = create<TraceStore>((set) => ({
     set(({ pinnedLine }) => ({
       pinnedLine: pinnedLine?.from === line.from && pinnedLine.to === line.to ? null : line,
     })),
-  startRun: (question, timed) =>
+  startRun: (question, timed, file) =>
     set({
-      agentRun: { status: 'running', question, events: [] },
+      agentRun: { status: 'running', question, file, events: [] },
       playback: NO_PLAYBACK,
       timing: timed ? { startedAt: Date.now(), received: [] } : null,
       view: CODEBASE,

@@ -4,7 +4,7 @@ import { test } from 'node:test'
 
 import { distanceToRoute, routeBetween } from '../src/lib/belt.ts'
 import { answerSlug, askNote, EXAMPLES, EXAMPLES_REPO, isRecorded, STRIP_COUNT } from '../src/lib/examples.ts'
-import { blockForNode, buildBlockPage, LINE_HEIGHT, type Block } from '../src/lib/fileblocks.ts'
+import { blockForNode, buildBlockPage, LINE_HEIGHT, shownBlockForNode, type Block } from '../src/lib/fileblocks.ts'
 import { buildFileGraph, fileList, footerLine, isInside, summaryLine } from '../src/lib/filegraph.ts'
 import { fileHash, fileRoute, isWorkspace } from '../src/lib/route.ts'
 import type { Graph } from '../src/types/contracts/graph.schema'
@@ -149,6 +149,14 @@ test('a block of module code is never picked by a node id', () => {
   assert.ok(built.blocks.some((block) => block.nodeId === null))
 })
 
+test('following an answer can land on the block a page shows for another file', () => {
+  const built = buildBlockPage(page(real, CRUD), realSources)
+  const shown = shownBlockForNode(built, 'app.core.security:verify_password', CRUD)
+  assert.equal(built.blocks.find((block) => block.id === shown)?.file, 'backend/app/core/security.py')
+  assert.equal(shownBlockForNode(built, 'app.crud:authenticate', CRUD), 'app.crud:authenticate')
+  assert.equal(shownBlockForNode(built, 'app.main:nowhere', CRUD), null)
+})
+
 test('every arrow joins two things on the page', () => {
   for (const { built } of everyBlockPage()) {
     const ids = new Set([...built.blocks.map((block) => block.id), ...built.cards.map((card) => card.id)])
@@ -268,4 +276,8 @@ test('the strip says what a run is, and offers questions only when nothing is ru
   assert.equal(askNote(true, 'Why is the sky blue?', '')?.kicker, 'Live')
   assert.equal(askNote(false, '', 'how does login work')?.kicker, 'Recorded')
   assert.equal(askNote(false, '', 'Why is the sky blue?')?.kicker, 'Live')
+  // A recorded question asked from a file's page runs live, because the recordings are about the whole repo.
+  assert.equal(askNote(false, '', 'how does login work', null, 'app/api/routes/login.py')?.kicker, 'Live')
+  assert.match(askNote(false, '', 'how does login work', null, 'app/api/routes/login.py')?.text ?? '', /login\.py/)
+  assert.equal(askNote(true, 'How does login work?', '', 'app/api/routes/login.py')?.kicker, 'Live')
 })

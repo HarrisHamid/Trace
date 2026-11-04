@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion'
-import { ChevronDown, ChevronRight, LoaderCircle, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, FileCode2, LoaderCircle, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { AgentTrace } from '@/components/AgentTrace'
 
 import { StatusGlyph } from '@/components/Glyphs'
 import { PlaybackBar } from '@/components/PlaybackControls'
-import { isRecorded } from '@/lib/examples'
+import { replays } from '@/lib/examples'
 import { stepLabel, type GraphNode, type RepairView, type RunView, type Star, type Tally as TallyCounts } from '@/lib/run'
 import type { Scene } from '@/lib/scene'
 import { cn } from '@/lib/utils'
@@ -234,10 +234,12 @@ interface ObservationLogProps {
   run: RunView
   scene: Scene
   nodesById: Map<string, GraphNode>
+  // The file the question was asked from, or null for the whole repo.
+  file: string | null
   onExit: () => void
 }
 
-export function ObservationLog({ run, scene, nodesById, onExit }: ObservationLogProps) {
+export function ObservationLog({ run, file, scene, nodesById, onExit }: ObservationLogProps) {
   const list = useRef<HTMLOListElement>(null)
   const selectedNode = useTraceStore((state) => state.selectedNode)
   const focusNode = useTraceStore((state) => state.focusNode)
@@ -246,7 +248,7 @@ export function ObservationLog({ run, scene, nodesById, onExit }: ObservationLog
   const [picked, setPicked] = useState<Tab | null>(null)
   // Until the reader picks a tab, the trace shows while the agent works and the answer once it starts to draw.
   const tab: Tab = picked ?? (run.phase === 'walking' ? 'trace' : 'answer')
-  const recorded = isRecorded(run.question)
+  const recorded = replays(run.question, file)
 
   useEffect(() => {
     if (!selectedNode || tab !== 'answer') return
@@ -284,6 +286,12 @@ export function ObservationLog({ run, scene, nodesById, onExit }: ObservationLog
           </button>
         </div>
         <h2 className="mt-1.5 text-lg leading-snug font-semibold">{run.question}</h2>
+        {file && (
+          <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <FileCode2 aria-hidden className="size-3.5" />
+            Asked about <span className="truncate font-mono text-foreground/90">{file}</span>
+          </p>
+        )}
         <div className="mt-3">
           <PlaybackBar run={run} />
         </div>

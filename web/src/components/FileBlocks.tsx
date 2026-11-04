@@ -5,6 +5,7 @@ import { fetchSource } from '@/api'
 import { NodeGlyph } from '@/components/Glyphs'
 import {
   blockForNode,
+  shownBlockForNode,
   boundsOf,
   buildBlockPage,
   CARD_HEADER,
@@ -271,14 +272,21 @@ interface FileBlocksProps {
   colourOf: (node: GraphNode) => string
   animated: boolean
   camera: Ref<FileCamera>
+  // While a question asked on this page is answered: how far its playback has got. The view moves to each block the answer
+  // reaches. Null otherwise.
+  follow: number | null
+  // Room taken on the right by a panel over the page, so framing keeps blocks clear of it.
+  rightInset: number
   onOpenFile: (file: string, nodeId: string) => void
 }
 
-export function FileBlocks({ page, colourOf, animated, camera, onOpenFile }: FileBlocksProps) {
+export function FileBlocks({ page, colourOf, animated, camera, follow, rightInset, onOpenFile }: FileBlocksProps) {
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [failed, setFailed] = useState(false)
   const [stage, setStage] = useState<Stage>(animated ? 'page' : 'wired')
-  const [chosen, setChosen] = useState<string | null>(null)
+  // A clicked block, with the selection and playback position at the time. Once either moves on, as they do with each
+  // step of an answer, the click gives way.
+  const [picked, setChosen] = useState<{ id: string; over: string } | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
   const frame = useRef<HTMLDivElement>(null)
   const timers = useRef<number[]>([])
@@ -291,12 +299,20 @@ export function FileBlocks({ page, colourOf, animated, camera, onOpenFile }: Fil
   const zoom = useMotionValue(1)
   const stroke = useTransform(zoom, (value) => Math.max(1.5, 1.5 / value))
   const nodes = useMemo(() => new Map(page.graph.nodes.map((node) => [node.id, node])), [page])
+  const moment = `${selectedNode}|${follow}`
+  const chosen = picked && picked.over === moment ? picked.id : null
+
+  // Read when the camera moves, not a dependency: a panel opening must not restart the page's animation.
+  const right = useRef(rightInset)
+  useEffect(() => {
+    right.current = rightInset
+  }, [rightInset])
 
   const moveTo = useCallback(
     (bounds: Bounds, duration: number, padding = 0) => {
       const element = frame.current
       if (!element) return
-      const width = element.clientWidth - INSETS.left - INSETS.right - padding * 2
+      const width = element.clientWidth - INSETS.left - Math.max(INSETS.right, right.current) - padding * 2
       const height = element.clientHeight - INSETS.top - INSETS.bottom - padding * 2
       const boxWidth = bounds.x2 - bounds.x1
       const boxHeight = bounds.y2 - bounds.y1
@@ -411,7 +427,8 @@ export function FileBlocks({ page, colourOf, animated, camera, onOpenFile }: Fil
   const dragged = () => drag.current?.moved ?? false
   const built = loaded?.built
   // The block the map, the palette or a neighbouring file sent us to stays lit until something else is picked.
-  const sentTo = selectedNode && built ? blockForNode(built, selectedNode, page.file) : null
+  const findBlock = follow !== null ? shownBlockForNode : blockForNode
+  const sentTo = selectedNode && built ? findBlock(built, selectedNode, page.file) : null
   const pinned = chosen ?? sentTo
   const active = stage === 'wired' ? (hovered ?? pinned) : null
   const touching = useMemoTouching(built, active)
@@ -423,17 +440,32 @@ export function FileBlocks({ page, colourOf, animated, camera, onOpenFile }: Fil
     selectNode(null)
     if (built) moveTo(built.bounds, FOCUS_SECONDS)
   }
-  // Picking a block brings it and everything it touches close enough to read.
+  // Brings a block and everything it touches close enough to read.
+  const frameAround = useCallback(
+    (id: string) => {
+      if (!built) return
+      const ids = new Set([id, ...built.arrows.flatMap((arrow) => (arrow.from === id ? arrow.to : arrow.to === id ? arrow.from : []))])
+      moveTo(boundsOf([...built.blocks, ...built.cards].filter((box) => ids.has(box.id))), FOCUS_SECONDS, FOCUS_PADDING)
+    },
+    [built, moveTo],
+  )
   const choose = (id: string) => {
     if (dragged() || !built) return
     if (pinned === id) {
       clearChoice()
       return
     }
-    setChosen(id)
-    const ids = new Set([id, ...built.arrows.flatMap((arrow) => (arrow.from === id ? arrow.to : arrow.to === id ? arrow.from : []))])
-    moveTo(boundsOf([...built.blocks, ...built.cards].filter((box) => ids.has(box.id))), FOCUS_SECONDS, FOCUS_PADDING)
+    setChosen({ id, over: moment })
+    frameAround(id)
   }
+
+  const wired = stage === 'wired'
+  const following = follow !== null
+  // Following an answer frames just the step's own block, close enough to read; its neighbours stay lit around it.
+  useEffect(() => {
+    const block = following && wired && sentTo ? built?.blocks.find((item) => item.id === sentTo) : undefined
+    if (block) moveTo(boundsOf([block]), FOCUS_SECONDS, FOCUS_PADDING)
+  }, [following, wired, sentTo, built, moveTo])
 
   if (failed) {
     return (

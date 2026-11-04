@@ -535,6 +535,11 @@ export function blockForNode(built: BlockPage, nodeId: string, file: string) {
   return built.blocks.find((block) => block.nodeId === nodeId && block.file === file)?.id ?? null
 }
 
+// For following an answer on a file's page: the file's own block, or else the block the page shows for code in another file.
+export function shownBlockForNode(built: BlockPage, nodeId: string, file: string) {
+  return blockForNode(built, nodeId, file) ?? built.blocks.find((block) => block.nodeId === nodeId)?.id ?? null
+}
+
 export function boundsOf(boxes: { x: number; y: number; width: number; height: number }[]): Bounds {
   return {
     x1: Math.min(...boxes.map((box) => box.x)),

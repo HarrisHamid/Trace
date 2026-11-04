@@ -118,12 +118,18 @@ def _shown_args(raw_args: str) -> dict[str, Any]:
     return parsed if isinstance(parsed, dict) else {"raw": raw_args}
 
 
+def json_object(content: str) -> str:
+    """The JSON object in a reply. The model sometimes writes a sentence before it despite the response format."""
+    start, end = content.find("{"), content.rfind("}")
+    return content[start : end + 1] if 0 <= start < end else content
+
+
 async def _answer(messages: list[dict[str, Any]], client: AsyncOpenAI, model: str) -> DraftPath:
     messages.append({"role": "user", "content": ANSWER_PROMPT})
     response_format = _output_format("final_path", DraftPath)
     response = await client.chat.completions.create(model=model, messages=messages, response_format=response_format)
     content = response.choices[0].message.content or ""
-    draft = DraftPath.model_validate_json(content)
+    draft = DraftPath.model_validate_json(json_object(content))
     messages.append({"role": "assistant", "content": content})
     return draft
 
@@ -150,7 +156,7 @@ async def _repair(
             response = await one_try.chat.completions.create(
                 model=model, messages=messages, response_format=_output_format("path_repair", DraftRepair)
             )
-        repair = DraftRepair.model_validate_json(response.choices[0].message.content or "")
+        repair = DraftRepair.model_validate_json(json_object(response.choices[0].message.content or ""))
         repaired = validate_path(apply_repair(draft, flagged, repair, index), index)
     except Exception:
         logger.exception("Repair failed, so the first answer stands")
@@ -162,11 +168,34 @@ async def _repair(
         yield RepairFinished(type="repair_finished", outcome="no_improvement", steps=[])
 
 
-async def run_agent(question: str, *, client: AsyncOpenAI, model: str, index: GraphIndex) -> AsyncIterator[Event]:
+# Enough of a file's contents to start from without a search, without crowding out the question.
+MAX_LISTED_NODES = 40
+
+
+def scoped_question(question: str, file: str | None, index: GraphIndex) -> str:
+    """The question as the model sees it. Asked from a file's page, it names that file and what the file defines."""
+    if not file:
+        return question
+    defined = [node for node in index.graph.nodes if node.file == file and node.type != "module"]
+    if not defined:
+        return question
+    listing = "\n".join(
+        f"- {node.id} ({node.type}, lines {node.line_start}-{node.line_end})" for node in defined[:MAX_LISTED_NODES]
+    )
+    more = f"\n- and {len(defined) - MAX_LISTED_NODES} more" if len(defined) > MAX_LISTED_NODES else ""
+    return (
+        f"I am looking at {file}. Answer about this file: start from the nodes it defines, and follow edges out of it "
+        f"only as far as the question needs.\n\nNodes in {file}:\n{listing}{more}\n\nQuestion: {question}"
+    )
+
+
+async def run_agent(
+    question: str, *, client: AsyncOpenAI, model: str, index: GraphIndex, file: str | None = None
+) -> AsyncIterator[Event]:
     yield RunStarted(type="run_started")
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": INVESTIGATE_PROMPT},
-        {"role": "user", "content": question},
+        {"role": "user", "content": scoped_question(question, file, index)},
     ]
     try:
         async for event in _investigate(messages, client, model, index):

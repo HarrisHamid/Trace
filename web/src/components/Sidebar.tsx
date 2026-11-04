@@ -43,19 +43,23 @@ function Section({
 interface AskBoxProps {
   busy: boolean
   hasExamples: boolean
-  onAsk: (question: string) => void
+  // The file whose page is open. A question typed there is about that file.
+  scope: string | null
+  onAsk: (question: string, file: string | null) => void
 }
 
-function AskBox({ busy, hasExamples, onAsk }: AskBoxProps) {
+function AskBox({ busy, hasExamples, scope, onAsk }: AskBoxProps) {
   const [question, setQuestion] = useState('')
   const asked = useTraceStore((state) => state.agentRun.question)
-  const note = hasExamples ? askNote(busy, asked, question) : null
+  const askedFile = useTraceStore((state) => state.agentRun.file)
+  const note = hasExamples || scope ? askNote(busy, asked, question, askedFile, scope) : null
+  const name = scope?.slice(scope.lastIndexOf('/') + 1)
 
   function ask() {
     const text = question.trim()
     if (!text || busy) return
     setQuestion('')
-    onAsk(text)
+    onAsk(text, scope)
   }
 
   function submit(event: FormEvent) {
@@ -78,13 +82,13 @@ function AskBox({ busy, hasExamples, onAsk }: AskBoxProps) {
       <div className="rounded border border-input bg-background focus-within:border-primary/70">
         <textarea
           id={ASK_INPUT_ID}
-          aria-label="Ask about this codebase"
+          aria-label={name ? `Ask about ${name}` : 'Ask about this codebase'}
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
           onKeyDown={onKeyDown}
           disabled={busy}
           rows={3}
-          placeholder="How does a user log in?"
+          placeholder={name ? `Ask about ${name}…` : 'How does a user log in?'}
           className="block w-full resize-none bg-transparent px-2.5 pt-2 text-[13px] leading-snug outline-none placeholder:text-muted-foreground/70 disabled:opacity-50"
         />
         <div className="flex items-center justify-between gap-2 px-2 pb-2">
@@ -110,7 +114,9 @@ function AskBox({ busy, hasExamples, onAsk }: AskBoxProps) {
 
 function Questions({ busy, onAsk }: { busy: boolean; onAsk: (question: string) => void }) {
   const asked = useTraceStore((state) => state.agentRun.question)
-  const active = answerSlug(asked)
+  const askedFile = useTraceStore((state) => state.agentRun.file)
+  // A recorded question asked about one file ran live, so it is not this replay.
+  const active = askedFile === null ? answerSlug(asked) : ''
   return (
     <ul className="pb-2">
       {EXAMPLES.map((example) => {
@@ -196,7 +202,9 @@ interface SidebarProps {
   busy: boolean
   scene: Scene
   nodes: GraphNode[]
-  onAsk: (question: string) => void
+  // The file whose page is open, if any. Typed questions are about it; recorded ones are about the whole repo.
+  scope: string | null
+  onAsk: (question: string, file: string | null) => void
   onFocusModule: (module: string | null) => void
 }
 
@@ -249,7 +257,7 @@ function Rail({ busy, onOpen }: { busy: boolean; onOpen: (target: string | null)
   )
 }
 
-export function Sidebar({ repo, busy, scene, nodes, onAsk, onFocusModule }: SidebarProps) {
+export function Sidebar({ repo, busy, scene, nodes, scope, onAsk, onFocusModule }: SidebarProps) {
   const open = useTraceStore((state) => state.sidebarOpen)
   const setOpen = useTraceStore((state) => state.setSidebarOpen)
   const target = useRef<string | null>(null)
@@ -280,18 +288,18 @@ export function Sidebar({ repo, busy, scene, nodes, onAsk, onFocusModule }: Side
   return (
     <aside aria-label="Sidebar" className="flex min-h-0 shrink-0 flex-col border-r border-border bg-card" style={{ width: SIDEBAR_WIDTH }}>
       <Section title="Ask" aside={<StepModeSwitch className="w-32" />}>
-        <AskBox busy={busy} hasExamples={hasExamples} onAsk={onAsk} />
+        <AskBox busy={busy} hasExamples={hasExamples} scope={scope} onAsk={onAsk} />
       </Section>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {hasExamples ? (
           <Section id={QUESTIONS_ID} title="Recorded questions" aside={<span className="text-[10px] text-muted-foreground">replays</span>}>
-            <Questions busy={busy} onAsk={onAsk} />
+            <Questions busy={busy} onAsk={(question) => onAsk(question, null)} />
           </Section>
         ) : (
           <Section title="Example">
             <button
               disabled={busy}
-              onClick={() => onAsk(EXAMPLES[0].question)}
+              onClick={() => onAsk(EXAMPLES[0].question, null)}
               className="mx-3 mb-3 rounded border border-border px-2 py-1 text-left text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
             >
               {EXAMPLES[0].question}
