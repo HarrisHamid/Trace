@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import { isRevealing } from '@/lib/run'
+import { isRevealing, nextDelay } from '@/lib/run'
 import type { AgentEvent } from '@/types/contracts/events.schema'
 
 export type NodeState = 'unexplored' | 'visited' | 'understood'
@@ -15,6 +15,34 @@ export interface AgentRun {
 export interface Playback {
   cursor: number
   pathStep: number
+}
+
+// Auto plays the answer by itself. Manual waits for the reader to press Next step.
+export type StepMode = 'auto' | 'manual'
+
+const STEP_MODE_KEY = 'trace.stepMode'
+
+// A remembered preference only. Private windows and blocked storage fall back to auto.
+function savedStepMode(): StepMode {
+  try {
+    return window.localStorage.getItem(STEP_MODE_KEY) === 'manual' ? 'manual' : 'auto'
+  } catch {
+    return 'auto'
+  }
+}
+
+function saveStepMode(mode: StepMode) {
+  try {
+    window.localStorage.setItem(STEP_MODE_KEY, mode)
+  } catch {
+    // Nothing to do: the mode still applies for this visit.
+  }
+}
+
+function advanced(events: AgentEvent[], playback: Playback): Playback {
+  return isRevealing(events, playback)
+    ? { ...playback, pathStep: playback.pathStep + 1 }
+    : { ...playback, cursor: playback.cursor + 1 }
 }
 
 export interface View {
@@ -44,6 +72,7 @@ interface TraceStore {
   selectedNode: string | null
   agentRun: AgentRun
   playback: Playback
+  stepMode: StepMode
   view: View
   paletteOpen: boolean
   codePanel: CodePanel | null
@@ -70,6 +99,9 @@ interface TraceStore {
   addEvent: (event: AgentEvent) => void
   finishRun: (status: 'done' | 'error') => void
   advancePlayback: () => void
+  // Shows everything that has arrived so far, for a reader in manual mode who wants the rest at once.
+  skipPlayback: () => void
+  setStepMode: (mode: StepMode) => void
   setLearningMode: (on: boolean) => void
   setNodeState: (id: string, state: NodeState) => void
 }
@@ -82,6 +114,7 @@ export const useTraceStore = create<TraceStore>((set) => ({
   selectedNode: null,
   agentRun: NO_RUN,
   playback: NO_PLAYBACK,
+  stepMode: savedStepMode(),
   view: CODEBASE,
   paletteOpen: false,
   codePanel: null,
@@ -120,12 +153,19 @@ export const useTraceStore = create<TraceStore>((set) => ({
   addEvent: (event) =>
     set((state) => ({ agentRun: { ...state.agentRun, events: [...state.agentRun.events, event] } })),
   finishRun: (status) => set((state) => ({ agentRun: { ...state.agentRun, status } })),
-  advancePlayback: () =>
-    set(({ agentRun, playback }) => ({
-      playback: isRevealing(agentRun.events, playback)
-        ? { ...playback, pathStep: playback.pathStep + 1 }
-        : { ...playback, cursor: playback.cursor + 1 },
-    })),
+  advancePlayback: () => set(({ agentRun, playback }) => ({ playback: advanced(agentRun.events, playback) })),
+  skipPlayback: () =>
+    set(({ agentRun, playback }) => {
+      let next = playback
+      for (let guard = 0; guard < 5000 && nextDelay(agentRun.events, next) !== null; guard += 1) {
+        next = advanced(agentRun.events, next)
+      }
+      return { playback: next }
+    }),
+  setStepMode: (mode) => {
+    saveStepMode(mode)
+    set({ stepMode: mode })
+  },
   setLearningMode: (on) => set({ learningMode: on }),
   setNodeState: (id, nodeState) =>
     set((state) => ({ nodeStates: { ...state.nodeStates, [id]: nodeState } })),

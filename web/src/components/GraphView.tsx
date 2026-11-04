@@ -11,7 +11,7 @@ import { useTraceStore, type FocusRequest, type PinnedLine, type View } from '@/
 import type { Graph } from '@/types/contracts/graph.schema'
 
 const MONO = '"JetBrains Mono Variable", monospace'
-const INSETS = { top: 64, left: 44, bottom: 112 }
+const INSETS = { top: 56, left: 32, bottom: 32 }
 const FOCUS_ZOOM = 1.15
 const MAX_FRAME_ZOOM = 1.5
 const MIN_ZOOM = 0.2

@@ -86,9 +86,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def load_index() -> GraphIndex:
         return GraphIndex.load(settings.trace_data_dir / "graph.json", settings.trace_source_dir)
 
+    # The status bar shows which model answers live questions. The key itself never leaves the server.
     @app.get("/api/health")
-    def health() -> dict[str, str]:
-        return {"status": "ok"}
+    def health() -> dict[str, str | bool]:
+        return {"status": "ok", "model": settings.meta_model, "live": bool(settings.meta_api_key.get_secret_value())}
 
     @app.get("/api/graph")
     def graph() -> Graph:

@@ -40,10 +40,18 @@ async def read_events(response):
 
 @pytest.mark.anyio
 async def test_health():
-    async with client_for() as client:
+    async with client_for(meta_model="muse-spark-1.3", meta_api_key="") as client:
         response = await client.get("/api/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "ok", "model": "muse-spark-1.3", "live": False}
+
+
+@pytest.mark.anyio
+async def test_health_says_live_without_showing_the_key():
+    async with client_for(meta_model="muse-spark-1.3", meta_api_key="secret-value") as client:
+        response = await client.get("/api/health")
+    assert response.json()["live"] is True
+    assert "secret-value" not in response.text
 
 
 @pytest.mark.anyio
@@ -181,7 +189,7 @@ async def test_serves_web_dist_when_present(tmp_path):
         index = await client.get("/")
         health = await client.get("/api/health")
     assert "hello" in index.text
-    assert health.json() == {"status": "ok"}
+    assert health.json()["status"] == "ok"
 
 
 @pytest.mark.anyio

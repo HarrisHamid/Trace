@@ -1,12 +1,14 @@
 import { motion } from 'framer-motion'
-import { ChevronDown, LoaderCircle, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, LoaderCircle, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { StatusGlyph } from '@/components/Glyphs'
+import { PlaybackBar } from '@/components/PlaybackControls'
 import { isRecorded } from '@/lib/examples'
 import { stepLabel, type GraphNode, type RepairView, type RunView, type Star, type Tally as TallyCounts, type TraceLine } from '@/lib/run'
 import type { Scene } from '@/lib/scene'
 import { cn } from '@/lib/utils'
+import { useWaitingForStep } from '@/lib/useWaitingForStep'
 import { useTraceStore } from '@/store'
 import type { Claim } from '@/types/contracts/events.schema'
 
@@ -264,6 +266,8 @@ export function ObservationLog({ run, scene, nodesById, onExit }: ObservationLog
   const list = useRef<HTMLOListElement>(null)
   const selectedNode = useTraceStore((state) => state.selectedNode)
   const focusNode = useTraceStore((state) => state.focusNode)
+  const advancePlayback = useTraceStore((state) => state.advancePlayback)
+  const waiting = useWaitingForStep()
   const running = run.phase === 'walking' || run.phase === 'revealing'
 
   useEffect(() => {
@@ -272,6 +276,13 @@ export function ObservationLog({ run, scene, nodesById, onExit }: ObservationLog
     entry?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [selectedNode])
 
+  // Keeps the newest step in view as the answer draws, so the reader never has to chase it.
+  useEffect(() => {
+    if (run.revealed === 0) return
+    const entry = list.current?.children[run.revealed - 1]
+    entry?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [run.revealed])
+
   return (
     <motion.aside
       aria-label="Answer"
@@ -279,10 +290,10 @@ export function ObservationLog({ run, scene, nodesById, onExit }: ObservationLog
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 32, opacity: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="glass absolute inset-y-5 right-5 flex flex-col"
+      className="absolute inset-y-0 right-0 flex flex-col border-l border-border bg-card"
       style={{ width: LOG_WIDTH }}
     >
-      <header className="px-5 pt-4 pb-3">
+      <header className="px-5 pt-3 pb-3">
         <div className="flex min-h-7 items-center justify-between gap-3">
           <RunStatus phase={run.phase} recorded={isRecorded(run.question)} />
           <button
@@ -295,6 +306,9 @@ export function ObservationLog({ run, scene, nodesById, onExit }: ObservationLog
           </button>
         </div>
         <h2 className="mt-1.5 text-lg leading-snug font-semibold">{run.question}</h2>
+        <div className="mt-3">
+          <PlaybackBar run={run} />
+        </div>
         {run.repair ? <RepairPanel repair={run.repair} onFocus={focusNode} /> : run.tally && <Tally tally={run.tally} />}
         <Trace traces={run.traces} running={running} />
       </header>
@@ -316,6 +330,17 @@ export function ObservationLog({ run, scene, nodesById, onExit }: ObservationLog
             />
           )
         })}
+        {waiting && (
+          <li className="pb-5 pl-8">
+            <button
+              onClick={advancePlayback}
+              className="flex w-full items-center justify-center gap-1.5 rounded border border-dashed border-primary/50 py-2 text-xs text-primary transition-colors hover:bg-primary/10"
+            >
+              Next step
+              <ChevronRight aria-hidden className="size-3.5" />
+            </button>
+          </li>
+        )}
       </ol>
       {run.error && (
         <p role="alert" className="border-t border-unverified/40 px-5 py-3 text-xs text-unverified">

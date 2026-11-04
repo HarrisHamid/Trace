@@ -5,11 +5,12 @@ import type { Graph } from '@/types/contracts/graph.schema'
 export type GraphNode = Graph['nodes'][number]
 export type StarStatus = 'visited' | 'verified' | 'unverified' | 'gap'
 
-export const STEP_MS = 400
-const CAMERA_SETTLE_MS = 550
-const TOOL_HOLD_MS = 120
+// Slow enough to read each step's sentence as its line draws.
+export const STEP_MS = 650
+const CAMERA_SETTLE_MS = 800
+const TOOL_HOLD_MS = 220
 // Long enough to read what was sent back, because a replay has no model call to wait for.
-const REPAIR_HOLD_MS = 2500
+const REPAIR_HOLD_MS = 3000
 
 // Steps are numbered in order, so the map and the answer panel share one label.
 export function stepLabel(index: number): string {
@@ -63,6 +64,8 @@ export interface RunView {
   walked: string[]
   segments: Segment[]
   revealed: number
+  // Steps in the answer being drawn: the repaired path once a repair is accepted, otherwise the first draft.
+  totalSteps: number
   current: string | null
   caption: string | null
   traces: TraceLine[]
@@ -105,6 +108,14 @@ export function nextDelay(events: AgentEvent[], playback: Playback): number | nu
   if (last?.type === 'tool_call' || last?.type === 'tool_result') return TOOL_HOLD_MS
   if (last?.type === 'repair_started') return REPAIR_HOLD_MS
   return last ? STEP_MS : 0
+}
+
+// In manual mode the reader moves the answer on: every step after the first, and the pause after a repair is sent back.
+// The agent's own investigation still plays by itself, because a live run is waiting on the model anyway.
+export function awaitsStep(events: AgentEvent[], playback: Playback): boolean {
+  if (isRevealing(events, playback)) return playback.pathStep > 0
+  const last = events[playback.cursor - 1]
+  return last?.type === 'repair_started' && playback.cursor < events.length
 }
 
 function statusOf(claims: Claim[]): StarStatus {
@@ -233,6 +244,7 @@ export function deriveRun(graph: Graph, run: AgentRun, playback: Playback): RunV
     walked: visits.map((visit) => visit.node_id),
     segments: toSegments(graph, steps),
     revealed,
+    totalSteps: steps.length,
     current: sentBack?.nodeId ?? latestStep?.node_id ?? latestVisit?.node_id ?? null,
     caption: sentBack ? `Sent back: ${sentBack.text}` : (latestStep?.explanation ?? latestVisit?.reason ?? null),
     traces: toTraces(events),

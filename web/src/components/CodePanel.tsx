@@ -81,7 +81,7 @@ export function CodePanel({ node, colour, quote, graphifyBusy, onGraphify, onClo
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 32, opacity: 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="glass absolute inset-y-5 right-5 z-10 flex flex-col bg-card"
+      className="absolute inset-y-0 right-0 z-10 flex flex-col border-l border-border bg-card shadow-[-12px_0_24px_rgb(0_0_0/25%)]"
       style={{ width: CODE_WIDTH }}
     >
       <header className="flex items-start gap-3 border-b border-border px-5 py-3">
