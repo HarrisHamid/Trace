@@ -236,10 +236,12 @@ interface ObservationLogProps {
   nodesById: Map<string, GraphNode>
   // The file the question was asked from, or null for the whole repo.
   file: string | null
+  // The name of the block selected there when it was asked.
+  node: string | null
   onExit: () => void
 }
 
-export function ObservationLog({ run, file, scene, nodesById, onExit }: ObservationLogProps) {
+export function ObservationLog({ run, file, node, scene, nodesById, onExit }: ObservationLogProps) {
   const list = useRef<HTMLOListElement>(null)
   const selectedNode = useTraceStore((state) => state.selectedNode)
   const focusNode = useTraceStore((state) => state.focusNode)
@@ -289,7 +291,13 @@ export function ObservationLog({ run, file, scene, nodesById, onExit }: Observat
         {file && (
           <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <FileCode2 aria-hidden className="size-3.5" />
-            Asked about <span className="truncate font-mono text-foreground/90">{file}</span>
+            Asked about
+            {node && (
+              <>
+                <span className="font-mono text-foreground/90">{node}</span> in
+              </>
+            )}
+            <span className="truncate font-mono text-foreground/90">{file}</span>
           </p>
         )}
         <div className="mt-3">

@@ -140,23 +140,24 @@ export function Workspace() {
 
   // A question typed on a file's page is about that file: the page stays open and the answer is followed there.
   // Anything else, recorded questions included, is about the whole repo and goes back to the map.
-  function ask(question: string, file: string | null) {
-    if (file !== null && file === route) void runQuestion(question, file)
-    else fromMap(() => void runQuestion(question, null))
+  // node is the block selected on that page, which the question is then about.
+  function ask(question: string, file: string | null, node: string | null = null) {
+    if (file !== null && file === route) void runQuestion(question, file, node)
+    else fromMap(() => void runQuestion(question, null, null))
   }
 
   function focusModule(module: string | null) {
     fromMap(() => (module ? enterModule(module) : exitModule()))
   }
 
-  async function runQuestion(question: string, file: string | null) {
+  async function runQuestion(question: string, file: string | null, node: string | null) {
     asking.current?.abort()
     const controller = new AbortController()
     asking.current = controller
     // Recorded answers, and the mock data that replays one run for any question, are not timed.
-    startRun(question, graph?.repo === EXAMPLES_REPO && !replays(question, file), file)
+    startRun(question, graph?.repo === EXAMPLES_REPO && !replays(question, file), file, node)
     try {
-      await streamAsk(question, file, addEvent, controller.signal)
+      await streamAsk(question, file, node, addEvent, controller.signal)
       if (!controller.signal.aborted) finishRun('done')
     } catch (error) {
       if (controller.signal.aborted) return
@@ -301,6 +302,7 @@ export function Workspace() {
                       key={run.question}
                       run={run}
                       file={agentRun.file}
+                      node={agentRun.node ? (nodesById.get(agentRun.node)?.name ?? agentRun.node) : null}
                       scene={scene}
                       nodesById={nodesById}
                       onExit={exitRun}

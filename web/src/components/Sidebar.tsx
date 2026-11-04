@@ -1,13 +1,14 @@
-import { ArrowRight, Boxes, ListVideo, LoaderCircle, MessageSquareText, Network, PanelLeftOpen } from 'lucide-react'
+import { ArrowRight, Boxes, ListVideo, LoaderCircle, MessageSquareText, Network, PanelLeftOpen, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 
+import { NodeGlyph } from '@/components/Glyphs'
 import { StepModeSwitch } from '@/components/PlaybackControls'
 import { askNote, EXAMPLES, EXAMPLES_REPO, answerSlug } from '@/lib/examples'
 import { fileHash } from '@/lib/route'
 import type { GraphNode } from '@/lib/run'
 import type { Scene } from '@/lib/scene'
 import { cn } from '@/lib/utils'
-import { useTraceStore } from '@/store'
+import { useTraceStore, type FocusBlock } from '@/store'
 
 export const SIDEBAR_WIDTH = 288
 export const RAIL_WIDTH = 44
@@ -45,21 +46,49 @@ interface AskBoxProps {
   hasExamples: boolean
   // The file whose page is open. A question typed there is about that file.
   scope: string | null
-  onAsk: (question: string, file: string | null) => void
+  onAsk: (question: string, file: string | null, node: string | null) => void
+}
+
+// The block selected on the page, shown in the ask box as what the question is about.
+function FocusChip({ block, onRemove }: { block: FocusBlock; onRemove: () => void }) {
+  return (
+    <div className="px-2 pt-2">
+      <span className="inline-flex max-w-full items-center gap-1.5 rounded border border-primary/40 bg-primary/10 py-0.5 pr-0.5 pl-1.5 font-mono text-[11px]">
+        <NodeGlyph type={block.type} colour={block.colour} />
+        <span className="truncate text-foreground">{block.name}</span>
+        <span className="shrink-0 text-muted-foreground">
+          {block.start === block.end ? `line ${block.start}` : `lines ${block.start}–${block.end}`}
+        </span>
+        <button
+          type="button"
+          onClick={onRemove}
+          title="Ask about the whole file instead"
+          className="grid size-4 shrink-0 place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <X aria-label={`Don't ask about ${block.name}`} className="size-3" />
+        </button>
+      </span>
+    </div>
+  )
 }
 
 function AskBox({ busy, hasExamples, scope, onAsk }: AskBoxProps) {
   const [question, setQuestion] = useState('')
+  // The selection the reader took out of the question. Picking any block again, even the same one, brings the chip back,
+  // because each pick is a new selection.
+  const [removed, setRemoved] = useState<FocusBlock | null>(null)
   const asked = useTraceStore((state) => state.agentRun.question)
   const askedFile = useTraceStore((state) => state.agentRun.file)
-  const note = hasExamples || scope ? askNote(busy, asked, question, askedFile, scope) : null
-  const name = scope?.slice(scope.lastIndexOf('/') + 1)
+  const selected = useTraceStore((state) => state.focusBlock)
+  const focus = scope && selected && selected !== removed ? selected : null
+  const note = hasExamples || scope ? askNote(busy, asked, question, askedFile, scope, focus?.name ?? null) : null
+  const name = focus?.name ?? scope?.slice(scope.lastIndexOf('/') + 1)
 
   function ask() {
     const text = question.trim()
     if (!text || busy) return
     setQuestion('')
-    onAsk(text, scope)
+    onAsk(text, scope, focus?.nodeId ?? null)
   }
 
   function submit(event: FormEvent) {
@@ -80,6 +109,7 @@ function AskBox({ busy, hasExamples, scope, onAsk }: AskBoxProps) {
   return (
     <form onSubmit={submit} className="px-3 pb-3">
       <div className="rounded border border-input bg-background focus-within:border-primary/70">
+        {focus && <FocusChip block={focus} onRemove={() => setRemoved(focus)} />}
         <textarea
           id={ASK_INPUT_ID}
           aria-label={name ? `Ask about ${name}` : 'Ask about this codebase'}

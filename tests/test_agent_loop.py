@@ -86,6 +86,17 @@ def test_a_question_from_a_file_names_the_file_and_what_it_defines():
     assert message.endswith("Question: what does this do?")
 
 
+def test_a_selected_block_is_named_as_the_place_to_start():
+    index = GraphIndex.load(MOCK / "graph.json", MOCK / "source")
+    file = index.nodes[LOGIN].file
+    message = scoped_question("what does this do?", file, index, LOGIN)
+    assert f"I have selected {LOGIN} (" in message
+    assert message.endswith("Question: what does this do?")
+    # A selected node is enough on its own: its file comes with it.
+    assert scoped_question("q", None, index, LOGIN).startswith(f"I am looking at {file}.")
+    assert "I have selected" not in scoped_question("q", file, index, "nowhere:nothing")
+
+
 def test_a_question_without_a_file_or_from_an_unknown_file_is_unchanged():
     index = GraphIndex.load(MOCK / "graph.json", MOCK / "source")
     assert scoped_question("q", None, index) == "q"

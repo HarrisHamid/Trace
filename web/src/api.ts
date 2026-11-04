@@ -77,13 +77,14 @@ export async function dismissRepo(id: string): Promise<void> {
 export async function streamAsk(
   question: string,
   file: string | null,
+  node: string | null,
   onEvent: (event: AgentEvent) => void,
   signal: AbortSignal,
 ): Promise<void> {
   const response = await fetch('/api/ask', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question, ...(file && { file }), ...(currentRepo() && { repo: currentRepo() }) }),
+    body: JSON.stringify({ question, ...(file && { file }), ...(node && { node }), ...(currentRepo() && { repo: currentRepo() }) }),
     signal,
   })
   if (!response.ok || !response.body) throw new Error(`POST /api/ask failed: ${response.status}`)

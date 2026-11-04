@@ -33,6 +33,8 @@ class AskRequest(BaseModel):
     # The file the question was asked from, when it was asked on a file's page. The agent then starts from that file.
     file: str | None = Field(default=None, min_length=1, max_length=500)
     repo: str | None = Field(default=None, max_length=200)
+    # The block selected on that file's page, by node id. The agent starts from it.
+    node: str | None = Field(default=None, min_length=1, max_length=500)
 
 
 class AddRepoRequest(BaseModel):
@@ -69,19 +71,24 @@ def model_client(settings: Settings) -> AsyncOpenAI:
 
 
 async def live_events(
-    question: str, file: str | None, settings: Settings, index: GraphIndex
+    question: str, file: str | None, node: str | None, settings: Settings, index: GraphIndex
 ) -> AsyncIterator[dict[str, str]]:
     if not settings.meta_api_key.get_secret_value():
         yield sse(ErrorEvent(type="error", message="META_API_KEY is not set, so the agent cannot run."))
         yield sse(Done(type="done"))
         return
     client = model_client(settings)
-    async for event in run_agent(question, client=client, model=settings.meta_model, index=index, file=file):
+    async for event in run_agent(question, client=client, model=settings.meta_model, index=index, file=file, node=node):
         yield sse(event)
 
 
 def event_stream(
-    question: str, file: str | None, repo: Repo, settings: Settings, load_index: Callable[[], GraphIndex]
+    question: str,
+    file: str | None,
+    repo: Repo,
+    settings: Settings,
+    load_index: Callable[[], GraphIndex],
+    node: str | None = None,
 ) -> AsyncIterator[dict[str, str]]:
     delay = settings.trace_replay_delay_seconds
     mock_run = repo.data_dir / "events.jsonl"
@@ -89,9 +96,9 @@ def event_stream(
         return replay_events(mock_run, delay)
     # Recorded answers are about the whole repo, so a question asked about one file always runs live.
     cached = answer_path(repo.data_dir, question)
-    if file is None and cached.is_file():
+    if file is None and node is None and cached.is_file():
         return replay_events(cached, delay)
-    return live_events(question, file, settings, load_index())
+    return live_events(question, file, node, settings, load_index())
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -157,7 +164,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def ask(request: AskRequest) -> EventSourceResponse:
         chosen = find(request.repo)
         load_index = lambda: index_for(chosen.data_dir, chosen.source_dir)
-        return EventSourceResponse(event_stream(request.question, request.file, chosen, settings, load_index))
+        stream = event_stream(request.question, request.file, chosen, settings, load_index, request.node)
+        return EventSourceResponse(stream)
 
     if settings.trace_web_dist.is_dir():
         app.mount("/", StaticFiles(directory=settings.trace_web_dist, html=True), name="web")
