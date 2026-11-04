@@ -67,9 +67,10 @@ export async function addRepo(url: string, root: string | null): Promise<RepoSum
   return response.json()
 }
 
-export async function dismissRepo(id: string): Promise<void> {
+// Dismisses a failed attempt, or deletes an added repo's graph and clone.
+export async function removeRepo(id: string): Promise<void> {
   const response = await fetch(`/api/repos/${encodeURIComponent(id)}`, { method: 'DELETE' })
-  if (!response.ok) throw await failure(response, 'Dismissing')
+  if (!response.ok) throw await failure(response, 'Removing the repo')
 }
 
 // EventSource only does GET, so the SSE stream from POST /api/ask is read by hand.
