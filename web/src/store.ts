@@ -25,6 +25,7 @@ export type StepMode = 'auto' | 'manual'
 
 const STEP_MODE_KEY = 'trace.stepMode'
 const SIDEBAR_KEY = 'trace.sidebar'
+const REPO_KEY = 'trace.repo'
 
 // Remembered preferences only. Private windows and blocked storage fall back to the default.
 function recall(key: string): string | null {
@@ -80,6 +81,8 @@ interface TraceStore {
   timing: Timing | null
   stepMode: StepMode
   sidebarOpen: boolean
+  // The repo being explored, by id. Null is the one the server started with.
+  repo: string | null
   view: View
   paletteOpen: boolean
   codePanel: CodePanel | null
@@ -110,6 +113,7 @@ interface TraceStore {
   skipPlayback: () => void
   setStepMode: (mode: StepMode) => void
   setSidebarOpen: (open: boolean) => void
+  setRepo: (repo: string | null) => void
   setLearningMode: (on: boolean) => void
   setNodeState: (id: string, state: NodeState) => void
 }
@@ -125,6 +129,7 @@ export const useTraceStore = create<TraceStore>((set) => ({
   timing: null,
   stepMode: recall(STEP_MODE_KEY) === 'manual' ? 'manual' : 'auto',
   sidebarOpen: recall(SIDEBAR_KEY) !== 'collapsed',
+  repo: recall(REPO_KEY) || null,
   view: CODEBASE,
   paletteOpen: false,
   codePanel: null,
@@ -183,6 +188,20 @@ export const useTraceStore = create<TraceStore>((set) => ({
   setSidebarOpen: (open) => {
     remember(SIDEBAR_KEY, open ? 'open' : 'collapsed')
     set({ sidebarOpen: open })
+  },
+  // Everything that belongs to the old repo goes with it.
+  setRepo: (repo) => {
+    remember(REPO_KEY, repo ?? '')
+    set({
+      repo,
+      agentRun: NO_RUN,
+      playback: NO_PLAYBACK,
+      timing: null,
+      view: CODEBASE,
+      selectedNode: null,
+      codePanel: null,
+      pinnedLine: null,
+    })
   },
   setLearningMode: (on) => set({ learningMode: on }),
   setNodeState: (id, nodeState) =>

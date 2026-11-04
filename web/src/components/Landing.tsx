@@ -70,7 +70,7 @@ export function Landing() {
           size="lg"
           className="mt-6 animate-in delay-1000 duration-700 fill-mode-backwards fade-in slide-in-from-bottom-2 motion-reduce:animate-none"
         >
-          <a href="#/app">
+          <a href="#/repos">
             Explore the map
             <ArrowRight data-icon="inline-end" />
           </a>

@@ -25,3 +25,6 @@ out/
 
 # os
 .DS_Store
+
+# repos added from the browser: graphs and shallow clones of third-party code
+data/repos/
