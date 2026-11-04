@@ -172,8 +172,11 @@ async def _repair(
 MAX_LISTED_NODES = 40
 
 
-def scoped_question(question: str, file: str | None, index: GraphIndex) -> str:
-    """The question as the model sees it. Asked from a file's page, it names that file and what the file defines."""
+def scoped_question(question: str, file: str | None, index: GraphIndex, node: str | None = None) -> str:
+    """The question as the model sees it. Asked from a file's page, it names that file and what the file defines, and
+    the block the developer has selected there, if any."""
+    selected = index.nodes.get(node) if node else None
+    file = file or (selected.file if selected else None)
     if not file:
         return question
     defined = [node for node in index.graph.nodes if node.file == file and node.type != "module"]
@@ -183,19 +186,31 @@ def scoped_question(question: str, file: str | None, index: GraphIndex) -> str:
         f"- {node.id} ({node.type}, lines {node.line_start}-{node.line_end})" for node in defined[:MAX_LISTED_NODES]
     )
     more = f"\n- and {len(defined) - MAX_LISTED_NODES} more" if len(defined) > MAX_LISTED_NODES else ""
+    focus = (
+        f"\n\nI have selected {selected.id} ({selected.type}, lines {selected.line_start}-{selected.line_end}). The "
+        "question is about it, so start there."
+        if selected
+        else ""
+    )
     return (
         f"I am looking at {file}. Answer about this file: start from the nodes it defines, and follow edges out of it "
-        f"only as far as the question needs.\n\nNodes in {file}:\n{listing}{more}\n\nQuestion: {question}"
+        f"only as far as the question needs.\n\nNodes in {file}:\n{listing}{more}{focus}\n\nQuestion: {question}"
     )
 
 
 async def run_agent(
-    question: str, *, client: AsyncOpenAI, model: str, index: GraphIndex, file: str | None = None
+    question: str,
+    *,
+    client: AsyncOpenAI,
+    model: str,
+    index: GraphIndex,
+    file: str | None = None,
+    node: str | None = None,
 ) -> AsyncIterator[Event]:
     yield RunStarted(type="run_started")
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": INVESTIGATE_PROMPT},
-        {"role": "user", "content": scoped_question(question, file, index)},
+        {"role": "user", "content": scoped_question(question, file, index, node)},
     ]
     try:
         async for event in _investigate(messages, client, model, index):

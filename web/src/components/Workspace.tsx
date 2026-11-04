@@ -1,7 +1,7 @@
 import { AnimatePresence, MotionConfig } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
-import { fetchGraph, streamAsk } from '@/api'
+import { fetchGraph, fetchRepos, streamAsk } from '@/api'
 import { CODE_WIDTH, CodePanel } from '@/components/CodePanel'
 import { CommandPalette } from '@/components/CommandPalette'
 import { FileBlocks, type FileCamera } from '@/components/FileBlocks'
@@ -13,7 +13,7 @@ import { LOG_WIDTH, ObservationLog } from '@/components/ObservationLog'
 import { Sidebar } from '@/components/Sidebar'
 import { EXAMPLES_REPO, replays } from '@/lib/examples'
 import { buildFileGraph, EXTERNAL_FILE, isInside } from '@/lib/filegraph'
-import { fileHash, fileRoute, MAP_HASH, readHash, subscribeToHash } from '@/lib/route'
+import { fileHash, fileRoute, MAP_HASH, readHash, REPOS_HASH, subscribeToHash } from '@/lib/route'
 import { deriveRun, nextDelay, type GraphNode } from '@/lib/run'
 import { buildScene } from '@/lib/scene'
 import { useDive } from '@/lib/useDive'
@@ -53,6 +53,9 @@ function fadeChrome(shown: boolean) {
 export function Workspace() {
   const [graph, setGraph] = useState<Graph | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  // Mock data replays one run for any question, so its sidebar offers that one question.
+  const [replaysAny, setReplaysAny] = useState(false)
+  const repoId = useTraceStore((state) => state.repo)
   const agentRun = useTraceStore((state) => state.agentRun)
   const playback = useTraceStore((state) => state.playback)
   const view = useTraceStore((state) => state.view)
@@ -71,7 +74,11 @@ export function Workspace() {
 
   useEffect(() => {
     fetchGraph().then(setGraph, (error: Error) => setLoadError(error.message))
-  }, [])
+    fetchRepos().then(
+      (repos) => setReplaysAny(repos.find((repo) => (repoId ? repo.id === repoId : repo.builtin))?.replays_any ?? false),
+      () => setReplaysAny(false),
+    )
+  }, [repoId])
 
   const pageOf = useCallback((file: string) => (graph ? buildFileGraph(graph, file) : null), [graph])
   const dive = useDive({ route, ready: graph !== null, pageOf, map: mapCamera, file: fileCamera })
@@ -133,23 +140,24 @@ export function Workspace() {
 
   // A question typed on a file's page is about that file: the page stays open and the answer is followed there.
   // Anything else, recorded questions included, is about the whole repo and goes back to the map.
-  function ask(question: string, file: string | null) {
-    if (file !== null && file === route) void runQuestion(question, file)
-    else fromMap(() => void runQuestion(question, null))
+  // node is the block selected on that page, which the question is then about.
+  function ask(question: string, file: string | null, node: string | null = null) {
+    if (file !== null && file === route) void runQuestion(question, file, node)
+    else fromMap(() => void runQuestion(question, null, null))
   }
 
   function focusModule(module: string | null) {
     fromMap(() => (module ? enterModule(module) : exitModule()))
   }
 
-  async function runQuestion(question: string, file: string | null) {
+  async function runQuestion(question: string, file: string | null, node: string | null) {
     asking.current?.abort()
     const controller = new AbortController()
     asking.current = controller
     // Recorded answers, and the mock data that replays one run for any question, are not timed.
-    startRun(question, graph?.repo === EXAMPLES_REPO && !replays(question, file), file)
+    startRun(question, graph?.repo === EXAMPLES_REPO && !replays(question, file), file, node)
     try {
-      await streamAsk(question, file, addEvent, controller.signal)
+      await streamAsk(question, file, node, addEvent, controller.signal)
       if (!controller.signal.aborted) finishRun('done')
     } catch (error) {
       if (controller.signal.aborted) return
@@ -215,6 +223,7 @@ export function Workspace() {
               busy={busy}
               scene={scene}
               nodes={graph.nodes}
+              replaysAny={replaysAny}
               scope={route && page?.hasCanvas ? route : null}
               onAsk={ask}
               onFocusModule={focusModule}
@@ -257,9 +266,16 @@ export function Workspace() {
               </div>
             )}
             {!graph && (
-              <p className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">
-                {loadError ?? 'Loading the code graph…'}
-              </p>
+              <div className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">
+                <p className="text-center">
+                  {loadError ?? 'Loading the code graph…'}
+                  {loadError && (
+                    <a href={REPOS_HASH} className="mt-2 block text-primary hover:underline">
+                      Choose a repository
+                    </a>
+                  )}
+                </p>
+              </div>
             )}
             {graph && scene && run && (
               <>
@@ -286,6 +302,7 @@ export function Workspace() {
                       key={run.question}
                       run={run}
                       file={agentRun.file}
+                      node={agentRun.node ? (nodesById.get(agentRun.node)?.name ?? agentRun.node) : null}
                       scene={scene}
                       nodesById={nodesById}
                       onExit={exitRun}

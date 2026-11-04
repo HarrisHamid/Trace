@@ -2,7 +2,7 @@ import { ArrowRight, ChevronRight, PanelLeftClose, PanelLeftOpen, Search, X } fr
 import { useEffect, useState } from 'react'
 
 import { NodeGlyph } from '@/components/Glyphs'
-import { MAP_HASH } from '@/lib/route'
+import { MAP_HASH, REPOS_HASH } from '@/lib/route'
 import type { GraphNode, RunView } from '@/lib/run'
 import { cn } from '@/lib/utils'
 import { useTraceStore } from '@/store'
@@ -17,7 +17,7 @@ const SHAPES: { type: GraphNode['type']; label: string }[] = [
   { type: 'unresolved', label: 'unknown' },
 ]
 
-function Mark() {
+export function Mark() {
   return (
     <svg viewBox="0 0 16 16" className="size-4 text-primary" aria-hidden>
       <circle cx="3" cy="4" r="2" fill="currentColor" />
@@ -83,6 +83,14 @@ export function TitleBar({ graph, moduleName, file, run, recorded }: TitleBarPro
       </a>
       <span className="h-4 border-l border-border" />
       <nav aria-label="Breadcrumb" className="flex min-w-0 flex-1 basis-0 items-center gap-1 font-mono text-xs">
+        <a
+          href={REPOS_HASH}
+          title="Switch repository"
+          className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Repositories
+        </a>
+        <ChevronRight aria-hidden className="size-3 shrink-0 text-muted-foreground" />
         <a
           href={MAP_HASH}
           onClick={() => !file && exitModule()}

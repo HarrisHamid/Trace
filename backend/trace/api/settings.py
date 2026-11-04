@@ -18,5 +18,7 @@ class Settings(BaseSettings):
 
     trace_data_dir: Path = REPO_ROOT / "data" / "mock"
     trace_source_dir: Path = REPO_ROOT / "data" / "mock" / "source"
+    # Repos added from the browser: one folder each, with the parser's output and a shallow clone.
+    trace_repos_dir: Path = REPO_ROOT / "data" / "repos"
     trace_web_dist: Path = REPO_ROOT / "web" / "dist"
     trace_replay_delay_seconds: float = 0.3

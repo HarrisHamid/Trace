@@ -49,14 +49,22 @@ function fileName(file: string) {
   return file.slice(file.lastIndexOf('/') + 1)
 }
 
-// askedFile is the file the running question was asked from; scope is the file the next one would be asked from.
-export function askNote(busy: boolean, asked: string, typed: string, askedFile: string | null = null, scope: string | null = null): AskNote | null {
+// askedFile is the file the running question was asked from; scope is the file the next one would be asked from, and
+// focus the name of the block selected there.
+export function askNote(
+  busy: boolean,
+  asked: string,
+  typed: string,
+  askedFile: string | null = null,
+  scope: string | null = null,
+  focus: string | null = null,
+): AskNote | null {
   if (busy) {
     if (replays(asked, askedFile)) return { kicker: 'Recorded', text: 'Replaying a saved run, not a live one.' }
     return { kicker: 'Live', text: 'The agent is running. This takes about a minute.' }
   }
   if (!typed.trim()) return null
-  if (scope) return { kicker: 'Live', text: `Starts from ${fileName(scope)} and runs live, about a minute.` }
+  if (scope) return { kicker: 'Live', text: `Starts from ${focus ?? fileName(scope)} and runs live, about a minute.` }
   if (isRecorded(typed)) return { kicker: 'Recorded', text: 'This one replays a saved run.' }
   return { kicker: 'Live', text: 'Not a recorded question. The agent runs live, about a minute.' }
 }

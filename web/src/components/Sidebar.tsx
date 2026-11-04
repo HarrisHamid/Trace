@@ -1,13 +1,14 @@
-import { ArrowRight, Boxes, ListVideo, LoaderCircle, MessageSquareText, Network, PanelLeftOpen } from 'lucide-react'
+import { ArrowRight, Boxes, ListVideo, LoaderCircle, MessageSquareText, Network, PanelLeftOpen, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 
+import { NodeGlyph } from '@/components/Glyphs'
 import { StepModeSwitch } from '@/components/PlaybackControls'
 import { askNote, EXAMPLES, EXAMPLES_REPO, answerSlug } from '@/lib/examples'
 import { fileHash } from '@/lib/route'
 import type { GraphNode } from '@/lib/run'
 import type { Scene } from '@/lib/scene'
 import { cn } from '@/lib/utils'
-import { useTraceStore } from '@/store'
+import { useTraceStore, type FocusBlock } from '@/store'
 
 export const SIDEBAR_WIDTH = 288
 export const RAIL_WIDTH = 44
@@ -45,21 +46,49 @@ interface AskBoxProps {
   hasExamples: boolean
   // The file whose page is open. A question typed there is about that file.
   scope: string | null
-  onAsk: (question: string, file: string | null) => void
+  onAsk: (question: string, file: string | null, node: string | null) => void
+}
+
+// The block selected on the page, shown in the ask box as what the question is about.
+function FocusChip({ block, onRemove }: { block: FocusBlock; onRemove: () => void }) {
+  return (
+    <div className="px-2 pt-2">
+      <span className="inline-flex max-w-full items-center gap-1.5 rounded border border-primary/40 bg-primary/10 py-0.5 pr-0.5 pl-1.5 font-mono text-[11px]">
+        <NodeGlyph type={block.type} colour={block.colour} />
+        <span className="truncate text-foreground">{block.name}</span>
+        <span className="shrink-0 text-muted-foreground">
+          {block.start === block.end ? `line ${block.start}` : `lines ${block.start}–${block.end}`}
+        </span>
+        <button
+          type="button"
+          onClick={onRemove}
+          title="Ask about the whole file instead"
+          className="grid size-4 shrink-0 place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <X aria-label={`Don't ask about ${block.name}`} className="size-3" />
+        </button>
+      </span>
+    </div>
+  )
 }
 
 function AskBox({ busy, hasExamples, scope, onAsk }: AskBoxProps) {
   const [question, setQuestion] = useState('')
+  // The selection the reader took out of the question. Picking any block again, even the same one, brings the chip back,
+  // because each pick is a new selection.
+  const [removed, setRemoved] = useState<FocusBlock | null>(null)
   const asked = useTraceStore((state) => state.agentRun.question)
   const askedFile = useTraceStore((state) => state.agentRun.file)
-  const note = hasExamples || scope ? askNote(busy, asked, question, askedFile, scope) : null
-  const name = scope?.slice(scope.lastIndexOf('/') + 1)
+  const selected = useTraceStore((state) => state.focusBlock)
+  const focus = scope && selected && selected !== removed ? selected : null
+  const note = hasExamples || scope ? askNote(busy, asked, question, askedFile, scope, focus?.name ?? null) : null
+  const name = focus?.name ?? scope?.slice(scope.lastIndexOf('/') + 1)
 
   function ask() {
     const text = question.trim()
     if (!text || busy) return
     setQuestion('')
-    onAsk(text, scope)
+    onAsk(text, scope, focus?.nodeId ?? null)
   }
 
   function submit(event: FormEvent) {
@@ -80,6 +109,7 @@ function AskBox({ busy, hasExamples, scope, onAsk }: AskBoxProps) {
   return (
     <form onSubmit={submit} className="px-3 pb-3">
       <div className="rounded border border-input bg-background focus-within:border-primary/70">
+        {focus && <FocusChip block={focus} onRemove={() => setRemoved(focus)} />}
         <textarea
           id={ASK_INPUT_ID}
           aria-label={name ? `Ask about ${name}` : 'Ask about this codebase'}
@@ -88,7 +118,7 @@ function AskBox({ busy, hasExamples, scope, onAsk }: AskBoxProps) {
           onKeyDown={onKeyDown}
           disabled={busy}
           rows={3}
-          placeholder={name ? `Ask about ${name}…` : 'How does a user log in?'}
+          placeholder={name ? `Ask about ${name}…` : hasExamples ? 'How does a user log in?' : 'Ask about this codebase…'}
           className="block w-full resize-none bg-transparent px-2.5 pt-2 text-[13px] leading-snug outline-none placeholder:text-muted-foreground/70 disabled:opacity-50"
         />
         <div className="flex items-center justify-between gap-2 px-2 pb-2">
@@ -202,6 +232,8 @@ interface SidebarProps {
   busy: boolean
   scene: Scene
   nodes: GraphNode[]
+  // Mock data replays one run for any question, so it offers that one question as an example.
+  replaysAny: boolean
   // The file whose page is open, if any. Typed questions are about it; recorded ones are about the whole repo.
   scope: string | null
   onAsk: (question: string, file: string | null) => void
@@ -229,7 +261,7 @@ function RailButton({ label, shortcut, onClick, children }: RailButtonProps) {
 }
 
 // The collapsed sidebar: one icon per section, each of which opens the sidebar at that section.
-function Rail({ busy, onOpen }: { busy: boolean; onOpen: (target: string | null) => void }) {
+function Rail({ busy, questions, onOpen }: { busy: boolean; questions: boolean; onOpen: (target: string | null) => void }) {
   return (
     <nav
       aria-label="Sidebar"
@@ -247,9 +279,11 @@ function Rail({ busy, onOpen }: { busy: boolean; onOpen: (target: string | null)
           <MessageSquareText className="size-4" />
         )}
       </RailButton>
-      <RailButton label="Recorded questions" onClick={() => onOpen(QUESTIONS_ID)}>
-        <ListVideo className="size-4" />
-      </RailButton>
+      {questions && (
+        <RailButton label="Recorded questions" onClick={() => onOpen(QUESTIONS_ID)}>
+          <ListVideo className="size-4" />
+        </RailButton>
+      )}
       <RailButton label="Modules" onClick={() => onOpen(MODULES_ID)}>
         <Boxes className="size-4" />
       </RailButton>
@@ -257,7 +291,7 @@ function Rail({ busy, onOpen }: { busy: boolean; onOpen: (target: string | null)
   )
 }
 
-export function Sidebar({ repo, busy, scene, nodes, scope, onAsk, onFocusModule }: SidebarProps) {
+export function Sidebar({ repo, busy, scene, nodes, replaysAny, scope, onAsk, onFocusModule }: SidebarProps) {
   const open = useTraceStore((state) => state.sidebarOpen)
   const setOpen = useTraceStore((state) => state.setSidebarOpen)
   const target = useRef<string | null>(null)
@@ -277,6 +311,7 @@ export function Sidebar({ repo, busy, scene, nodes, scope, onAsk, onFocusModule 
     return (
       <Rail
         busy={busy}
+        questions={hasExamples}
         onOpen={(section) => {
           target.current = section
           setOpen(true)
@@ -295,7 +330,7 @@ export function Sidebar({ repo, busy, scene, nodes, scope, onAsk, onFocusModule 
           <Section id={QUESTIONS_ID} title="Recorded questions" aside={<span className="text-[10px] text-muted-foreground">replays</span>}>
             <Questions busy={busy} onAsk={(question) => onAsk(question, null)} />
           </Section>
-        ) : (
+        ) : replaysAny ? (
           <Section title="Example">
             <button
               disabled={busy}
@@ -305,7 +340,7 @@ export function Sidebar({ repo, busy, scene, nodes, scope, onAsk, onFocusModule 
               {EXAMPLES[0].question}
             </button>
           </Section>
-        )}
+        ) : null}
         <Section
           id={MODULES_ID}
           title="Modules"

@@ -280,4 +280,5 @@ test('the strip says what a run is, and offers questions only when nothing is ru
   assert.equal(askNote(false, '', 'how does login work', null, 'app/api/routes/login.py')?.kicker, 'Live')
   assert.match(askNote(false, '', 'how does login work', null, 'app/api/routes/login.py')?.text ?? '', /login\.py/)
   assert.equal(askNote(true, 'How does login work?', '', 'app/api/routes/login.py')?.kicker, 'Live')
+  assert.match(askNote(false, '', 'why?', null, 'app/models.py', 'User')?.text ?? '', /^Starts from User /)
 })

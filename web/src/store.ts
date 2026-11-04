@@ -1,16 +1,27 @@
 import { create } from 'zustand'
 
-import { isRevealing, nextDelay } from '@/lib/run'
+import { isRevealing, nextDelay, type GraphNode } from '@/lib/run'
 import type { Timing } from '@/lib/trace'
 import type { AgentEvent } from '@/types/contracts/events.schema'
 
 export type NodeState = 'unexplored' | 'visited' | 'understood'
+
+export interface FocusBlock {
+  nodeId: string
+  name: string
+  type: GraphNode['type']
+  colour: string
+  start: number
+  end: number
+}
 
 export interface AgentRun {
   status: 'idle' | 'running' | 'done' | 'error'
   question: string
   // The file the question was asked from, or null for a question about the whole repo.
   file: string | null
+  // The block selected on that file's page when it was asked, by node id.
+  node: string | null
   events: AgentEvent[]
 }
 
@@ -25,6 +36,7 @@ export type StepMode = 'auto' | 'manual'
 
 const STEP_MODE_KEY = 'trace.stepMode'
 const SIDEBAR_KEY = 'trace.sidebar'
+const REPO_KEY = 'trace.repo'
 
 // Remembered preferences only. Private windows and blocked storage fall back to the default.
 function recall(key: string): string | null {
@@ -80,6 +92,10 @@ interface TraceStore {
   timing: Timing | null
   stepMode: StepMode
   sidebarOpen: boolean
+  // The repo being explored, by id. Null is the one the server started with.
+  repo: string | null
+  // The block selected on a file's page, which a question typed there is about. Null when none is.
+  focusBlock: FocusBlock | null
   view: View
   paletteOpen: boolean
   codePanel: CodePanel | null
@@ -101,7 +117,7 @@ interface TraceStore {
   setShowCallLines: (on: boolean) => void
   pinLine: (line: PinnedLine | null) => void
   togglePinnedLine: (line: PinnedLine) => void
-  startRun: (question: string, timed: boolean, file: string | null) => void
+  startRun: (question: string, timed: boolean, file: string | null, node: string | null) => void
   clearRun: () => void
   addEvent: (event: AgentEvent) => void
   finishRun: (status: 'done' | 'error') => void
@@ -110,12 +126,14 @@ interface TraceStore {
   skipPlayback: () => void
   setStepMode: (mode: StepMode) => void
   setSidebarOpen: (open: boolean) => void
+  setRepo: (repo: string | null) => void
+  setFocusBlock: (block: FocusBlock | null) => void
   setLearningMode: (on: boolean) => void
   setNodeState: (id: string, state: NodeState) => void
 }
 
 const CODEBASE: View = { level: 'codebase', module: null }
-const NO_RUN: AgentRun = { status: 'idle', question: '', file: null, events: [] }
+const NO_RUN: AgentRun = { status: 'idle', question: '', file: null, node: null, events: [] }
 const NO_PLAYBACK: Playback = { cursor: 0, pathStep: 0 }
 
 export const useTraceStore = create<TraceStore>((set) => ({
@@ -125,6 +143,8 @@ export const useTraceStore = create<TraceStore>((set) => ({
   timing: null,
   stepMode: recall(STEP_MODE_KEY) === 'manual' ? 'manual' : 'auto',
   sidebarOpen: recall(SIDEBAR_KEY) !== 'collapsed',
+  repo: recall(REPO_KEY) || null,
+  focusBlock: null,
   view: CODEBASE,
   paletteOpen: false,
   codePanel: null,
@@ -150,9 +170,9 @@ export const useTraceStore = create<TraceStore>((set) => ({
     set(({ pinnedLine }) => ({
       pinnedLine: pinnedLine?.from === line.from && pinnedLine.to === line.to ? null : line,
     })),
-  startRun: (question, timed, file) =>
+  startRun: (question, timed, file, node) =>
     set({
-      agentRun: { status: 'running', question, file, events: [] },
+      agentRun: { status: 'running', question, file, node, events: [] },
       playback: NO_PLAYBACK,
       timing: timed ? { startedAt: Date.now(), received: [] } : null,
       view: CODEBASE,
@@ -183,6 +203,21 @@ export const useTraceStore = create<TraceStore>((set) => ({
   setSidebarOpen: (open) => {
     remember(SIDEBAR_KEY, open ? 'open' : 'collapsed')
     set({ sidebarOpen: open })
+  },
+  setFocusBlock: (block) => set({ focusBlock: block }),
+  // Everything that belongs to the old repo goes with it.
+  setRepo: (repo) => {
+    remember(REPO_KEY, repo ?? '')
+    set({
+      repo,
+      agentRun: NO_RUN,
+      playback: NO_PLAYBACK,
+      timing: null,
+      view: CODEBASE,
+      selectedNode: null,
+      codePanel: null,
+      pinnedLine: null,
+    })
   },
   setLearningMode: (on) => set({ learningMode: on }),
   setNodeState: (id, nodeState) =>

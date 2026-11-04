@@ -294,6 +294,7 @@ export function FileBlocks({ page, colourOf, animated, camera, follow, rightInse
   const drag = useRef<{ x: number; y: number; panX: number; panY: number; moved: boolean } | null>(null)
   const selectedNode = useTraceStore((state) => state.selectedNode)
   const selectNode = useTraceStore((state) => state.selectNode)
+  const setFocusBlock = useTraceStore((state) => state.setFocusBlock)
   const panX = useMotionValue(0)
   const panY = useMotionValue(0)
   const zoom = useMotionValue(1)
@@ -430,6 +431,27 @@ export function FileBlocks({ page, colourOf, animated, camera, follow, rightInse
   const findBlock = follow !== null ? shownBlockForNode : blockForNode
   const sentTo = selectedNode && built ? findBlock(built, selectedNode, page.file) : null
   const pinned = chosen ?? sentTo
+
+  // The block a question typed now would be about. While an answer is followed, its steps light blocks too, but only a
+  // block the reader picked counts.
+  const askedAbout = follow !== null ? chosen : pinned
+  const askedBlock = askedAbout && built ? built.blocks.find((block) => block.id === askedAbout && block.nodeId) : undefined
+  const askedNode = askedBlock?.nodeId ? nodes.get(askedBlock.nodeId) : undefined
+  useEffect(() => {
+    if (!askedBlock?.nodeId) {
+      setFocusBlock(null)
+      return
+    }
+    setFocusBlock({
+      nodeId: askedBlock.nodeId,
+      name: askedBlock.title,
+      type: askedNode?.type ?? 'function',
+      colour: askedNode ? colourOf(askedNode) : 'var(--muted-foreground)',
+      start: askedBlock.start,
+      end: askedBlock.end + askedBlock.clipped,
+    })
+  }, [askedBlock, askedNode, colourOf, setFocusBlock])
+  useEffect(() => () => setFocusBlock(null), [setFocusBlock])
   const active = stage === 'wired' ? (hovered ?? pinned) : null
   const touching = useMemoTouching(built, active)
   const focused = useMemoTouching(built, stage === 'wired' ? pinned : null)
