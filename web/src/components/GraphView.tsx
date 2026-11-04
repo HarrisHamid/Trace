@@ -368,9 +368,14 @@ export function GraphView({ graph, scene, run, rightInset, paused = false, camer
     )
 
     // The container is still settling on first paint, so the opening fit is redone until the camera has been moved.
+    // After that, a resize keeps the centre of the view where it was, so a panel opening or closing doesn't shove it.
+    let size = { width: cy.width(), height: cy.height() }
     const resizing = new ResizeObserver(() => {
       cy.resize()
+      const next = { width: cy.width(), height: cy.height() }
       if (!cy.scratch('moved')) cy.viewport(fitBox(cy, mapBounds(scene), inset.current))
+      else cy.panBy({ x: (next.width - size.width) / 2, y: (next.height - size.height) / 2 })
+      size = next
       sky.resize()
     })
     resizing.observe(container.current!)

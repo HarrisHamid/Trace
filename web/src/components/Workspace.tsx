@@ -96,6 +96,18 @@ export function Workspace() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [paletteOpen, moving, route, codePanel, view, inRun, pinnedLine, pinLine, clearSelection, exitModule, exitRun])
 
+  // ⌘B or Ctrl+B shows and hides the sidebar, as in most editors.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key.toLowerCase() !== 'b' || !(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return
+      event.preventDefault()
+      const { sidebarOpen, setSidebarOpen } = useTraceStore.getState()
+      setSidebarOpen(!sidebarOpen)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   const run = useMemo(() => (graph ? deriveRun(graph, agentRun, playback) : null), [graph, agentRun, playback])
   const scene = useMemo(() => (graph ? buildScene(graph) : null), [graph])
   const nodesById = useMemo(() => new Map<string, GraphNode>(graph?.nodes.map((node) => [node.id, node])), [graph])

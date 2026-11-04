@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronRight, Search, X } from 'lucide-react'
+import { ArrowRight, ChevronRight, PanelLeftClose, PanelLeftOpen, Search, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { NodeGlyph } from '@/components/Glyphs'
@@ -62,10 +62,21 @@ interface TitleBarProps {
 export function TitleBar({ graph, moduleName, file, run, recorded }: TitleBarProps) {
   const exitModule = useTraceStore((state) => state.exitModule)
   const setPaletteOpen = useTraceStore((state) => state.setPaletteOpen)
+  const sidebarOpen = useTraceStore((state) => state.sidebarOpen)
+  const setSidebarOpen = useTraceStore((state) => state.setSidebarOpen)
   const place = file ?? moduleName
 
   return (
-    <header className="flex h-10 shrink-0 items-center gap-3 border-b border-border bg-card px-3">
+    <header className="flex h-10 shrink-0 items-center gap-3 border-b border-border bg-card pr-3 pl-1.5">
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-pressed={sidebarOpen}
+        aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+        title={`${sidebarOpen ? 'Hide' : 'Show'} sidebar (⌘B)`}
+        className="grid size-7 place-items-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+      >
+        {sidebarOpen ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+      </button>
       <a href="#/" className="flex items-center gap-2 text-[14px] font-semibold tracking-tight">
         <Mark />
         Trace

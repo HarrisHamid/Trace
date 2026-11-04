@@ -1,5 +1,5 @@
-import { ArrowRight, Network } from 'lucide-react'
-import { useMemo, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
+import { ArrowRight, Boxes, ListVideo, LoaderCircle, MessageSquareText, Network, PanelLeftOpen } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 
 import { StepModeSwitch } from '@/components/PlaybackControls'
 import { askNote, EXAMPLES, EXAMPLES_REPO, answerSlug } from '@/lib/examples'
@@ -10,10 +10,27 @@ import { cn } from '@/lib/utils'
 import { useTraceStore } from '@/store'
 
 export const SIDEBAR_WIDTH = 288
+export const RAIL_WIDTH = 44
 
-function Section({ title, aside, children, className }: { title: string; aside?: ReactNode; children: ReactNode; className?: string }) {
+const ASK_INPUT_ID = 'sidebar-ask'
+const QUESTIONS_ID = 'sidebar-questions'
+const MODULES_ID = 'sidebar-modules'
+
+function Section({
+  id,
+  title,
+  aside,
+  children,
+  className,
+}: {
+  id?: string
+  title: string
+  aside?: ReactNode
+  children: ReactNode
+  className?: string
+}) {
   return (
-    <section className={cn('border-b border-border', className)}>
+    <section id={id} className={cn('border-b border-border', className)}>
       <header className="flex h-8 items-center justify-between px-3">
         <h2 className="kicker">{title}</h2>
         {aside}
@@ -60,6 +77,7 @@ function AskBox({ busy, hasExamples, onAsk }: AskBoxProps) {
     <form onSubmit={submit} className="px-3 pb-3">
       <div className="rounded border border-input bg-background focus-within:border-primary/70">
         <textarea
+          id={ASK_INPUT_ID}
           aria-label="Ask about this codebase"
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
@@ -139,7 +157,13 @@ function Modules({ scene, nodes, onFocusModule }: { scene: Scene; nodes: GraphNo
       {rows.map(({ plate, file, count }) => {
         const current = view.module === plate.id
         return (
-          <li key={plate.id} className={cn('group flex items-center border-l-2', current ? 'border-primary bg-accent' : 'border-transparent hover:bg-accent/60')}>
+          <li
+            key={plate.id}
+            className={cn(
+              'group flex items-center border-l-2',
+              current ? 'border-primary bg-accent' : 'border-transparent hover:bg-accent/60',
+            )}
+          >
             <button
               onClick={() => onFocusModule(current ? null : plate.id)}
               aria-pressed={current}
@@ -176,9 +200,82 @@ interface SidebarProps {
   onFocusModule: (module: string | null) => void
 }
 
+interface RailButtonProps {
+  label: string
+  shortcut?: string
+  onClick: () => void
+  children: ReactNode
+}
+
+function RailButton({ label, shortcut, onClick, children }: RailButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={shortcut ? `${label} (${shortcut})` : label}
+      className="grid size-8 place-items-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+    >
+      {children}
+    </button>
+  )
+}
+
+// The collapsed sidebar: one icon per section, each of which opens the sidebar at that section.
+function Rail({ busy, onOpen }: { busy: boolean; onOpen: (target: string | null) => void }) {
+  return (
+    <nav
+      aria-label="Sidebar"
+      className="flex shrink-0 flex-col items-center gap-1 border-r border-border bg-card py-2"
+      style={{ width: RAIL_WIDTH }}
+    >
+      <RailButton label="Show sidebar" shortcut="⌘B" onClick={() => onOpen(null)}>
+        <PanelLeftOpen className="size-4" />
+      </RailButton>
+      <span className="my-1 w-5 border-t border-border" />
+      <RailButton label={busy ? 'Ask (a run is in progress)' : 'Ask'} onClick={() => onOpen(ASK_INPUT_ID)}>
+        {busy ? (
+          <LoaderCircle className="size-4 animate-spin text-primary motion-reduce:animate-none" />
+        ) : (
+          <MessageSquareText className="size-4" />
+        )}
+      </RailButton>
+      <RailButton label="Recorded questions" onClick={() => onOpen(QUESTIONS_ID)}>
+        <ListVideo className="size-4" />
+      </RailButton>
+      <RailButton label="Modules" onClick={() => onOpen(MODULES_ID)}>
+        <Boxes className="size-4" />
+      </RailButton>
+    </nav>
+  )
+}
+
 export function Sidebar({ repo, busy, scene, nodes, onAsk, onFocusModule }: SidebarProps) {
+  const open = useTraceStore((state) => state.sidebarOpen)
+  const setOpen = useTraceStore((state) => state.setSidebarOpen)
+  const target = useRef<string | null>(null)
   // The recorded answers are for one repo. Mock data replays one run whatever is asked, so it offers just that one.
   const hasExamples = repo === EXAMPLES_REPO
+
+  // A rail icon opens the sidebar, then the section it named is brought into view once it exists.
+  useEffect(() => {
+    if (!open || !target.current) return
+    const element = document.getElementById(target.current)
+    if (target.current === ASK_INPUT_ID) element?.focus()
+    else element?.scrollIntoView({ block: 'start' })
+    target.current = null
+  }, [open])
+
+  if (!open) {
+    return (
+      <Rail
+        busy={busy}
+        onOpen={(section) => {
+          target.current = section
+          setOpen(true)
+        }}
+      />
+    )
+  }
 
   return (
     <aside aria-label="Sidebar" className="flex min-h-0 shrink-0 flex-col border-r border-border bg-card" style={{ width: SIDEBAR_WIDTH }}>
@@ -187,7 +284,7 @@ export function Sidebar({ repo, busy, scene, nodes, onAsk, onFocusModule }: Side
       </Section>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {hasExamples ? (
-          <Section title="Recorded questions" aside={<span className="text-[10px] text-muted-foreground">replays</span>}>
+          <Section id={QUESTIONS_ID} title="Recorded questions" aside={<span className="text-[10px] text-muted-foreground">replays</span>}>
             <Questions busy={busy} onAsk={onAsk} />
           </Section>
         ) : (
@@ -201,7 +298,12 @@ export function Sidebar({ repo, busy, scene, nodes, onAsk, onFocusModule }: Side
             </button>
           </Section>
         )}
-        <Section title="Modules" className="border-b-0" aside={<span className="text-[10px] text-muted-foreground">click to focus</span>}>
+        <Section
+          id={MODULES_ID}
+          title="Modules"
+          className="border-b-0"
+          aside={<span className="text-[10px] text-muted-foreground">click to focus</span>}
+        >
           <Modules scene={scene} nodes={nodes} onFocusModule={onFocusModule} />
         </Section>
       </div>

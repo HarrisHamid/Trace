@@ -22,21 +22,22 @@ export interface Playback {
 export type StepMode = 'auto' | 'manual'
 
 const STEP_MODE_KEY = 'trace.stepMode'
+const SIDEBAR_KEY = 'trace.sidebar'
 
-// A remembered preference only. Private windows and blocked storage fall back to auto.
-function savedStepMode(): StepMode {
+// Remembered preferences only. Private windows and blocked storage fall back to the default.
+function recall(key: string): string | null {
   try {
-    return window.localStorage.getItem(STEP_MODE_KEY) === 'manual' ? 'manual' : 'auto'
+    return window.localStorage.getItem(key)
   } catch {
-    return 'auto'
+    return null
   }
 }
 
-function saveStepMode(mode: StepMode) {
+function remember(key: string, value: string) {
   try {
-    window.localStorage.setItem(STEP_MODE_KEY, mode)
+    window.localStorage.setItem(key, value)
   } catch {
-    // Nothing to do: the mode still applies for this visit.
+    // Nothing to do: the choice still applies for this visit.
   }
 }
 
@@ -76,6 +77,7 @@ interface TraceStore {
   // When each event arrived. Only live runs are timed: a replay's pace says nothing about the real run.
   timing: Timing | null
   stepMode: StepMode
+  sidebarOpen: boolean
   view: View
   paletteOpen: boolean
   codePanel: CodePanel | null
@@ -105,6 +107,7 @@ interface TraceStore {
   // Shows everything that has arrived so far, for a reader in manual mode who wants the rest at once.
   skipPlayback: () => void
   setStepMode: (mode: StepMode) => void
+  setSidebarOpen: (open: boolean) => void
   setLearningMode: (on: boolean) => void
   setNodeState: (id: string, state: NodeState) => void
 }
@@ -118,7 +121,8 @@ export const useTraceStore = create<TraceStore>((set) => ({
   agentRun: NO_RUN,
   playback: NO_PLAYBACK,
   timing: null,
-  stepMode: savedStepMode(),
+  stepMode: recall(STEP_MODE_KEY) === 'manual' ? 'manual' : 'auto',
+  sidebarOpen: recall(SIDEBAR_KEY) !== 'collapsed',
   view: CODEBASE,
   paletteOpen: false,
   codePanel: null,
@@ -171,8 +175,12 @@ export const useTraceStore = create<TraceStore>((set) => ({
       return { playback: next }
     }),
   setStepMode: (mode) => {
-    saveStepMode(mode)
+    remember(STEP_MODE_KEY, mode)
     set({ stepMode: mode })
+  },
+  setSidebarOpen: (open) => {
+    remember(SIDEBAR_KEY, open ? 'open' : 'collapsed')
+    set({ sidebarOpen: open })
   },
   setLearningMode: (on) => set({ learningMode: on }),
   setNodeState: (id, nodeState) =>
