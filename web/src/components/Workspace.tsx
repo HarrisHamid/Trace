@@ -11,7 +11,7 @@ import { MapToolbar, PinnedLineChip, StatusBar, TitleBar } from '@/components/Ma
 import { LOG_WIDTH, ObservationLog } from '@/components/ObservationLog'
 
 import { Sidebar } from '@/components/Sidebar'
-import { EXAMPLES_REPO, isRecorded } from '@/lib/examples'
+import { EXAMPLES_REPO, replays } from '@/lib/examples'
 import { buildFileGraph, EXTERNAL_FILE, isInside } from '@/lib/filegraph'
 import { fileHash, fileRoute, MAP_HASH, readHash, subscribeToHash } from '@/lib/route'
 import { deriveRun, nextDelay, type GraphNode } from '@/lib/run'
@@ -131,22 +131,25 @@ export function Workspace() {
     action()
   }, [route, dive.stage])
 
-  function ask(question: string) {
-    fromMap(() => void runQuestion(question))
+  // A question typed on a file's page is about that file: the page stays open and the answer is followed there.
+  // Anything else, recorded questions included, is about the whole repo and goes back to the map.
+  function ask(question: string, file: string | null) {
+    if (file !== null && file === route) void runQuestion(question, file)
+    else fromMap(() => void runQuestion(question, null))
   }
 
   function focusModule(module: string | null) {
     fromMap(() => (module ? enterModule(module) : exitModule()))
   }
 
-  async function runQuestion(question: string) {
+  async function runQuestion(question: string, file: string | null) {
     asking.current?.abort()
     const controller = new AbortController()
     asking.current = controller
     // Recorded answers, and the mock data that replays one run for any question, are not timed.
-    startRun(question, graph?.repo === EXAMPLES_REPO && !isRecorded(question))
+    startRun(question, graph?.repo === EXAMPLES_REPO && !replays(question, file), file)
     try {
-      await streamAsk(question, addEvent, controller.signal)
+      await streamAsk(question, file, addEvent, controller.signal)
       if (!controller.signal.aborted) finishRun('done')
     } catch (error) {
       if (controller.signal.aborted) return
@@ -176,7 +179,13 @@ export function Workspace() {
   }
 
   const onMap = dive.stage === 'map' || dive.stage === 'back'
-  const logOpen = run !== null && run.phase !== 'idle' && onMap
+  // A run asked from a file's page is followed on that page: its answer panel shows there, and each step lights its block.
+  const onAskedFile = route !== null && route === agentRun.file && dive.stage === 'file'
+  const logOpen = run !== null && run.phase !== 'idle' && (onMap || onAskedFile)
+  const current = onAskedFile ? (run?.current ?? null) : null
+  useEffect(() => {
+    if (current) selectNode(current)
+  }, [current, selectNode])
   const codeNode = codePanel ? nodesById.get(codePanel.nodeId) : undefined
   let rightInset = EDGE_MARGIN
   if (logOpen) rightInset = LOG_WIDTH + PANEL_MARGIN
@@ -194,7 +203,7 @@ export function Workspace() {
             moduleName={view.module ? (nodesById.get(view.module)?.name ?? view.module) : null}
             file={route}
             run={run}
-            recorded={isRecorded(run.question)}
+            recorded={replays(run.question, agentRun.file)}
           />
         ) : (
           <div className="h-10 shrink-0 border-b border-border bg-card" />
@@ -206,6 +215,7 @@ export function Workspace() {
               busy={busy}
               scene={scene}
               nodes={graph.nodes}
+              scope={route && page?.hasCanvas ? route : null}
               onAsk={ask}
               onFocusModule={focusModule}
             />
@@ -237,6 +247,8 @@ export function Workspace() {
                   colourOf={scene.colourOf}
                   animated={dive.animated}
                   camera={fileCamera}
+                  follow={onAskedFile ? playback.cursor : null}
+                  rightInset={rightInset}
                   onOpenFile={(file, nodeId) => {
                     selectNode(nodeId)
                     if (file !== route) goToFile(file)
@@ -269,7 +281,16 @@ export function Workspace() {
                 )}
                 {route && dive.stage === 'file' && !page?.hasCanvas && <FileMessage file={route} page={page} />}
                 <AnimatePresence>
-                  {logOpen && <ObservationLog key={run.question} run={run} scene={scene} nodesById={nodesById} onExit={exitRun} />}
+                  {logOpen && (
+                    <ObservationLog
+                      key={run.question}
+                      run={run}
+                      file={agentRun.file}
+                      scene={scene}
+                      nodesById={nodesById}
+                      onExit={exitRun}
+                    />
+                  )}
                 </AnimatePresence>
                 <AnimatePresence>
                   {codeNode && (

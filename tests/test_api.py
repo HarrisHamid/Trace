@@ -118,8 +118,8 @@ async def test_ask_rejects_an_oversized_question():
     assert response.status_code == 422
 
 
-async def ask_events(**settings):
-    question = {"question": "How does login work?"}
+async def ask_events(file=None, **settings):
+    question = {"question": "How does login work?", **({"file": file} if file else {})}
     async with client_for(**settings) as client, client.stream("POST", "/api/ask", json=question) as response:
         return [event async for event in read_events(response)]
 
@@ -149,7 +149,7 @@ async def test_ask_without_a_key_reports_an_error(tmp_path):
 async def test_ask_runs_the_agent_when_nothing_is_recorded(tmp_path, monkeypatch):
     seen = {}
 
-    async def fake_run(question, *, client, model, index):
+    async def fake_run(question, *, client, model, index, file=None):
         seen.update(question=question, model=model, nodes=len(index.nodes), key=client.api_key)
         yield RunStarted(type="run_started")
         yield Done(type="done")
@@ -164,6 +164,30 @@ async def test_ask_runs_the_agent_when_nothing_is_recorded(tmp_path, monkeypatch
     )
     assert [e["event"] for e in events] == ["run_started", "done"]
     assert seen == {"question": "How does login work?", "model": "test-model", "nodes": 26, "key": "test-key"}
+
+
+@pytest.mark.anyio
+async def test_a_question_about_a_file_runs_live_even_when_recorded(tmp_path, monkeypatch):
+    seen = {}
+
+    async def fake_run(question, *, client, model, index, file=None):
+        seen.update(question=question, file=file)
+        yield RunStarted(type="run_started")
+        yield Done(type="done")
+
+    monkeypatch.setattr("backend.trace.api.app.run_agent", fake_run)
+    answers = real_data_dir(tmp_path) / "answers"
+    answers.mkdir()
+    (answers / "how-does-login-work.jsonl").write_text('{"type": "run_started"}\n{"type": "error", "message": "x"}\n')
+    events = await ask_events(
+        file="taskboard/api/auth.py",
+        trace_data_dir=tmp_path,
+        trace_source_dir=MOCK / "source",
+        meta_api_key="test-key",
+        meta_base_url="https://example.test/v1",
+    )
+    assert [e["event"] for e in events] == ["run_started", "done"]
+    assert seen == {"question": "How does login work?", "file": "taskboard/api/auth.py"}
 
 
 @pytest.mark.anyio

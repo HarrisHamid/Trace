@@ -10,6 +10,7 @@ import openai
 import pytest
 
 from backend.trace.agent import loop, run_agent
+from backend.trace.agent.loop import json_object, scoped_question
 from backend.trace.schemas import MAX_TOOL_CALLS
 from backend.trace.tools import GraphIndex
 
@@ -63,6 +64,41 @@ class FakeClient:
 async def run(client):
     index = GraphIndex.load(MOCK / "graph.json", MOCK / "source")
     return [event async for event in run_agent("how does login work?", client=client, model="m", index=index)]
+
+
+@pytest.mark.anyio
+async def test_a_sentence_before_the_answer_json_is_ignored():
+    prose = reply(content="I've charted the path.\n" + answer(LOGIN).choices[0].message.content)
+    events = await run(FakeClient(reply(content="done"), prose))
+    assert "final_path" in types(events) and "error" not in types(events)
+
+
+def test_a_reply_with_no_json_object_is_left_alone_so_it_still_fails():
+    assert json_object("no json here") == "no json here"
+    assert json_object('x {"a": 1} y') == '{"a": 1}'
+
+
+def test_a_question_from_a_file_names_the_file_and_what_it_defines():
+    index = GraphIndex.load(MOCK / "graph.json", MOCK / "source")
+    message = scoped_question("what does this do?", index.nodes[LOGIN].file, index)
+    assert message.startswith(f"I am looking at {index.nodes[LOGIN].file}.")
+    assert f"- {LOGIN} (" in message
+    assert message.endswith("Question: what does this do?")
+
+
+def test_a_question_without_a_file_or_from_an_unknown_file_is_unchanged():
+    index = GraphIndex.load(MOCK / "graph.json", MOCK / "source")
+    assert scoped_question("q", None, index) == "q"
+    assert scoped_question("q", "nowhere.py", index) == "q"
+
+
+@pytest.mark.anyio
+async def test_the_file_reaches_the_model():
+    client = FakeClient(reply(content="done"), answer(LOGIN))
+    index = GraphIndex.load(MOCK / "graph.json", MOCK / "source")
+    file = index.nodes[LOGIN].file
+    [event async for event in run_agent("q", client=client, model="m", index=index, file=file)]
+    assert client.requests[0]["messages"][1]["content"].startswith(f"I am looking at {file}.")
 
 
 def types(events):

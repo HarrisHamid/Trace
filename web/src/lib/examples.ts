@@ -40,12 +40,23 @@ export function isRecorded(question: string): boolean {
 }
 
 // What the strip says instead of offering questions, or null when it should offer them.
-export function askNote(busy: boolean, asked: string, typed: string): AskNote | null {
+// Recorded answers are about the whole repo, so a question asked from a file's page always runs live.
+export function replays(question: string, file: string | null): boolean {
+  return file === null && isRecorded(question)
+}
+
+function fileName(file: string) {
+  return file.slice(file.lastIndexOf('/') + 1)
+}
+
+// askedFile is the file the running question was asked from; scope is the file the next one would be asked from.
+export function askNote(busy: boolean, asked: string, typed: string, askedFile: string | null = null, scope: string | null = null): AskNote | null {
   if (busy) {
-    if (isRecorded(asked)) return { kicker: 'Recorded', text: 'Replaying a saved run, not a live one.' }
+    if (replays(asked, askedFile)) return { kicker: 'Recorded', text: 'Replaying a saved run, not a live one.' }
     return { kicker: 'Live', text: 'The agent is running. This takes about a minute.' }
   }
   if (!typed.trim()) return null
+  if (scope) return { kicker: 'Live', text: `Starts from ${fileName(scope)} and runs live, about a minute.` }
   if (isRecorded(typed)) return { kicker: 'Recorded', text: 'This one replays a saved run.' }
   return { kicker: 'Live', text: 'Not a recorded question. The agent runs live, about a minute.' }
 }
