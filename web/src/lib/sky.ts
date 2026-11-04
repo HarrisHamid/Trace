@@ -1,35 +1,31 @@
 import type { Core } from 'cytoscape'
 
-import { beltHalfWidth, distanceToRoute, drawConveyor, drawLegs, drawLine, pointAlong, sliceRoute, traceRoute } from '@/lib/belt'
+import { distanceToRoute, drawLine, pointAlong, traceRoute } from '@/lib/belt'
 import { cssVar } from '@/lib/css'
 import { isInside } from '@/lib/filegraph'
 import { LabelPainter, type Frame, type LitStar } from '@/lib/pills'
 import { STEP_MS, type GraphNode, type Segment, type StarStatus } from '@/lib/run'
-import { labelEnd, PLATE_DEPTH, type Belt, type Box, type Plate, type Point, type Scene } from '@/lib/scene'
+import type { Route } from '@/lib/belt'
+import { labelEnd, type Belt, type Box, type Plate, type Point, type Scene } from '@/lib/scene'
 import type { PinnedLine } from '@/store'
 
-// Everything Cytoscape can't draw. Two canvases sandwich it: behind, the starfield, the plates, the glows and the
-// answer's belt; in front, the label cards, the drifting packages and the parcel that rides the answer.
-// Stars are seeded, because the map must look identical on every run.
+// Everything Cytoscape can't draw. Two canvases sandwich it: behind, the dot grid, the module boxes, the call lines and
+// the answer's path; in front, the label cards and the marker that travels along the answer.
 
-const STAR_COUNT = 900
-const STAR_SEED = 20261031
-const STAR_PARALLAX = 0.12
-const TWINKLE_COUNT = 48
-const GRATICULE_STEP = 260
-const GRATICULE_RINGS = 16
-const GLOW_RADIUS = 46
+const GRID_STEP = 24
+const MIN_GRID_PIXELS = 10
 const OUTLINE_PADDING = 34
-const IDLE_FRAME_MS = 32
-const PLATE_RADIUS = 14
-const BELT_SPEED = 46
+const PLATE_RADIUS = 8
 const DIMMED_PLATE = 0.55
 const BACKGROUND_PLATE = 0.22
 const DIMMED_BELT = 0.16
 const BACKGROUND_BELT = 0.07
-const PACKAGE_ALPHA = 0.65
 const PINNED_ASIDE = 0.12
 const LINE_REACH_PIXELS = 8
+const PATH_WIDTH = 3.5
+const MIN_PATH_WIDTH = 2
+const ARROW_SIZE = 6
+const CURRENT_RING = 15
 
 export interface SkyRun {
   walked: string[]
@@ -47,42 +43,6 @@ interface Parcel {
   y: number
 }
 
-interface Package {
-  belt: Belt
-  phase: number
-}
-
-interface Twinkle {
-  x: number
-  y: number
-  size: number
-  phase: number
-  speed: number
-}
-
-function seededRandom(seed: number): () => number {
-  let state = seed
-  return () => {
-    state = (state + 0x6d2b79f5) | 0
-    let t = Math.imul(state ^ (state >>> 15), 1 | state)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
-
-function glowSprite(hex: string, peak: number): HTMLCanvasElement {
-  const sprite = document.createElement('canvas')
-  sprite.width = sprite.height = 256
-  const context = sprite.getContext('2d')!
-  const [r, g, b] = [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16))
-  const gradient = context.createRadialGradient(128, 128, 0, 128, 128, 128)
-  gradient.addColorStop(0, `rgba(${r},${g},${b},${peak})`)
-  gradient.addColorStop(0.4, `rgba(${r},${g},${b},${peak * 0.32})`)
-  gradient.addColorStop(1, `rgba(${r},${g},${b},0)`)
-  context.fillStyle = gradient
-  context.fillRect(0, 0, 256, 256)
-  return sprite
-}
 
 export class Sky {
   private readonly backCanvas: HTMLCanvasElement
@@ -93,18 +53,13 @@ export class Sky {
   private readonly nodes: GraphNode[]
   private readonly scene: Scene
   private readonly painter: LabelPainter
-  private readonly plateGlows = new Map<string, HTMLCanvasElement>()
-  private readonly glows: Record<StarStatus | 'hover' | 'parcel', HTMLCanvasElement>
-  private readonly packages: Package[] = []
-  private readonly twinkles: Twinkle[] = []
-  private readonly gold = cssVar('--status-verified')
-  private readonly ice = cssVar('--status-gap')
-  private readonly parcelColour = cssVar('--parcel')
+  private readonly pathColour = cssVar('--path')
+  private readonly gapColour = cssVar('--status-gap')
   private readonly background = cssVar('--background')
+  private readonly plateFill = cssVar('--card')
+  private readonly plateBorder = cssVar('--border')
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
-  private readonly origin: Point
   private readonly nodeModule = new Map<string, string>()
-  private starfield = document.createElement('canvas')
   private run = EMPTY_RUN
   private litPlates = new Set<string>()
   private lit = new Map<string, LitStar>()
@@ -124,7 +79,6 @@ export class Sky {
   private height = 0
   private frame = 0
   private lastTick = 0
-  private lastDraw = 0
 
   constructor(back: HTMLCanvasElement, front: HTMLCanvasElement, cy: Core, nodes: GraphNode[], scene: Scene) {
     this.backCanvas = back
@@ -136,32 +90,6 @@ export class Sky {
     this.scene = scene
     this.painter = new LabelPainter(nodes, scene)
     for (const node of nodes) this.nodeModule.set(node.id, node.module)
-
-    for (const plate of scene.plates) this.plateGlows.set(plate.id, glowSprite(plate.colour, 0.55))
-    this.glows = {
-      visited: glowSprite(this.gold, 0.9),
-      verified: glowSprite(this.gold, 0.9),
-      unverified: glowSprite(cssVar('--status-unverified'), 0.9),
-      gap: glowSprite(this.ice, 0.9),
-      hover: glowSprite('#dfe3f0', 0.55),
-      parcel: glowSprite(this.parcelColour, 0.85),
-    }
-
-    const random = seededRandom(STAR_SEED + 1)
-    for (const belt of scene.belts) {
-      if (!belt.broken) this.packages.push({ belt, phase: random() })
-    }
-    for (let index = 0; index < TWINKLE_COUNT; index += 1) {
-      this.twinkles.push({
-        x: random(),
-        y: random(),
-        size: 0.8 + random() * 1.1,
-        phase: random() * Math.PI * 2,
-        speed: 0.6 + random() * 1.4,
-      })
-    }
-
-    this.origin = { x: scene.fullBounds.x1 - 360, y: scene.fullBounds.y2 + 520 }
     this.resize()
     this.schedule()
   }
@@ -177,7 +105,6 @@ export class Sky {
     }
     this.back.setTransform(scale, 0, 0, scale, 0, 0)
     this.front.setTransform(scale, 0, 0, scale, 0, 0)
-    this.renderStarfield()
     this.draw()
   }
 
@@ -292,25 +219,20 @@ export class Sky {
     return Math.max(0, Math.min(this.run.revealed - 1, this.run.segments.length))
   }
 
+  // Only the current step's ring moves, so the loop sleeps once the path is laid and the run is over.
   private get keepGoing() {
-    return !this.reducedMotion.matches || this.progress < this.target
+    if (this.progress < this.target) return true
+    return !this.reducedMotion.matches && this.run.current !== null
   }
 
   private schedule() {
     if (!this.frame && !this.paused) this.frame = requestAnimationFrame(this.tick)
   }
 
-  // The loop idles at about 30fps for the drifting packages and runs flat out while the answer's belt is being laid.
   private tick = (now: number) => {
     this.frame = 0
-    const laying = this.progress < this.target
-    if (!laying && now - this.lastDraw < IDLE_FRAME_MS) {
-      this.schedule()
-      return
-    }
     const elapsed = this.lastTick ? now - this.lastTick : 16
     this.lastTick = now
-    this.lastDraw = now
     this.progress = this.reducedMotion.matches ? this.target : Math.min(this.target, this.progress + elapsed / STEP_MS)
     this.draw(now)
     if (this.keepGoing) this.schedule()
@@ -347,15 +269,13 @@ export class Sky {
     const { zoom, pan, now } = frame
     this.back.fillStyle = this.background
     this.back.fillRect(0, 0, this.width, this.height)
-    this.drawStarfield(pan)
-    this.drawTwinkle(now)
-    this.drawGraticule(zoom, pan)
+    this.drawGrid(zoom, pan)
     this.drawPlates(zoom, pan)
     this.drawOutlines(zoom, pan)
     this.drawBelts(frame)
     this.drawWalk(frame)
     this.drawThread(frame)
-    this.drawGlows(zoom, pan, now)
+    this.drawCurrent(zoom, pan, now)
   }
 
   private drawFront(frame: Frame) {
@@ -372,70 +292,27 @@ export class Sky {
       showOutside: this.allConnections,
       plateAlpha: this.plateAlpha,
     }
-    this.drawPackages(frame)
     this.painter.drawPills(front, frame, state)
     this.painter.drawPlateLabels(front, frame, state)
     this.drawParcel(frame)
   }
 
-  private renderStarfield() {
-    const { width, height } = this
-    this.starfield.width = width
-    this.starfield.height = height
-    const context = this.starfield.getContext('2d')!
-    const random = seededRandom(STAR_SEED)
-    for (let index = 0; index < STAR_COUNT; index += 1) {
-      const magnitude = random() ** 3
-      context.globalAlpha = 0.14 + magnitude * 0.5
-      context.fillStyle = random() < 0.2 ? '#ffe9c4' : '#cfdcff'
-      context.beginPath()
-      context.arc(random() * width, random() * height, 0.3 + magnitude * 0.8, 0, Math.PI * 2)
-      context.fill()
-    }
-  }
-
-  private drawStarfield(pan: Point) {
+  // A faint dot grid that moves with the map, so panning reads as movement. It drops out when zoomed far out.
+  private drawGrid(zoom: number, pan: Point) {
+    const step = GRID_STEP * zoom
+    if (step < MIN_GRID_PIXELS) return
     const { back, width, height } = this
-    const x = ((pan.x * STAR_PARALLAX) % width + width) % width
-    const y = ((pan.y * STAR_PARALLAX) % height + height) % height
-    for (const offsetX of [x - width, x]) {
-      for (const offsetY of [y - height, y]) back.drawImage(this.starfield, offsetX, offsetY, width, height)
-    }
-  }
-
-  private drawTwinkle(now: number) {
-    const { back, width, height } = this
-    const still = this.reducedMotion.matches
     back.save()
-    back.fillStyle = '#e8eeff'
-    for (const star of this.twinkles) {
-      back.globalAlpha = still ? 0.4 : 0.25 + 0.45 * (0.5 + 0.5 * Math.sin(now / 1000 * star.speed + star.phase))
-      back.beginPath()
-      back.arc(star.x * width, star.y * height, star.size, 0, Math.PI * 2)
-      back.fill()
+    back.fillStyle = 'rgba(230,232,235,0.06)'
+    const startX = ((pan.x % step) + step) % step
+    const startY = ((pan.y % step) + step) % step
+    for (let x = startX; x < width; x += step) {
+      for (let y = startY; y < height; y += step) back.fillRect(x - 0.5, y - 0.5, 1.2, 1.2)
     }
     back.restore()
   }
 
-  // Faint rings only. Anything stronger competes with the belts.
-  private drawGraticule(zoom: number, pan: Point) {
-    const { back, origin } = this
-    const x = origin.x * zoom + pan.x
-    const y = origin.y * zoom + pan.y
-    back.save()
-    back.strokeStyle = 'rgba(196,206,232,0.035)'
-    back.lineWidth = 1
-    back.beginPath()
-    for (let ring = 1; ring <= GRATICULE_RINGS; ring += 1) {
-      const radius = ring * GRATICULE_STEP * zoom
-      back.moveTo(x + radius, y)
-      back.arc(x, y, radius, 0, Math.PI * 2)
-    }
-    back.stroke()
-    back.restore()
-  }
-
-  // Each module is a dark plate with some thickness, a coloured trim along its top edge and four screws.
+  // Each module is a flat box with a thin strip of its colour along the top edge.
   private drawPlates(zoom: number, pan: Point) {
     const { back } = this
     for (const plate of this.scene.plates) {
@@ -446,62 +323,25 @@ export class Sky {
       const width = (plate.box.x2 - plate.box.x1) * zoom
       const height = (plate.box.y2 - plate.box.y1) * zoom
       const radius = PLATE_RADIUS * zoom
-      const depth = PLATE_DEPTH * zoom
       if (x > this.width || y > this.height || x + width < 0 || y + height < 0) continue
-
-      back.save()
-      back.globalAlpha = alpha * 0.3
-      back.globalCompositeOperation = 'screen'
-      const glow = this.plateGlows.get(plate.id)!
-      const size = Math.max(width, height) * 1.3
-      back.drawImage(glow, x + width / 2 - size / 2, y + height / 2 - size / 2, size, size)
-      back.restore()
 
       back.save()
       back.globalAlpha = alpha
       back.beginPath()
-      back.roundRect(x + 5 * zoom, y + depth + 12 * zoom, width, height, radius)
-      back.fillStyle = 'rgba(0,0,0,0.4)'
-      back.fill()
-
-      back.beginPath()
-      back.roundRect(x, y + depth, width, height, radius)
-      back.fillStyle = '#06070b'
-      back.fill()
-
-      const face = back.createLinearGradient(0, y, 0, y + height)
-      face.addColorStop(0, 'rgba(27,31,44,0.96)')
-      face.addColorStop(1, 'rgba(15,17,26,0.96)')
-      back.beginPath()
       back.roundRect(x, y, width, height, radius)
-      back.fillStyle = face
+      back.fillStyle = this.plateFill
       back.fill()
       back.lineWidth = 1
-      back.strokeStyle = plate.external ? 'rgba(196,206,232,0.22)' : 'rgba(196,206,232,0.14)'
+      back.strokeStyle = this.plateBorder
       back.setLineDash(plate.external ? [6, 5] : [])
       back.stroke()
       back.setLineDash([])
 
       back.beginPath()
-      back.moveTo(x + radius, y + 1.5)
-      back.lineTo(x + width - radius, y + 1.5)
-      back.lineWidth = Math.max(2, 3 * zoom)
-      back.lineCap = 'round'
-      back.strokeStyle = plate.colour
-      back.stroke()
-
-      back.fillStyle = 'rgba(196,206,232,0.16)'
-      const inset = 12 * zoom
-      for (const [sx, sy] of [
-        [x + inset, y + inset],
-        [x + width - inset, y + inset],
-        [x + inset, y + height - inset],
-        [x + width - inset, y + height - inset],
-      ]) {
-        back.beginPath()
-        back.arc(sx, sy, Math.max(1.5, 2.2 * zoom), 0, Math.PI * 2)
-        back.fill()
-      }
+      back.roundRect(x, y, width, Math.max(2, 3 * zoom), [radius, radius, 0, 0])
+      back.fillStyle = plate.colour
+      back.globalAlpha = alpha * 0.85
+      back.fill()
       back.restore()
     }
   }
@@ -525,7 +365,7 @@ export class Sky {
   private drawOutlines(zoom: number, pan: Point) {
     const { back } = this
     back.save()
-    back.strokeStyle = 'rgba(241,223,174,0.28)'
+    back.strokeStyle = 'rgba(230,232,235,0.2)'
     back.lineWidth = 1
     back.setLineDash([5, 4])
     for (const box of this.outlines) {
@@ -566,31 +406,27 @@ export class Sky {
     return this.run.active ? DIMMED_BELT : 1
   }
 
-  private flow(frame: Frame) {
-    return this.reducedMotion.matches ? 0 : (frame.now / 1000) * BELT_SPEED
-  }
-
-  // At rest a call is a quiet line. The conveyor is saved for the answer, in drawThread.
+  // At rest a call is a quiet grey line. The answer's path is drawn over it, in drawThread.
   private drawBelts(frame: Frame) {
     const { back } = this
-    const still = this.reducedMotion.matches
     back.save()
     for (const belt of this.scene.belts) {
       const alpha = this.beltAlpha(belt)
       if (alpha === 0) continue
       back.globalAlpha = alpha
-      drawLine(back, belt.route, frame, belt.broken ? this.ice : null, still)
+      drawLine(back, belt.route, frame, belt.broken ? this.gapColour : null, true)
     }
     back.restore()
   }
 
-  // The agent's footsteps: a thin line under the bright belt that the final answer lays.
+  // Where the agent looked while investigating: a faint line under the path the final answer draws.
   private drawWalk(frame: Frame) {
     const { back } = this
     back.save()
-    back.strokeStyle = this.gold
-    back.globalAlpha = this.pin ? 0.3 * PINNED_ASIDE : 0.3
+    back.strokeStyle = this.pathColour
+    back.globalAlpha = this.pin ? 0.25 * PINNED_ASIDE : 0.25
     back.lineWidth = 1.5
+    back.setLineDash([4, 4])
     back.beginPath()
     this.run.walked.forEach((id, index) => {
       const route = index > 0 ? this.scene.routeOf(this.run.walked[index - 1], id) : null
@@ -600,108 +436,85 @@ export class Sky {
     back.restore()
   }
 
-  // The answer lays a real conveyor as the parcel travels: brass rails where the link is firm, broken blue where it isn't.
+  // The answer's path is drawn step by step: a solid line where the link is proven, dashed in the gap colour where it
+  // isn't. An arrowhead halfway along each step shows the direction.
   private drawThread(frame: Frame) {
     const { back } = this
     this.parcel = null
-    const half = beltHalfWidth(frame.zoom)
+    const width = Math.max(MIN_PATH_WIDTH, PATH_WIDTH * frame.zoom)
     back.save()
     back.lineJoin = 'round'
+    back.lineCap = 'round'
     this.run.segments.forEach((segment, index) => {
       const reach = Math.min(1, this.progress - index)
       const route = this.scene.routeOf(segment.from, segment.to)
       if (reach <= 0 || !route) return
-      const colour = segment.dashed ? this.ice : this.gold
+      const colour = segment.dashed ? this.gapColour : this.pathColour
       const aside = !this.inFocus(segment.from, segment.to) || (this.pin && !this.isPinned(segment.from, segment.to))
       back.globalAlpha = aside ? PINNED_ASIDE : 1
 
       back.beginPath()
       const end = traceRoute(back, route, reach, frame)
-      if (!segment.dashed) {
-        back.shadowColor = colour
-        back.shadowBlur = 16
-        back.strokeStyle = colour
-        back.lineWidth = half * 2
-        back.stroke()
-        back.shadowBlur = 0
-      }
-
-      const laid = sliceRoute(route, reach)
-      drawLegs(back, laid, frame)
-      drawConveyor(back, laid, frame, this.flow(frame), colour, segment.dashed)
-      if (reach < 1) this.parcel = end
+      back.setLineDash(segment.dashed ? [8, 6].map((size) => size * Math.max(0.6, frame.zoom)) : [])
+      back.strokeStyle = colour
+      back.lineWidth = width
+      back.stroke()
+      back.setLineDash([])
+      if (reach >= 1) this.drawArrow(route, frame, colour, width)
+      else this.parcel = end
     })
     back.restore()
   }
 
-  private drawGlows(zoom: number, pan: Point, now: number) {
+  private drawArrow(route: Route, frame: Frame, colour: string, width: number) {
     const { back } = this
-    const base = GLOW_RADIUS * 2 * (0.6 + 0.4 * zoom)
-    const stamp = (id: string, sprite: HTMLCanvasElement, scale: number) => {
-      const point = this.screen(id, zoom, pan)
-      if (!point) return
-      const size = base * scale
-      back.drawImage(sprite, point.x - size / 2, point.y - size / 2, size, size)
-    }
+    const { zoom, pan } = frame
+    const middle = route.length / 2
+    const size = (ARROW_SIZE + width) / zoom
+    const tip = pointAlong(route, middle + size / 2)
+    const tail = pointAlong(route, middle - size / 2)
+    const normal = route.normals[Math.round((middle - size / 2) / route.step)]
+    const spread = size * 0.75
+    back.beginPath()
+    back.moveTo((tail.x + normal.x * spread) * zoom + pan.x, (tail.y + normal.y * spread) * zoom + pan.y)
+    back.lineTo(tip.x * zoom + pan.x, tip.y * zoom + pan.y)
+    back.lineTo((tail.x - normal.x * spread) * zoom + pan.x, (tail.y - normal.y * spread) * zoom + pan.y)
+    back.closePath()
+    back.fillStyle = colour
+    back.fill()
+  }
+
+  // The step the agent is on gets a soft pulsing ring.
+  private drawCurrent(zoom: number, pan: Point, now: number) {
+    const id = this.run.current
+    if (!id) return
+    const point = this.screen(id, zoom, pan)
+    if (!point) return
+    const { back } = this
+    const pulse = this.reducedMotion.matches ? 0.5 : 0.5 + 0.5 * Math.sin(now / 220)
     back.save()
-    back.globalCompositeOperation = 'lighter'
-    for (const { id, status } of this.run.lit) {
-      back.globalAlpha = this.inFocus(id) && (!this.pin || this.near?.has(id)) ? 1 : 0.1
-      const pulsing = id === this.run.current && !this.reducedMotion.matches
-      stamp(id, this.glows[status], pulsing ? 1.5 + Math.sin(now / 130) * 0.3 : 1)
-    }
-    back.globalAlpha = 1
-    if (this.hover) stamp(this.hover, this.glows.hover, 0.8)
+    back.strokeStyle = this.pathColour
+    back.lineWidth = 2
+    back.globalAlpha = 0.35 + 0.45 * pulse
+    back.beginPath()
+    back.arc(point.x, point.y, (CURRENT_RING + 3 * pulse) * Math.max(0.7, zoom), 0, Math.PI * 2)
+    back.stroke()
     back.restore()
   }
 
-  // Small dim packages drift along every line in its direction, so the map reads as a machine that is running.
-  private drawPackages(frame: Frame) {
-    if (this.reducedMotion.matches) return
-    const { front } = this
-    const { zoom, pan, now } = frame
-    const size = 3.6 * Math.min(1.2, Math.max(0.8, zoom))
-    front.save()
-    for (const pack of this.packages) {
-      const { belt } = pack
-      const alpha = this.beltAlpha(belt)
-      if (alpha === 0 || (!this.spot && (!this.inFocus(belt.from) || !this.inFocus(belt.to)))) continue
-      front.globalAlpha = alpha * PACKAGE_ALPHA
-      const { route } = belt
-      const point = pointAlong(route, (((now / 1000) * BELT_SPEED) / route.length + pack.phase) % 1 * route.length)
-      front.fillStyle = belt.colour
-      front.beginPath()
-      front.roundRect(point.x * zoom + pan.x - size / 2, point.y * zoom + pan.y - size / 2, size, size, 1)
-      front.fill()
-    }
-    front.restore()
-  }
-
-  // The answer travels as an orange crate, like the packages on the factory belt.
+  // A small marker rides the front of the path while it is being drawn.
   private drawParcel(frame: Frame) {
     const parcel = this.parcel
     if (!parcel) return
     const { front } = this
-    const scale = Math.min(1.2, Math.max(0.9, frame.zoom))
-    const size = 15 * scale
+    const radius = 5 * Math.min(1.2, Math.max(0.9, frame.zoom))
     front.save()
-    front.globalCompositeOperation = 'lighter'
-    front.drawImage(this.glows.parcel, parcel.x - 38 * scale, parcel.y - 38 * scale, 76 * scale, 76 * scale)
-    front.globalCompositeOperation = 'source-over'
     front.beginPath()
-    front.roundRect(parcel.x - size / 2, parcel.y - size / 2, size, size, 3 * scale)
-    front.fillStyle = this.parcelColour
+    front.arc(parcel.x, parcel.y, radius, 0, Math.PI * 2)
+    front.fillStyle = this.pathColour
     front.fill()
-    front.lineWidth = 1.25
-    front.strokeStyle = '#7a3d0b'
-    front.stroke()
-    front.beginPath()
-    front.moveTo(parcel.x - size / 2, parcel.y)
-    front.lineTo(parcel.x + size / 2, parcel.y)
-    front.moveTo(parcel.x, parcel.y - size / 2)
-    front.lineTo(parcel.x, parcel.y + size / 2)
-    front.strokeStyle = 'rgba(255,236,206,0.75)'
-    front.lineWidth = 1.5
+    front.lineWidth = 2
+    front.strokeStyle = this.background
     front.stroke()
     front.restore()
   }

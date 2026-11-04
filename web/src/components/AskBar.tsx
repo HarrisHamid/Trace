@@ -61,7 +61,7 @@ function ExampleList({ onAsk }: { onAsk: (question: string) => void }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 6 }}
       transition={{ duration: 0.15, ease: 'easeOut' }}
-      className="glass absolute inset-x-0 bottom-full mb-1.5 bg-[rgb(12_14_21/97%)]"
+      className="glass absolute inset-x-0 bottom-full mb-1.5 bg-popover"
     >
       <p className="border-b border-border px-4 py-2 text-[11px] text-muted-foreground">
         Saved runs replay in under 20 seconds. Typed questions run live, about a minute.
@@ -75,7 +75,7 @@ function ExampleList({ onAsk }: { onAsk: (question: string) => void }) {
               autoFocus={index === 0}
               onClick={() => onAsk(example.question)}
               className={cn(
-                'block w-full px-4 py-0.5 text-left font-serif text-base text-foreground/90 transition-colors hover:bg-accent hover:text-foreground motion-reduce:transition-none',
+                'block w-full px-4 py-1 text-left text-[13px] text-foreground/90 transition-colors hover:bg-accent hover:text-foreground motion-reduce:transition-none',
                 FOCUS_RING,
               )}
             >
@@ -167,8 +167,8 @@ export function AskBar({ busy, repo, rightInset, onAsk }: AskBarProps) {
                 setQuestion('')
               }}
               disabled={busy}
-              placeholder="Ask the codebase…"
-              className="min-w-0 flex-1 bg-transparent font-serif text-xl text-foreground italic outline-none placeholder:text-muted-foreground disabled:opacity-50"
+              placeholder="Ask how something in this codebase works…"
+              className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-50"
             />
             {!hasExamples && !question && (
               <button
@@ -183,9 +183,9 @@ export function AskBar({ busy, repo, rightInset, onAsk }: AskBarProps) {
             <button
               type="submit"
               disabled={busy || !question.trim()}
-              className="flex shrink-0 items-center gap-2 bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity disabled:opacity-40"
+              className="flex shrink-0 items-center gap-2 rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity disabled:opacity-40"
             >
-              {busy ? 'Tracing' : 'Trace'}
+              {busy ? 'Running' : 'Ask'}
               <ArrowRight className="size-3.5" />
             </button>
           </div>

@@ -19,7 +19,7 @@ export function StatusGlyph({ status }: { status: Claim['status'] }) {
   )
 }
 
-const STAR = 'M7 .8 8.9 4.8 13.2 5.4 10.1 8.4 10.8 12.7 7 10.7 3.2 12.7 3.9 8.4.8 5.4 5.1 4.8Z'
+const PLAY = 'M2.5 1.5 12.5 7 2.5 12.5Z'
 const HEXAGON = 'M7 1 12.2 4V10L7 13 1.8 10V4Z'
 const DIAMOND = 'M7 1 13 7 7 13 1 7Z'
 
@@ -27,7 +27,7 @@ const DIAMOND = 'M7 1 13 7 7 13 1 7Z'
 export function NodeGlyph({ type, colour = 'var(--muted-foreground)' }: { type: GraphNode['type']; colour?: string }) {
   return (
     <svg viewBox="0 0 14 14" className="size-3.5 shrink-0" aria-hidden>
-      {type === 'route' && <path d={STAR} fill={colour} />}
+      {type === 'route' && <path d={PLAY} fill={colour} strokeLinejoin="round" />}
       {type === 'class' && <path d={HEXAGON} fill={colour} />}
       {type === 'dependency' && <path d={DIAMOND} fill={colour} />}
       {type === 'function' && <rect x="2" y="2" width="10" height="10" rx="2.5" fill={colour} />}

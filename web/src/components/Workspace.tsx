@@ -173,11 +173,9 @@ export function Workspace() {
             />
           </div>
         )}
-        <div className="plate-vignette" />
-        <div className="plate-frame" />
         {!graph && (
           <p className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">
-            {loadError ?? 'Plotting the chart…'}
+            {loadError ?? 'Loading the code graph…'}
           </p>
         )}
         {graph && scene && run && (

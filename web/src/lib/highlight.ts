@@ -7,15 +7,15 @@ import python from 'shiki/langs/python.mjs'
 const THEME: ThemeRegistration = {
   name: 'observatory',
   type: 'dark',
-  colors: { 'editor.background': '#00000000', 'editor.foreground': '#d8d5ca' },
+  colors: { 'editor.background': '#00000000', 'editor.foreground': '#e6e8eb' },
   settings: [
-    { settings: { foreground: '#d8d5ca' } },
-    { scope: ['comment', 'string.quoted.docstring'], settings: { foreground: '#767c94', fontStyle: 'italic' } },
-    { scope: ['string'], settings: { foreground: '#a9d5b5' } },
-    { scope: ['keyword', 'storage'], settings: { foreground: '#f2c46d' } },
-    { scope: ['entity.name.function', 'support.function'], settings: { foreground: '#9cc4ff' } },
-    { scope: ['entity.name.class', 'entity.name.type', 'support.type'], settings: { foreground: '#f1dfae' } },
-    { scope: ['constant', 'support.constant', 'variable.language'], settings: { foreground: '#f0a56c' } },
+    { settings: { foreground: '#e6e8eb' } },
+    { scope: ['comment', 'string.quoted.docstring'], settings: { foreground: '#7d8590', fontStyle: 'italic' } },
+    { scope: ['string'], settings: { foreground: '#a5d6ff' } },
+    { scope: ['keyword', 'storage'], settings: { foreground: '#ff7b72' } },
+    { scope: ['entity.name.function', 'support.function'], settings: { foreground: '#d2a8ff' } },
+    { scope: ['entity.name.class', 'entity.name.type', 'support.type'], settings: { foreground: '#ffa657' } },
+    { scope: ['constant', 'support.constant', 'variable.language'], settings: { foreground: '#79c0ff' } },
   ],
 }
 

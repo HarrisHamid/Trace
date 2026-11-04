@@ -54,7 +54,6 @@ export function Landing() {
   return (
     <div ref={pageRef} className="relative h-dvh w-full overflow-hidden bg-background select-none">
       <canvas ref={backRef} className="absolute inset-0 size-full" aria-hidden />
-      <div className="plate-vignette" />
 
       <main className="relative flex h-full flex-col items-center justify-center px-6 pb-12 text-center">
         <h1
@@ -91,7 +90,6 @@ export function Landing() {
           ))}
         </span>
       </footer>
-      <div className="plate-frame" />
     </div>
   )
 }

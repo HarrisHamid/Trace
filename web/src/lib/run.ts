@@ -11,11 +11,9 @@ const TOOL_HOLD_MS = 120
 // Long enough to read what was sent back, because a replay has no model call to wait for.
 const REPAIR_HOLD_MS = 2500
 
-// Bayer designations: the stars of a constellation are lettered in order, so the map and the log share one label.
-const GREEK = 'αβγδεζηθικλμνξοπρστυφχψω'
-
-export function bayer(index: number): string {
-  return GREEK[index] ?? String(index + 1)
+// Steps are numbered in order, so the map and the answer panel share one label.
+export function stepLabel(index: number): string {
+  return String(index + 1)
 }
 
 export interface Star {

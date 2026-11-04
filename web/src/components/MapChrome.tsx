@@ -29,10 +29,10 @@ export function TopBar({ graph, moduleName, file }: TopBarProps) {
   return (
     <>
       <header className="absolute top-6 left-7 flex items-baseline gap-3">
-        <a href="#/" className="font-serif text-3xl leading-none italic">
+        <a href="#/" className="text-[15px] leading-none font-semibold tracking-tight">
           Trace
         </a>
-        <span className="text-xs text-muted-foreground">
+        <span className="font-mono text-xs text-muted-foreground">
           {graph.repo} @ {graph.commit_sha.slice(0, 7)}
         </span>
         {file && (
@@ -110,7 +110,7 @@ function Toggle({ on, disabled = false, onClick, label }: ToggleProps) {
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'glass shrink-0 px-2.5 py-1.5 transition-colors hover:text-foreground disabled:opacity-50 disabled:hover:text-muted-foreground',
+        'glass shrink-0 px-2.5 py-1.5 shadow-none transition-colors hover:text-foreground disabled:opacity-50 disabled:hover:text-muted-foreground',
         on && 'border-primary/60 text-foreground',
       )}
     >
@@ -153,7 +153,7 @@ export function Legend({ graph, rightInset, hint }: LegendProps) {
         label="call lines"
       />
       <Toggle on={showWiring} onClick={() => setShowWiring(!showWiring)} label="all connections" />
-      <div className="glass flex items-center gap-4 px-3 py-1.5">
+      <div className="glass flex items-center gap-4 px-3 py-1.5 shadow-none">
         {SHAPES.filter(({ type }) => (stats.nodes_by_type[type] ?? 0) > 0).map(({ type, label }) => (
           <span key={type} className="flex items-center gap-1.5">
             <NodeGlyph type={type} />

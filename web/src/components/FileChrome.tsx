@@ -26,7 +26,7 @@ export function FileMessage({ file, page }: { file: string; page: FileGraph | nu
     <section className="absolute inset-0 grid place-items-center">
       <div className="glass max-w-md px-6 py-5">
         <p className="kicker">Nothing to graph</p>
-        <h2 className="mt-2 font-serif text-2xl leading-tight break-words">{file}</h2>
+        <h2 className="mt-2 font-mono text-base break-words">{file}</h2>
         <p className="mt-2 text-xs text-muted-foreground">
           {page ? 'This file is empty.' : 'This path is not a file in the graph.'}
         </p>

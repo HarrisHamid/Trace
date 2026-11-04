@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { StatusGlyph } from '@/components/Glyphs'
 import { isRecorded } from '@/lib/examples'
-import { bayer, type GraphNode, type RepairView, type RunView, type Star, type Tally as TallyCounts, type TraceLine } from '@/lib/run'
+import { stepLabel, type GraphNode, type RepairView, type RunView, type Star, type Tally as TallyCounts, type TraceLine } from '@/lib/run'
 import type { Scene } from '@/lib/scene'
 import { cn } from '@/lib/utils'
 import { useTraceStore } from '@/store'
@@ -93,24 +93,24 @@ function StepEntry({ star, colour, index, name, type, isLast, dashedBelow, previ
       )}
       <span
         className={cn(
-          'absolute top-0 left-0 grid size-5 place-items-center rounded-full border text-[11px]',
+          'absolute top-0 left-0 grid size-5 place-items-center rounded-full border font-mono text-[10px] font-semibold',
           star.status === 'gap' && 'border-dashed border-gap text-gap',
           star.status === 'unverified' && 'border-unverified text-unverified',
-          (star.status === 'verified' || star.status === 'visited') && 'border-primary text-primary',
-          star.status === 'verified' && 'bg-primary text-primary-foreground',
+          star.status === 'visited' && 'border-primary text-primary',
+          star.status === 'verified' && 'border-verified bg-verified text-background',
         )}
       >
-        {bayer(index)}
+        {stepLabel(index)}
       </span>
       <button onClick={() => focusNode(star.nodeId)} className="group block w-full text-left">
         <span className="flex items-baseline justify-between gap-3">
           <span className="flex min-w-0 items-center gap-2 text-xs text-foreground group-hover:text-primary">
             <span className="size-2 shrink-0 rounded-[2px]" style={{ background: colour }} />
-            <span className="truncate">{name}</span>
+            <span className="truncate font-mono">{name}</span>
           </span>
           <span className="kicker shrink-0">{star.added ? `added in repair · ${type}` : type}</span>
         </span>
-        <span className="mt-1 block font-serif text-lg leading-snug text-foreground/90">{star.text}</span>
+        <span className="mt-1 block text-[13px] leading-relaxed text-foreground/90">{star.text}</span>
       </button>
       {lit && (
         <ul className="mt-2 space-y-1.5">
@@ -150,7 +150,7 @@ function Trace({ traces, running }: { traces: TraceLine[]; running: boolean }) {
       {(running || expanded) && (
         <ol data-testid="events" className="space-y-0.5 text-[10px] leading-relaxed text-muted-foreground">
           {visible.map((trace) => (
-            <li key={trace.index} className="truncate">
+            <li key={trace.index} className="truncate font-mono">
               {trace.name}: {trace.args}
               {trace.summary && ` … ${trace.summary}`}
             </li>
@@ -239,16 +239,16 @@ function RepairPanel({ repair, onFocus }: { repair: RepairView; onFocus: (nodeId
 function RunStatus({ phase, recorded }: { phase: RunView['phase']; recorded: boolean }) {
   if (phase === 'walking') {
     return (
-      <p role="status" className="flex items-center gap-2 font-serif text-xl leading-none text-primary italic">
-        <LoaderCircle aria-hidden className="size-5 animate-spin motion-reduce:animate-none" />
-        {recorded ? 'Replaying a saved run' : 'Agent is cooking'}
+      <p role="status" className="flex items-center gap-2 text-[13px] font-medium text-primary">
+        <LoaderCircle aria-hidden className="size-4 animate-spin motion-reduce:animate-none" />
+        {recorded ? 'Replaying a recorded run' : 'Agent is investigating'}
       </p>
     )
   }
   return (
     <p className="kicker flex items-center gap-2" aria-live="polite">
       {phase === 'revealing' && <span className="size-1.5 animate-pulse rounded-full bg-primary motion-reduce:animate-none" />}
-      {phase === 'revealing' ? 'Tracing' : recorded ? 'Recorded run' : 'Observation log'}
+      {phase === 'revealing' ? 'Drawing the answer' : recorded ? 'Recorded run' : 'Live run'}
     </p>
   )
 }
@@ -274,7 +274,7 @@ export function ObservationLog({ run, scene, nodesById, onExit }: ObservationLog
 
   return (
     <motion.aside
-      aria-label="Observation log"
+      aria-label="Answer"
       initial={{ x: 32, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 32, opacity: 0 }}
@@ -287,14 +287,14 @@ export function ObservationLog({ run, scene, nodesById, onExit }: ObservationLog
           <RunStatus phase={run.phase} recorded={isRecorded(run.question)} />
           <button
             onClick={onExit}
-            className="flex shrink-0 items-center gap-1.5 border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"
+            className="flex shrink-0 items-center gap-1.5 rounded border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"
           >
             <X aria-hidden className="size-3.5" />
-            Exit walkthrough
+            Close
             <kbd className="border border-border px-1 text-[10px]">esc</kbd>
           </button>
         </div>
-        <h2 className="mt-1.5 font-serif text-3xl leading-tight">{run.question}</h2>
+        <h2 className="mt-1.5 text-lg leading-snug font-semibold">{run.question}</h2>
         {run.repair ? <RepairPanel repair={run.repair} onFocus={focusNode} /> : run.tally && <Tally tally={run.tally} />}
         <Trace traces={run.traces} running={running} />
       </header>

@@ -131,9 +131,9 @@ function BlockCard({ block, order, stage, colour, tokens, glyph, dimmed, chosen,
         width: block.width,
         height: block.height,
         pointerEvents: foreign && stage !== 'wired' ? 'none' : undefined,
-        border: `1px ${block.kind === 'unknown' ? 'dashed' : 'solid'} ${boxed ? (chosen ? 'var(--foreground)' : lit ? 'rgb(196 206 232 / 55%)' : 'rgb(196 206 232 / 18%)') : 'transparent'}`,
-        background: boxed ? 'linear-gradient(180deg, rgb(27 31 44 / 96%), rgb(15 17 26 / 96%))' : 'transparent',
-        boxShadow: boxed && spread ? '0 10px 24px rgb(0 0 0 / 40%)' : 'none',
+        border: `1px ${block.kind === 'unknown' ? 'dashed' : 'solid'} ${boxed ? (chosen ? 'var(--foreground)' : lit ? 'var(--muted-foreground)' : 'var(--border)') : 'transparent'}`,
+        background: boxed ? 'var(--card)' : 'transparent',
+        boxShadow: boxed && spread ? '0 8px 20px rgb(0 0 0 / 30%)' : 'none',
         transition: 'border-color 240ms, background 320ms, box-shadow 320ms',
         transitionDelay: stage === 'boxed' ? `${order * BOX_STAGGER_MS}ms` : '0ms',
       }}
@@ -142,7 +142,7 @@ function BlockCard({ block, order, stage, colour, tokens, glyph, dimmed, chosen,
         className="flex items-center gap-2.5 border-b px-3.5"
         style={{
           height: HEADER_HEIGHT,
-          borderColor: boxed ? 'rgb(196 206 232 / 12%)' : 'transparent',
+          borderColor: boxed ? 'var(--border)' : 'transparent',
           boxShadow: boxed ? `inset 0 2px 0 ${colour}` : 'none',
           opacity: boxed ? 1 : 0,
           transition: 'opacity 280ms',
@@ -151,7 +151,7 @@ function BlockCard({ block, order, stage, colour, tokens, glyph, dimmed, chosen,
       >
         {glyph && <NodeGlyph type={glyph} colour={colour} />}
         <div className="min-w-0 flex-1">
-          <h3 className="truncate font-serif text-xl leading-tight text-foreground">{block.title}</h3>
+          <h3 className="truncate font-mono text-sm font-semibold text-foreground">{block.title}</h3>
           <p className="truncate text-[10px] text-muted-foreground">
             {block.kicker}
             {block.kind !== 'unknown' && lineCount > 0 && ` · lines ${block.start}–${block.end + block.clipped}`}
@@ -184,7 +184,7 @@ function BlockCard({ block, order, stage, colour, tokens, glyph, dimmed, chosen,
             <CodeLine key={line} tokens={tokens?.[line - 1]} marked={!foreign && markedLines.has(line)} />
           ))}
           {block.clipped > 0 && (
-            <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0f111a] to-transparent px-3.5 pt-5 pb-1.5 text-[10px] text-muted-foreground">
+            <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-card to-transparent px-3.5 pt-5 pb-1.5 text-[10px] text-muted-foreground">
               {block.clipped} more lines
             </p>
           )}
@@ -211,8 +211,8 @@ function CallersCard({ card, shown, dimmed, chosen, onChoose, onOpen }: { card: 
         width: card.width,
         height: card.height,
         pointerEvents: shown ? undefined : 'none',
-        border: `1px solid ${chosen ? 'var(--foreground)' : 'rgb(196 206 232 / 18%)'}`,
-        background: 'rgb(15 17 26 / 92%)',
+        border: `1px solid ${chosen ? 'var(--foreground)' : 'var(--border)'}`,
+        background: 'var(--card)',
       }}
     >
       <header className="flex items-center px-3.5" style={{ height: CARD_HEADER }}>
@@ -450,7 +450,7 @@ export function FileBlocks({ page, colourOf, animated, camera, onOpenFile }: Fil
       }}
       className="absolute inset-0 cursor-grab overflow-hidden bg-background select-none active:cursor-grabbing"
       style={{
-        backgroundImage: 'radial-gradient(rgb(196 206 232 / 9%) 1px, transparent 1px)',
+        backgroundImage: 'radial-gradient(rgb(230 232 235 / 6%) 1px, transparent 1px)',
         backgroundSize: '26px 26px',
       }}
     >
@@ -463,7 +463,7 @@ export function FileBlocks({ page, colourOf, animated, camera, onOpenFile }: Fil
               initial={false}
               animate={{ opacity: stage === 'wired' ? 1 : 0 }}
               className="absolute rounded-xl border border-dashed"
-              style={{ left: box.x, top: box.y, width: box.width, height: box.height, borderColor: 'rgb(241 223 174 / 28%)' }}
+              style={{ left: box.x, top: box.y, width: box.width, height: box.height, borderColor: 'rgb(230 232 235 / 20%)' }}
             />
           ))}
           {built.cards.map((card) => (
