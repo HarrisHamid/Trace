@@ -13,7 +13,7 @@ Trace turns a Python repo into an interactive graph, then lets an AI agent answe
 
 ## Main features
 
-- **Any public Python repo:** the Repositories page takes a GitHub URL, clones it, finds where its imports start and builds the graph in seconds. Switch between repos from the breadcrumb.
+- **Any public Python repo:** the Repositories page takes a GitHub URL, clones it, finds where its imports start and builds the graph in seconds. Switch between repos from the breadcrumb, and delete one you added from the same page.
 - **Codebase view:** modules and files as a map of the repo.
 - **Click to code:** click any node to open the exact file and line in a code panel.
 - **Ask the codebase:** ask "How does a user log in?" and watch the agent trace the answer node by node across the map. Every claim shows whether it was verified, and links to the line that proves it. Edges the parser could not resolve are dashed.

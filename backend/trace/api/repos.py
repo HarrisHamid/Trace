@@ -222,12 +222,22 @@ class Repos:
         task.add_done_callback(self.tasks.discard)
         return RepoSummary(id=repo_id, repo=f"{owner}/{name}", url=clean_url, root=root, step=job.step)
 
-    def dismiss(self, repo_id: str) -> None:
-        """Drops a failed attempt. Ready repos are left alone: removing data is not something a click should do."""
+    def remove(self, repo_id: str) -> None:
+        """Drops a failed attempt, or deletes an added repo: its graph and its clone. The startup repo is not Trace's to
+        delete, so it raises IngestError; an unknown id, or one still being added, raises KeyError."""
+        if repo_id == self.builtin.id:
+            raise IngestError("The repo the server started with can't be deleted.")
         job = self.jobs.get(repo_id)
-        if job is None or job.step != "failed":
+        if job is not None:
+            if job.step != "failed":
+                raise KeyError(repo_id)
+            del self.jobs[repo_id]
+            return
+        # Only a folder the listing found is deleted, so the id can never point outside the repos dir.
+        found = next((repo for repo in self.added() if repo.id == repo_id), None)
+        if found is None:
             raise KeyError(repo_id)
-        del self.jobs[repo_id]
+        shutil.rmtree(found.data_dir)
 
     def ingest(self, job: Job) -> None:
         target = self.repos_dir / job.id

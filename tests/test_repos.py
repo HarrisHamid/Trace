@@ -122,6 +122,34 @@ async def test_a_failed_clone_is_shown_and_can_be_dismissed(tmp_path, monkeypatc
 
 
 @pytest.mark.anyio
+async def test_an_added_repo_can_be_deleted(tmp_path, no_network):
+    async with client_for(tmp_path) as client:
+        repo_id = (await client.post("/api/repos", json={"url": URL})).json()["id"]
+        await wait_until_settled(client, repo_id)
+        assert (tmp_path / "repos" / repo_id).is_dir()
+        assert (await client.delete(f"/api/repos/{repo_id}")).status_code == 204
+        assert [repo["id"] for repo in (await client.get("/api/repos")).json()] != [repo_id]
+        assert len((await client.get("/api/repos")).json()) == 1
+        assert (await client.get("/api/graph", params={"repo": repo_id})).status_code == 404
+        # And it can be added again.
+        again = await client.post("/api/repos", json={"url": URL})
+        assert again.status_code == 202
+        assert (await wait_until_settled(client, repo_id))["step"] == "ready"
+    assert (tmp_path / "repos" / repo_id).is_dir()
+
+
+@pytest.mark.anyio
+async def test_the_startup_repo_cannot_be_deleted(tmp_path):
+    async with client_for(tmp_path) as client:
+        builtin = (await client.get("/api/repos")).json()[0]["id"]
+        response = await client.delete(f"/api/repos/{builtin}")
+        assert response.status_code == 400
+        assert "can't be deleted" in response.json()["detail"]
+        assert (await client.delete("/api/repos/nope")).status_code == 404
+        assert len((await client.get("/api/repos")).json()) == 1
+
+
+@pytest.mark.anyio
 async def test_a_root_with_no_such_folder_fails_with_a_reason(tmp_path, no_network):
     async with client_for(tmp_path) as client:
         repo_id = (await client.post("/api/repos", json={"url": URL, "root": "nowhere"})).json()["id"]
